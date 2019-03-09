@@ -1,6 +1,8 @@
 .idea
 # ignore cmake build & libraries
 cmake-build-debug/
+build/
+api/
 
 # Prerequisites
 *.d

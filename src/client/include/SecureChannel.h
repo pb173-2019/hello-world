@@ -1,32 +1,46 @@
-//
-// Created by horak_000 on 8. 3. 2019.
-//
+/**
+ * @file SecureChannel.h
+ * @author Jiří Horák (469130@mail.muni.cz)
+ * @brief Secure channel interface
+ * @version 0.1
+ * @date 2019-03-08
+ *
+ * @copyright Copyright (c) 2019
+ *
+ */
 
-#ifndef HELLO_WORLD_SECURECHANNEL_H
-#define HELLO_WORLD_SECURECHANNEL_H
+#ifndef HW_CLIENT_INCLUDE_SECURECHANNEL_H_
+#define HW_CLIENT_INCLUDE_SECURECHANNEL_H_
+
+#include <string>
+
+namespace helloworld {
 
 class SecureChannel {
+ public:
+  /**
+   * @brief Create secure channel
+   *
+   * @param id user id
+   */
+  SecureChannel(long id);
 
-public:
+  /**
+   * @brief Send data package
+   *
+   * @param message message to send
+   */
+  void send(const std::string& message);
 
-    /**
-     * Create secure channel
-     * @param id user id
-     */
-    SecureChannel(long id);
-
-    /**
-     * Send data package
-     * @msg message to send
-     */
-    void send(const std::string& msg);
-
-    /**
-     * Request message from user
-     * @msg message to send
-     * @msgId message id to receive
-     */
-    std::string receive(long msgId);
+  /**
+   * @brief Request message from user
+   *
+   * @param messageId message id to receive
+   * @return std::string message text
+   */
+  std::string receive(long messageId);
 };
 
-#endif //HELLO_WORLD_SECURECHANNEL_H
+}  // namespace helloworld
+
+#endif  // HELLO_WORLD_SECURECHANNEL_H

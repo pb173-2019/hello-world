@@ -1,44 +1,53 @@
-//
-// Created by horak_000 on 8. 3. 2019.
-//
+/**
+ * @file ISymmetricCipher.h
+ * @author Jiří Horák (469130@mail.muni.cz)
+ * @brief Server interface
+ * @version 0.1
+ * @date 2019-03-08
+ *
+ * @copyright Copyright (c) 2019
+ *
+ */
 
-#ifndef HELLO_WORLD_SERVER_H
-#define HELLO_WORLD_SERVER_H
+#ifndef HW_SERVER_INCLUDE_SERVER_H_
+#define HW_SERVER_INCLUDE_SERVER_H_
+
+namespace helloworld {
 
 struct Request {
-    RequestType type;
+  RequestType type;
 };
 
 struct Response {
-    bool successful;
-    size_t size;
-
+  bool successful;
+  size_t size;
 };
-
 
 class Server {
+ public:
+  /**
+   * @brief Handle incoming request on user port
+   *
+   * @param request request from user
+   * @return Response response data
+   */
+  Response handleUserRequest(const Request &request);
 
-public:
+  /**
+   * @brief Handle incoming request for system on system port
+   *
+   * @return long connection id
+   */
+  long establishConnection();
 
-    /**
-     * Handle incoming request on user port
-     * @param request from user
-     * @return response data
-     */
-    Response handleUserRequest(const Request &request);
-
-    /**
-     * Handle incoming request for system on system port
-     * @return connection id
-     */
-    long establishConnection();
-
-    /**
-     * Terminate connection
-     * @param cid connection id
-     */
-    void terminateConnection(long cid);
+  /**
+   * @brief Terminate connection
+   *
+   * @param cid connection id
+   */
+  void terminateConnection(long cid);
 };
 
+}  // namespace helloworld
 
-#endif //HELLO_WORLD_SERVER_H
+#endif  // HW_SERVER_INCLUDE_SERVER_H_

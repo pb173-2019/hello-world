@@ -1,27 +1,13 @@
 language: cpp
 
 compiler:
+  - gcc
   - clang
 
-# for GCC v5
-#install: export CXX="g++-5"
-#addons:
-#  apt:
-#    sources:
-#      - ubuntu-toolchain-r-test
-#    packages:
-#      - g++-5
-#notifications:
-#  email:
-#    on_success: never
-#    on_failure: always
-#
-#before_install: sudo apt-get update -qq
-
 before_script:
+  - cd src
   - mkdir build
   - cd build
   - cmake ..
 
-script: make && make test ARGS="-V"
-#make CTEST_OUTPUT_ON_FAILURE=1 test
+script: make all test

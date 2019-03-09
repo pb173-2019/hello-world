@@ -8,8 +8,9 @@
  * @copyright Copyright (c) 2019
  *
  */
-#ifndef HW_CLIENT_INCLUDE_ISYMMETRICCIPHER_H_
-#define HW_CLIENT_INCLUDE_ISYMMETRICCIPHER_H_
+
+#ifndef HW_SECURITY_INCLUDE_ISYMMETRICCIPHER_H_
+#define HW_SECURITY_INCLUDE_ISYMMETRICCIPHER_H_
 
 #include <string>
 #include <vector>
@@ -71,4 +72,4 @@ class ISymmetricCipher {
 
 }  // namespace helloworld
 
-#endif  // HW_CLIENT_INCLUDE_ISYMMETRICCIPHER_H_
+#endif  // HW_SECURITY_INCLUDE_ISYMMETRICCIPHER_H_
