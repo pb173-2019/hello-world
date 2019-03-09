@@ -1,6 +1,6 @@
 
 set( SOURCE
-        serverAPI.h )
+        include/serverAPI.h)
 
 add_executable(server ${SOURCE})
 
