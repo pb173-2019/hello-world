@@ -5,7 +5,4 @@
 #ifndef WASSUP_CLIENT_H
 #define WASSUP_CLIENT_H
 
-
-
-
-#endif //WASSUP_CLIENT_H
+#endif  // WASSUP_CLIENT_H
