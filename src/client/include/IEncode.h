@@ -1,12 +1,23 @@
-//
-// Created by horak_000 on 7. 3. 2019.
-//
-
-#ifndef ENCODER_INTERFACE
-#define ENCODER_INTERFACE
+/**
+ * @file IEncode.h
+ * @author Jiří Horák (469130@mail.muni.cz)
+ * @brief Base64 encoder interface
+ * @version 0.1
+ * @date 2019-03-07
+ *
+ * @copyright Copyright (c) 2019
+ *
+ */
+#ifndef HW_CLIENT_INCLUDE_IENCODE_H_
+#define HW_CLIENT_INCLUDE_IENCODE_H_
 
 #include <string>
 #include <vector>
+
+namespace helloworld {
+
+// Alias for default - type - encoder, to get rid of templates
+using Base64Encoder = IEncode<std::string, std::vector<unsigned char>>;
 
 template <typename raw, typename encoded>
 class IEncode {
@@ -16,23 +27,22 @@ class IEncode {
   virtual ~IEncode() = default;
 
   /**
-   * Encode the given data to prevent system ambiguity
+   * @brief Encode the given data to prevent system ambiguity
+   *
    * @param message message to encode
-   * @return encoded data
+   * @return encoded encoded data
    */
   virtual encoded encode(const raw& message) = 0;
 
   /**
-   * Decode the given data to human - readable form
+   * @brief Decode the given data to human-readable form
+   *
    * @param data data to decode
-   * @return decoded message
+   * @return raw decoded message
    */
   virtual raw decode(const encoded& data) = 0;
 };
 
-/**
- * Alias for default - type - encoder, to get rid of templates
- */
-using Base64Encoder = IEncode<std::string, std::vector<unsigned char>>;
+}  // namespace helloworld
 
-#endif  // ENCODER_INTERFACE
+#endif  // HW_CLIENT_INCLUDE_IENCODE_H_

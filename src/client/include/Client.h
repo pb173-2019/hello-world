@@ -1,8 +1,4 @@
-//
-// Created by horak_000 on 8. 3. 2019.
-//
+#ifndef HW_CLIENT_INCLUDE_CLIENT_H_
+#define HW_CLIENT_INCLUDE_CLIENT_H_
 
-#ifndef WASSUP_CLIENT_H
-#define WASSUP_CLIENT_H
-
-#endif  // WASSUP_CLIENT_H
+#endif  // HW_CLIENT_INCLUDE_CLIENT_H_
