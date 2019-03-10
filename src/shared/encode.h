@@ -17,9 +17,6 @@
 
 namespace helloworld {
 
-// Alias for default type encoder to get rid of templates
-using Base64Encoder = Encode<std::string, std::vector<unsigned char>>;
-
 template <typename raw, typename encoded>
 class Encode {
  public:
@@ -43,6 +40,9 @@ class Encode {
    */
   virtual raw decode(const encoded& data) = 0;
 };
+
+// Alias for default type encoder to get rid of templates
+using Base64Encoder = Encode<std::string, std::vector<unsigned char>>;
 
 }  // namespace helloworld
 

@@ -17,8 +17,11 @@
 
 namespace helloworld {
 
+enum class Padding;
+
 class SymmetricCipher {
- public:
+public:
+  SymmetricCipher() = default;
   // Copying is not available
   SymmetricCipher(const SymmetricCipher &other) = delete;
   SymmetricCipher &operator=(const SymmetricCipher &other) = delete;
@@ -36,7 +39,7 @@ class SymmetricCipher {
    *
    * @return std::string key associated with cipher instance
    */
-  virtual std::string getKey() = 0;
+  virtual const std::string& getKey() = 0;
 
   /**
    * @brief Set custom iv for cipher, generated random if not present
@@ -50,24 +53,31 @@ class SymmetricCipher {
    *
    * @return std::string iv associated with cipher instance
    */
-  virtual std::string getIv() = 0;
+  virtual const std::string& getIv() = 0;
+
+  /**
+   * @brief Set cipher padding
+   *
+   * @param p padding to set
+   */
+  virtual void setPadding(Padding p) = 0;
 
   /**
    * @brief Encrypt given message with key given (iv is generated if not
    * present)
    *
-   * @param msg message to encrypt
-   * @return std::vector<unsigned char> encrypted message
+   * @param in data to encrypt
+   * @param out enrypted data
    */
-  virtual std::vector<unsigned char> encrypt(const std::string &msg) = 0;
+  virtual void encrypt(std::istream &in, std::ostream& out) = 0;
 
   /**
    * @brief Decrypt data with key and iv given (throws if iv not present)
    *
-   * @param data data to decrypt
-   * @return std::string original message
+   * @param in data to decrypt
+   * @param out decrypted data
    */
-  virtual std::string decrypt(const std::vector<unsigned char> &data) = 0;
+  virtual void decrypt(std::istream &in, std::ostream& out) = 0;
 };
 
 }  // namespace helloworld
