@@ -5,9 +5,8 @@ compiler:
   - clang
 
 before_script:
-  - cd src
   - mkdir build
   - cd build
   - cmake ..
 
-script: make all test
+script: make
