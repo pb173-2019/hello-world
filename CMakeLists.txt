@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.12)
 
 project(helloworld)
 
+set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # mbedtls settings
 add_compile_definitions(MBEDTLS_CONFIG_FILE=<config.h>)
 SET(ENABLE_PROGRAMS OFF CACHE BOOL "Build mbed TLS programs.")
