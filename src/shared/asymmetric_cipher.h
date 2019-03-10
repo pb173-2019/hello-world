@@ -1,5 +1,5 @@
 /**
- * @file IAsymmetricCipher.h
+ * @file asymmetric_cipher.h
  * @author Jiří Horák (469130@mail.muni.cz)
  * @brief Asymmetric cipher (e.g. RSA) interface
  * @version 0.1
@@ -9,20 +9,20 @@
  *
  */
 
-#ifndef HW_SECURITY_INCLUDE_IASYMMETRICCIPHER_H_
-#define HW_SECURITY_INCLUDE_IASYMMETRICCIPHER_H_
+#ifndef HELLOWORLD_SHARED_ASYMMETRICCIPHER_H_
+#define HELLOWORLD_SHARED_ASYMMETRICCIPHER_H_
 
 #include <string>
 #include <vector>
 
 namespace helloworld {
 
-class IAsymmetricCipher {
+class AsymmetricCipher {
  public:
   // Copying is not available
-  IAsymmetricCipher(const IAsymmetricCipher &other) = delete;
-  IAsymmetricCipher &operator=(const IAsymmetricCipher &other) = delete;
-  virtual ~IAsymmetricCipher() = default;
+  AsymmetricCipher(const AsymmetricCipher &other) = delete;
+  AsymmetricCipher &operator=(const AsymmetricCipher &other) = delete;
+  virtual ~AsymmetricCipher() = default;
 
   /**
    * @brief Set key for operation specified
@@ -69,4 +69,4 @@ class IAsymmetricCipher {
 
 }  // namespace helloworld
 
-#endif  // HW_SECURITY_INCLUDE_IASYMMETRICCIPHER_H_
+#endif  // HELLOWORLD_SHARED_ASYMMETRICCIPHER_H_

@@ -1,5 +1,5 @@
 /**
- * @file IEncode.h
+ * @file encode.h
  * @author Jiří Horák (469130@mail.muni.cz)
  * @brief Base64 encoder interface
  * @version 0.1
@@ -9,23 +9,23 @@
  *
  */
 
-#ifndef HW_SECURITY_INCLUDE_IENCODE_H_
-#define HW_SECURITY_INCLUDE_IENCODE_H_
+#ifndef HELLOWORLD_SHARED_ENCODE_H_
+#define HELLOWORLD_SHARED_ENCODE_H_
 
 #include <string>
 #include <vector>
 
 namespace helloworld {
 
-// Alias for default - type - encoder, to get rid of templates
-using Base64Encoder = IEncode<std::string, std::vector<unsigned char>>;
+// Alias for default type encoder to get rid of templates
+using Base64Encoder = Encode<std::string, std::vector<unsigned char>>;
 
 template <typename raw, typename encoded>
-class IEncode {
+class Encode {
  public:
-  IEncode(const IEncode& other) = delete;
-  IEncode& operator=(const IEncode& other) = delete;
-  virtual ~IEncode() = default;
+  Encode(const Encode& other) = delete;
+  Encode& operator=(const Encode& other) = delete;
+  virtual ~Encode() = default;
 
   /**
    * @brief Encode the given data to prevent system ambiguity
@@ -46,4 +46,4 @@ class IEncode {
 
 }  // namespace helloworld
 
-#endif  // HW_SECURITY_INCLUDE_IENCODE_H_
+#endif  // HELLOWORLD_SHARED_ENCODE_H_
