@@ -33,7 +33,7 @@ TEST_CASE("HexUtils") {
 TEST_CASE("SHA-512") {
     //from https://www.di-mgt.com.au/sha_testvectors.html
 
-    SHA512 hash = SHA512{};
+    SHA512 hash{};
 
     SECTION("ABC") {
         std::stringstream abc{"abc"};

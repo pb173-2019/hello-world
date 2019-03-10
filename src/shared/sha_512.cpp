@@ -13,12 +13,11 @@ namespace helloworld {
             if (mbedtls_sha512_update_ret(&_context, input, in_len) != 0) {
                 throw std::runtime_error("Failed to update hash.");
             }
-
-            unsigned char result[64];
-            if (mbedtls_sha512_finish_ret(&_context, result) != 0) {
-                throw std::runtime_error("Failed to finish hash.");
-            }
-            return HexUtils::bin_to_hex(result, 64);
         }
+        unsigned char result[64];
+        if (mbedtls_sha512_finish_ret(&_context, result) != 0) {
+            throw std::runtime_error("Failed to finish hash.");
+        }
+        return HexUtils::bin_to_hex(result, 64);
     }
 }
