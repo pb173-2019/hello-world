@@ -1,5 +1,5 @@
 /**
- * @file Client.h
+ * @file client.h
  * @author Jiří Horák (469130@mail.muni.cz)
  * @brief Client interface
  * @version 0.1
@@ -9,14 +9,14 @@
  *
  */
 
-#ifndef HW_CLIENT_INCLUDE_CLIENT_H_
-#define HW_CLIENT_INCLUDE_CLIENT_H_
+#ifndef HELLOWORLD_CLIENT_CLIENT_H_
+#define HELLOWORLD_CLIENT_CLIENT_H_
 
 #include <string>
 #include <vector>
 
-#include "Connection.h"
-#include "SecureChannel.h"
+#include "connection.h"
+#include "secure_channel.h"
 
 namespace helloworld {
 
@@ -27,11 +27,11 @@ struct UserData {
 
 class Client {
   // specific connection
-  Connection connection;
+  Connection _connection;
 
  public:
   /**
-   * @brief Connect user to the server with given info
+   * @brief Connect user to the server with given info.
    *
    * @param username name of user
    * @param password password of user
@@ -39,8 +39,7 @@ class Client {
   void login(const std::string& username, const std::string& password);
 
   /**
-   * @brief Log out the user from server
-   *
+   * @brief Log out the user from server.
    */
   void logout();
 
@@ -54,7 +53,6 @@ class Client {
 
   /**
    * @brief Permanently deletes the user from server
-   *
    */
   void deleteAccount();
 
@@ -69,4 +67,4 @@ class Client {
 
 }  // namespace helloworld
 
-#endif  // HW_CLIENT_INCLUDE_CLIENT_H_
+#endif  // HELLOWORLD_CLIENT_CLIENT_H_

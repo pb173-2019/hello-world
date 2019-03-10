@@ -1,5 +1,5 @@
 /**
- * @file ISymmetricCipher.h
+ * @file symmetric_cipher.h
  * @author Jiří Horák (469130@mail.muni.cz)
  * @brief Symmetric cipher (e.g. AES) interface
  * @version 0.1
@@ -9,20 +9,20 @@
  *
  */
 
-#ifndef HW_SECURITY_INCLUDE_ISYMMETRICCIPHER_H_
-#define HW_SECURITY_INCLUDE_ISYMMETRICCIPHER_H_
+#ifndef HELLOWORLD_SHARED_SYMMETRICCIPHER_H_
+#define HELLOWORLD_SHARED_SYMMETRICCIPHER_H_
 
 #include <string>
 #include <vector>
 
 namespace helloworld {
 
-class ISymmetricCipher {
+class SymmetricCipher {
  public:
   // Copying is not available
-  ISymmetricCipher(const ISymmetricCipher &other) = delete;
-  ISymmetricCipher &operator=(const ISymmetricCipher &other) = delete;
-  virtual ~ISymmetricCipher() = default;
+  SymmetricCipher(const SymmetricCipher &other) = delete;
+  SymmetricCipher &operator=(const SymmetricCipher &other) = delete;
+  virtual ~SymmetricCipher() = default;
 
   /**
    * @brief Set cipher key
@@ -72,4 +72,4 @@ class ISymmetricCipher {
 
 }  // namespace helloworld
 
-#endif  // HW_SECURITY_INCLUDE_ISYMMETRICCIPHER_H_
+#endif  // HELLOWORLD_SHARED_SYMMETRICCIPHER_H_

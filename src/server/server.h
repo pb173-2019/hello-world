@@ -1,5 +1,5 @@
 /**
- * @file ISymmetricCipher.h
+ * @file server.h
  * @author Jiří Horák (469130@mail.muni.cz)
  * @brief Server interface
  * @version 0.1
@@ -9,8 +9,12 @@
  *
  */
 
-#ifndef HW_SERVER_INCLUDE_SERVER_H_
-#define HW_SERVER_INCLUDE_SERVER_H_
+#ifndef HELLOWORLD_SERVER_SERVER_H_
+#define HELLOWORLD_SERVER_SERVER_H_
+
+#include <string>
+
+#include "shared/request_type.h"
 
 namespace helloworld {
 
@@ -50,4 +54,4 @@ class Server {
 
 }  // namespace helloworld
 
-#endif  // HW_SERVER_INCLUDE_SERVER_H_
+#endif  // HELLOWORLD_SERVER_SERVER_H_

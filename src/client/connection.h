@@ -1,5 +1,5 @@
 /**
- * @file Connection.h
+ * @file connection.h
  * @author Jiří Horák (469130@mail.muni.cz)
  * @brief Connection interface
  * @version 0.1
@@ -9,12 +9,15 @@
  *
  */
 
-#ifndef HW_CLIENT_INCLUDE_CONNECTION_H_
-#define HW_CLIENT_INCLUDE_CONNECTION_H_
+#ifndef HELLOWORLD_CLIENT_CONNECTION_H_
+#define HELLOWORLD_CLIENT_CONNECTION_H_
+
+#include <string>
+
+#include "secure_channel.h"
+#include "shared/request_type.h"
 
 namespace helloworld {
-
-enum class RequestType { LOGIN, LOGOUT, CREATE, DELETE, SEND, RECEIVE, FIND };
 
 struct Request {
   RequestType type;
@@ -28,17 +31,23 @@ struct Response {
 class Connection {
  public:
   /**
-   * @brief Connect user to the server with given info
+   * @brief Connect user to server with given info.
    *
    * @param address address of the server
    */
-  Connection(const std::string& address);
+  explicit Connection(const std::string& address);
 
-  // Disconnects from server
+  Connection(const Connection&) = delete;
+  Connection& operator=(const Connection&) = default;
+
+  /**
+   * @brief Disconnect user from server.
+   *
+   */
   ~Connection();
 
   /**
-   * @brief Request generic operation of server
+   * @brief Request generic operation of server.
    *
    * @param request request
    * @return Response response object
@@ -48,20 +57,20 @@ class Connection {
   /**
    * @brief Establish secure channel with other user. Will use X3DH protocol.
    *
-   * @param id  id of user to establish the secure channel with
+   * @param id id of user to establish the secure channel with
    * @return SecureChannel secure channel instance
    */
   SecureChannel openSecureChannel(long id);
 
   /**
-   * @brief Close secure channel with user
+   * @brief Close secure channel with user.
    *
    * @param id user id
    */
   void closeSecureChannel(long id);
 
   /**
-   * @brief Send message to the user
+   * @brief Send message to the user.
    *
    * @param message message body
    * @param id user id to send message to
@@ -71,4 +80,4 @@ class Connection {
 
 }  // namespace helloworld
 
-#endif  // HELLO_WORLD_CONNECTION_H
+#endif  // HELLOWORLD_CLIENT_CONNECTION_H_

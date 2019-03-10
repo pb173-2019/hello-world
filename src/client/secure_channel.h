@@ -1,5 +1,5 @@
 /**
- * @file SecureChannel.h
+ * @file secure_channel.h
  * @author Jiří Horák (469130@mail.muni.cz)
  * @brief Secure channel interface
  * @version 0.1
@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef HW_CLIENT_INCLUDE_SECURECHANNEL_H_
-#define HW_CLIENT_INCLUDE_SECURECHANNEL_H_
+#ifndef HELLOWORLD_CLIENT_SECURECHANNEL_H_
+#define HELLOWORLD_CLIENT_SECURECHANNEL_H_
 
 #include <string>
 
@@ -23,7 +23,7 @@ class SecureChannel {
    *
    * @param id user id
    */
-  SecureChannel(long id);
+  explicit SecureChannel(long id);
 
   /**
    * @brief Send data package
@@ -43,4 +43,4 @@ class SecureChannel {
 
 }  // namespace helloworld
 
-#endif  // HELLO_WORLD_SECURECHANNEL_H
+#endif  // HELLOWORLD_CLIENT_SECURECHANNEL_H_

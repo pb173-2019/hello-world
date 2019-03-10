@@ -1,6 +1,6 @@
+project(server)
 
-set( SOURCE
-        include/serverAPI.h)
-
-add_executable(server ${SOURCE})
-
+add_executable(${PROJECT_NAME} main.cpp)
+target_link_libraries(${PROJECT_NAME}
+  mbedcrypto
+)
