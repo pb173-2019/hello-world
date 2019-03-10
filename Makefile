@@ -1,4 +1,4 @@
-default: build
+default: all
 
 all: api build
 
@@ -7,7 +7,7 @@ api:
 
 build:
 	mkdir build
-	cd build && cmake ../src && make
+	cd build && cmake .. && make
 
 .PHONY: clean
 clean:

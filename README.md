@@ -1,5 +1,14 @@
 # Hello, world!
 
-C++ WhatsApp 
+C++ WhatsApp
+============
 
-library: windows compiled with cigwin environment, linux with clang 5.0.0
+Build
+-----
+- `git clone https://github.com/pb173-2019/hello-world.git`
+- `cd hello-world`
+- `git submodule init`
+- `git submodule update`
+- `mkdir build && cd build`
+- `cmake ..`
+- `make`
