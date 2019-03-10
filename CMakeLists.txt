@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
 
-enable_testing()
-
 project(helloworld)
 
 # mbedtls settings
@@ -16,5 +14,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/include/mbedtls/include)
 
 add_subdirectory(include/mbedtls)
-add_subdirectory(src/client)
-add_subdirectory(src/server)
+add_subdirectory(src)
+
+enable_testing()
+add_subdirectory (test)
