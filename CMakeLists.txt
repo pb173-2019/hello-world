@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.12)
 
 project(helloworld)
 
-set (CMAKE_CXX_STANDARD 17)
+#set (CMAKE_CXX_STANDARD 17) 17 cannot compile catch
+set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # mbedtls settings

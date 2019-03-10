@@ -102,7 +102,7 @@ TEST_CASE("ENCRYPT: AES-128 | CBC | 16 byte msg | PADDING none | bin output") {
         aes128.setIv("00000000000000000000000000000000");
 
         unsigned char bytes[16];
-        HexUtils::hex_to_bin(HexUtils::toUpper("00000000000000000000000000000000"), bytes);
+        HexUtils::hex_to_bin("00000000000000000000000000000000", bytes);
         input.write((char *) bytes, 16);
         result = "0edd33d3c621e546455bd8ba1418bec8";
     }
