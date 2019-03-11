@@ -68,23 +68,22 @@ namespace helloworld {
             } else {
                 throw std::runtime_error("IV is missing.");
             }
-        } else {
-            unsigned char ivData[16];
-            from_hex(key, ivData, 16);
-            if (mbedtls_cipher_set_iv(&context, ivData, 16) != 0) {
-                throw std::runtime_error("Failed to initialize init vector - unable to continue.");
-            }
+        }
+
+        unsigned char ivData[16];
+        from_hex(iv, ivData, 16);
+        if (mbedtls_cipher_set_iv(&context, ivData, 16) != 0) {
+            throw std::runtime_error("Failed to initialize init vector - unable to continue.");
         }
 
         if (key.empty()) {
             throw std::runtime_error("Key is missing.");
-        } else {
-            unsigned char keyData[16];
-            from_hex(key, keyData, 16);
+        }
+        unsigned char keyData[16];
+        from_hex(key, keyData, 16);
 
-            if (mbedtls_cipher_setkey(&context, keyData, 128, willEncrypt ? MBEDTLS_ENCRYPT : MBEDTLS_DECRYPT) != 0) {
-                throw std::runtime_error("Failed to initialize AES key - unable to continue.");
-            }
+        if (mbedtls_cipher_setkey(&context, keyData, 128, willEncrypt ? MBEDTLS_ENCRYPT : MBEDTLS_DECRYPT) != 0) {
+            throw std::runtime_error("Failed to initialize AES key - unable to continue.");
         }
     }
 

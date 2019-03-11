@@ -57,8 +57,8 @@ TEST_CASE("SHA-512") {
     }
 
     SECTION("ALPHABET 2") {
-        std::stringstream alphabet2{
-                "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"};
+        std::stringstream alphabet2{"abcdefghbcdefghicdefghijdefghijkefghijklfghij"
+                                    "klmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"};
         CHECK(hash.get(alphabet2) == "8e959b75dae313da8cf4f72814fc143f"
                                      "8f7779c6eb9f7fa17299aeadb6889018"
                                      "501d289e4900f7e4331b99dec4b5433a"
@@ -102,7 +102,7 @@ TEST_CASE("ENCRYPT: AES-128 | CBC | 16 byte msg | PADDING none") {
         aes128.setKey("2b7e151628aed2a6abf7158809cf4f3c");
 
         unsigned char bytes[16];
-        from_hex(to_upper("6bc1bee22e409f96e93d7e117393172a"), bytes, 16);
+        from_hex("6bc1bee22e409f96e93d7e117393172a", bytes, 16);
         input.write((char *) bytes, 16);
         result = "7649abac8119b246cee98e9b12e9197d";
     }
@@ -114,7 +114,7 @@ TEST_CASE("ENCRYPT: AES-128 | CBC | 16 byte msg | PADDING none") {
         aes128.setIv("73bed6b8e3c1743b7116e69e22229516");
         aes128.setKey("2b7e151628aed2a6abf7158809cf4f3c");
         unsigned char bytes[16];
-        from_hex(to_upper("f69f2445df4f9b17ad2b417be66c3710"), bytes, 16);
+        from_hex("f69f2445df4f9b17ad2b417be66c3710", bytes, 16);
         input.write((char *) bytes, 16);
         result = "3ff1caa1681fac09120eca307586e1a7";
     }
@@ -139,7 +139,7 @@ TEST_CASE("DECRYPT: AES-128 | CBC | 16 byte msg | PADDING none") {
         aes128.setIv("000102030405060708090A0B0C0D0E0F");
         aes128.setKey("2b7e151628aed2a6abf7158809cf4f3c");
         unsigned char cipher[16];
-        from_hex(to_upper("7649abac8119b246cee98e9b12e9197d"), cipher, 16);
+        from_hex("7649abac8119b246cee98e9b12e9197d", cipher, 16);
         input.write((char *) cipher, 16); //raw data
         result = "6bc1bee22e409f96e93d7e117393172a";
     }
@@ -151,14 +151,13 @@ TEST_CASE("DECRYPT: AES-128 | CBC | 16 byte msg | PADDING none") {
         aes128.setIv("00000000000000000000000000000000");
         aes128.setKey("000102030405060708090a0b0c0d0e0f");
         unsigned char cipher[16];
-        from_hex(to_upper("69c4e0d86a7b0430d8cdb78070b4c55a"), cipher, 16);
+        from_hex("69c4e0d86a7b0430d8cdb78070b4c55a", cipher, 16);
         input.write((char *) cipher, 16);
         result = "00112233445566778899aabbccddeeff";
     }
 
     std::stringstream output;
     aes128.decrypt(input, output);
-
     CHECK(to_hex(output.str()) == (result));
 }
 
