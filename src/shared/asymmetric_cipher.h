@@ -19,6 +19,7 @@ namespace helloworld {
 
 class AsymmetricCipher {
  public:
+  AsymmetricCipher() = default;
   // Copying is not available
   AsymmetricCipher(const AsymmetricCipher &other) = delete;
   AsymmetricCipher &operator=(const AsymmetricCipher &other) = delete;
