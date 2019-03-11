@@ -31,8 +31,9 @@ public:
    * @brief Set cipher key
    *
    * @param key key to encrypt or decrypt data
+   * @return bool true if key succesfully set
    */
-  virtual void setKey(const std::string &key) = 0;
+  virtual bool setKey(const std::string &key) = 0;
 
   /**
    * @brief Retrieve the key the cipher is working with
@@ -45,8 +46,9 @@ public:
    * @brief Set custom iv for cipher, generated random if not present
    *
    * @param iv initialization vector to increase randomness
+   * @return bool true if iv set succesfully
    */
-  virtual void setIv(const std::string &iv) = 0;
+  virtual bool setIv(const std::string &iv) = 0;
 
   /**
    * @brief Retrieve the iv cipher is working with

@@ -8,20 +8,22 @@
 
 namespace helloworld {
 
-    void AES128::setKey(const std::string &key) {
+    bool AES128::setKey(const std::string &key) {
         if (key.size() != 32)
-            throw std::runtime_error("Invalid key length.");
+            return false;
         this->key = key;
+        return true;
     }
 
     const std::string& AES128::getKey() {
         return key;
     }
 
-    void AES128::setIv(const std::string &iv) {
+    bool AES128::setIv(const std::string &iv) {
         if (iv.size() != 32)
-            throw std::runtime_error("Invalid init vector length.");
+            return false;
         this->iv = iv;
+        return true;
     }
 
     const std::string& AES128::getIv() {
@@ -32,13 +34,28 @@ namespace helloworld {
         mbedtls_cipher_set_padding_mode(&context, static_cast<mbedtls_cipher_padding_t>(p));
     }
 
+    void AES128::reset() {
+        if (mbedtls_cipher_reset(&context) != 0) {
+            throw std::runtime_error("Failed to re-use the cipher.");
+        }
+        dirty = false;
+    }
+
     void AES128::encrypt(std::istream &in, std::ostream& out) {
+        if (dirty) {
+            reset();
+        }
         init(true);
+        dirty = true;
         process(in, out);
     }
 
     void AES128::decrypt(std::istream &in, std::ostream& out) {
+        if (dirty) {
+            reset();
+        }
         init(false);
+        dirty = true;
         process(in, out);
     }
 

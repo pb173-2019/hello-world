@@ -28,6 +28,7 @@ namespace helloworld {
 
         std::string key{};
         std::string iv{};
+        bool dirty = false;
 
         mbedtls_cipher_context_t context{};
 
@@ -46,11 +47,11 @@ namespace helloworld {
             mbedtls_cipher_free(&context);
         }
 
-        void setKey(const std::string &key) override;
+        bool setKey(const std::string &key) override;
 
         const std::string& getKey() override;
 
-        void setIv(const std::string &iv) override;
+        bool setIv(const std::string &iv) override;
 
         const std::string& getIv() override;
 
@@ -63,6 +64,7 @@ namespace helloworld {
     private:
         void init(bool willEncrypt);
         void process(std::istream& in, std::ostream& out);
+        void reset();
     };
 }
 

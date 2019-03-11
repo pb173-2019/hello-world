@@ -183,7 +183,7 @@ TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding") {
     std::string msg;
 
     SECTION("Short text") {
-        aes128.setIv("2b7e151628aed2a6abf7158809cf4f3c");
+        aes128.setIv("69c4e0d86a7b0430d8cdb78070b4c55a");
         aes128.setKey("2b7e151628aed2a6abf7158809cf4f3c");
         msg = "Hello, world!";
         input << msg;
@@ -200,12 +200,13 @@ TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding") {
 
         SECTION("invalid key for decryption") {
             //key = "73bed6b8e3c1743b7116e69e22229516";
-            aes128.setKey("63bed6b8e3c1743b7116e69e22229516");
-
             std::stringstream encrypted;
             aes128.encrypt(input, encrypted);
 
+            aes128.setKey("63bed6b8e3c1743b7116e69e22229515");
             std::stringstream output;
+            //invalid key decryption will throws because of padding
+            //todo possibly not force throw but return false instead
             CHECK_THROWS_AS(aes128.decrypt(encrypted, output), std::runtime_error);
         }
 
@@ -249,12 +250,13 @@ TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding") {
 
         SECTION("invalid key for decryption") {
             //key = "73bed6b8e3c1743b7116e69e22229516";
-            aes128.setKey("63bed6b8e3c1743b7116e69e22229516");
-
             std::stringstream encrypted;
             aes128.encrypt(input, encrypted);
 
+            aes128.setKey("63bed6b8e3c1743b7116e69e22229515");
             std::stringstream output;
+            //invalid key decryption will throws because of padding
+            //todo possibly not force throw but return false instead
             CHECK_THROWS_AS(aes128.decrypt(encrypted, output), std::runtime_error);
         }
 
@@ -277,11 +279,17 @@ TEST_CASE("AES lengthy errors") {
 
     AES128 aes128{};
 
-    SECTION("invalid key length") {
-        CHECK_THROWS_AS(aes128.setKey("73bed6b8e3c1743b7116e69e2222951"), std::runtime_error);
-    }
+    CHECK(!aes128.setKey("73bed6b8e3c1743b7116e69e2222951"));
+    CHECK(!aes128.setIv("30c81c46a35ce411e5fbc1191a"));
 
-    SECTION("invalid IV length") {
-        CHECK_THROWS_AS(aes128.setIv("30c81c46a35ce411e5fbc1191a"), std::runtime_error);
-    }
+    std::stringstream in;
+    std::stringstream out;
+
+    CHECK_THROWS_AS(aes128.encrypt(in, out), std::runtime_error);
+    CHECK_THROWS_AS(aes128.decrypt(in, out), std::runtime_error);
+
+    //correct key but IV missing
+    aes128.setKey("73bed6b8e3c1743b7116e69e22229516");
+    CHECK_NOTHROW(aes128.encrypt(in, out));
+    CHECK_THROWS_AS(aes128.decrypt(in, out), std::runtime_error);
 }
