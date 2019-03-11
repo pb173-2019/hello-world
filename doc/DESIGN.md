@@ -94,7 +94,7 @@ types of requests:
 Syntax is as following:
 <table><tr><th>success byte</th><th>request number</th><th>payload length</th><th>variable length payload</th></tr></table>
 
-* success bit - indicates whether action requested was successful
+* success byte - indicates whether action requested was successful
 * request number - identificator of associated request
 * payload length
 * variable length payload - data requested
