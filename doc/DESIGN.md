@@ -81,9 +81,7 @@ Server is waiting for any incoming request and performs specific operations base
 
 #### REQUEST
 Syntax is as following:
-request type | request number | payload length  | variable length payload 
-:---:|:---:|:---:|:---:
-request type | request number | payload length  | variable length payload 
+<table><tr><th>request type</th><th>request number</th><th>payload length</th><th>variable length payload</th></tr></table>
 
 types of requests:
 * Login
@@ -94,9 +92,7 @@ types of requests:
 
 #### RESPONSE
 Syntax is as following:
-success byte | request number | payload length  | variable length payload 
-:---:|:---:|:---:|:---:
-success byte | request number | payload length  | variable length payload 
+<table><tr><th>success byte</th><th>request number</th><th>payload length</th><th>variable length payload</th></tr></table>
 
 * success bit - indicates whether action requested was successful
 * request number - identificator of associated request
