@@ -18,6 +18,6 @@ namespace helloworld {
         if (mbedtls_sha512_finish_ret(&_context, result) != 0) {
             throw std::runtime_error("Failed to finish hash.");
         }
-        return HexUtils::bin_to_hex(result, 64);
+        return to_hex(result, 64);
     }
 }
