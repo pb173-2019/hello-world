@@ -1,7 +1,7 @@
 /**
- * @file symmetric_cipher.h
+ * @file hash.h
  * @author Jiří Horák (469130@mail.muni.cz)
- * @brief Symmetric cipher (e.g. AES) interface
+ * @brief Hash function (e.g. MD5, SHA) interface
  * @version 0.1
  * @date 2019-03-07
  *

@@ -1,7 +1,3 @@
-//
-// Created by horak_000 on 10. 3. 2019.
-//
-
 #ifndef HELLOWORLD_SHARED_UTILS_H_
 #define HELLOWORLD_SHARED_UTILS_H_
 

@@ -1,6 +1,7 @@
 #include "catch.hpp"
 
 #include <sstream>
+#include <fstream>
 
 #include "../../src/shared/utils.h"
 #include "../../src/shared/sha_512.h"
@@ -119,6 +120,30 @@ TEST_CASE("ENCRYPT: AES-128 | CBC | 16 byte msg | PADDING none") {
         result = "3ff1caa1681fac09120eca307586e1a7";
     }
 
+    SECTION("IV 00000000000000000000000000000000 | "
+            "MSG 6a118a874519e64e9963798a503f1d35 | "
+            "KEY 00000000000000000000000000000000") {
+
+        aes128.setIv("00000000000000000000000000000000");
+        aes128.setKey("00000000000000000000000000000000");
+        unsigned char bytes[16];
+        from_hex("6a118a874519e64e9963798a503f1d35", bytes, 16);
+        input.write((char *) bytes, 16);
+        result = "dc43be40be0e53712f7e2bf5ca707209";
+    }
+
+    SECTION("IV 00000000000000000000000000000000 | "
+            "MSG 00000000000000000000000000000000 | "
+            "KEY a2e2fa9baf7d20822ca9f0542f764a41") {
+
+        aes128.setIv("00000000000000000000000000000000");
+        aes128.setKey("a2e2fa9baf7d20822ca9f0542f764a41");
+        unsigned char bytes[16];
+        from_hex("00000000000000000000000000000000", bytes, 16);
+        input.write((char *) bytes, 16);
+        result = "c3b44b95d9d2f25670eee9a0de099fa3";
+    }
+
     std::stringstream output;
     aes128.encrypt(input, output);
     CHECK(to_hex(output.str()) == (result));
@@ -154,6 +179,42 @@ TEST_CASE("DECRYPT: AES-128 | CBC | 16 byte msg | PADDING none") {
         from_hex("69c4e0d86a7b0430d8cdb78070b4c55a", cipher, 16);
         input.write((char *) cipher, 16);
         result = "00112233445566778899aabbccddeeff";
+    }
+
+    SECTION("IV 00000000000000000000000000000000 | "
+            "CIPHER 4bc3f883450c113c64ca42e1112a9e87 | "
+            "KEY c0000000000000000000000000000000") {
+
+        aes128.setIv("00000000000000000000000000000000");
+        aes128.setKey("c0000000000000000000000000000000");
+        unsigned char cipher[16];
+        from_hex("4bc3f883450c113c64ca42e1112a9e87", cipher, 16);
+        input.write((char *) cipher, 16);
+        result = "00000000000000000000000000000000";
+    }
+
+    SECTION("IV 00000000000000000000000000000000 | "
+            "CIPHER 323994cfb9da285a5d9642e1759b224a | "
+            "KEY ffffffffffffffffffffffffffffe000") {
+
+        aes128.setIv("00000000000000000000000000000000");
+        aes128.setKey("ffffffffffffffffffffffffffffe000");
+        unsigned char cipher[16];
+        from_hex("323994cfb9da285a5d9642e1759b224a", cipher, 16);
+        input.write((char *) cipher, 16);
+        result = "00000000000000000000000000000000";
+    }
+
+    SECTION("IV 00000000000000000000000000000000 | "
+            "CIPHER 1dbf57877b7b17385c85d0b54851e371 | "
+            "KEY fffffffffffffffffffffffffffff000") {
+
+        aes128.setIv("00000000000000000000000000000000");
+        aes128.setKey("fffffffffffffffffffffffffffff000");
+        unsigned char cipher[16];
+        from_hex("1dbf57877b7b17385c85d0b54851e371", cipher, 16);
+        input.write((char *) cipher, 16);
+        result = "00000000000000000000000000000000";
     }
 
     std::stringstream output;
@@ -261,6 +322,35 @@ TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding") {
     }
 }
 
+TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding and generated IV") {
+    AES128 aes1{};
+    aes1.setPadding(Padding::PKCS7);
+    aes1.setKey("2b7e151628aed2a6abf7158809cf4f3c");
+
+    std::stringstream in("Hello, world!, the best app ever.");
+    std::stringstream crypt;
+    CHECK_NOTHROW(aes1.encrypt(in, crypt));
+
+    AES128 aes2{};
+    aes2.setPadding(Padding::PKCS7);
+    aes2.setKey("2b7e151628aed2a6abf7158809cf4f3c");
+    aes2.setIv(aes1.getIv());
+
+    std::stringstream result;
+    CHECK_NOTHROW(aes2.decrypt(crypt, result));
+    CHECK(result.str() == "Hello, world!, the best app ever.");
+
+    //create new instance to use encrypt generate new IV
+    std::stringstream in2("Hello, world!, the best app ever.");
+    std::stringstream out2;
+    AES128 aes3{};
+    aes3.setPadding(Padding::PKCS7);
+    aes3.setKey("2b7e151628aed2a6abf7158809cf4f3c");
+    aes3.encrypt(in2, out2);
+    //don't be pseudo-random
+    CHECK(aes3.getIv() != aes1.getIv());
+}
+
 TEST_CASE("AES lengthy errors") {
 
     AES128 aes128{};
@@ -278,4 +368,26 @@ TEST_CASE("AES lengthy errors") {
     aes128.setKey("73bed6b8e3c1743b7116e69e22229516");
     CHECK_NOTHROW(aes128.encrypt(in, out));
     CHECK_THROWS_AS(aes128.decrypt(in, out), std::runtime_error);
+}
+
+TEST_CASE("file not exists or cannot be read/written into") {
+    AES128 aes{};
+    aes.setPadding(Padding::PKCS7);
+    aes.setKey("00000000000000000000000000000000");
+    aes.setIv("00000000000000000000000000000000");
+
+    SECTION("stream cannot be read from") {
+        std::ifstream input;
+        input.close();
+        std::ostringstream output;
+        CHECK_THROWS(aes.encrypt(input, output));
+    }
+
+    SECTION("stream cannot be written into") {
+        std::istringstream input{"foo"};
+        std::ofstream output;
+        output.close();
+
+        CHECK_THROWS(aes.encrypt(input, output));
+    }
 }
