@@ -48,7 +48,7 @@ What is the protection?
 - **Birthday attack** - each message send along with HMAC, seeded from system entropy source
 
 ##### channel establishment
-1. Registration - Client app generates asymmetric key pair for new user, generates session key (AES-512), 
+1. Registration - Client app generates asymmetric key pair for new user, generates session key (AES-128), 
 sends encrypted session key to the server using server public key and stores user private key encrypted with user hash 
 from user password. If attack is performed at this point, key (and data) is safe.
 Integrity violation will result in connection failure, as the AES key will be either damaged or unable to encrypt message.
