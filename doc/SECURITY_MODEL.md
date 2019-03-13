@@ -47,7 +47,7 @@ What is the protection?
 - **Eavesdropping** - all communication encrypted, protocol use protection, also below
 - **Birthday attack** - each message send along with HMAC, seeded from system entropy source
 
-###### channel establishment
+##### channel establishment
 1. Registration - Client app generates asymmetric key pair for new user, generates session key (AES-512), 
 sends encrypted session key to the server using server public key and stores user private key encrypted with user hash 
 from user password. If attack is performed at this point, key (and data) is safe.
@@ -67,6 +67,46 @@ and thuss cannot generate correct HMAC or read data from server).
 4. Cleanup - Server and client deletes session key and session other info.
 
 
+### CLIENT - CLIENT communication
+The client - client communication is the app main functionality.
 
+Valuable data:
+- messages and other data exchanged
 
+Who has access?
+- only sender & receiver
 
+What are the threads?
+- **MitmM** - main in the middle: _Ip spoofing_ - pretend to be the user | _Replay_ - re-sending data
+- **Eavesdropping** - channel transmission
+- **Birthday attack** - against integrity
+
+What is the protection?
+- **MitmM** - considered below
+- **Eavesdropping** - all communication encrypted, protocol use protection, also below
+- **Birthday attack** - each message send along with HMAC, seeded from system entropy source
+
+##### channel establishment
+1. **X3DH:** Sender obtains reveiver's public key & signature bundle from server and generates another data, processed by receiver. The initial message acts as a secure key agreement. Further messages are sent using **Ratchet protocol** key derivation, as the key changes with each message. The key agreement procedure cannot be reconstructed by third party, as it uses both sender and receiver private keys.
+Also, key derivation uses their private keys. In case the attacker learns any shared key and encrypts one message, other messages are
+completely safe and enrypting any message requires (regardless the amount of other messages decrypted) the same effort.
+2. Cleanup - Both client sides are required to delete all keys derived in the communication process.
+
+### CLIENT data
+The client has to store some data to be able to perform its duties and also to enbale the user to read communication history.
+
+Valuable data:
+- messages
+- user private keys
+
+Who has access?
+- only user
+- only user
+
+What are the threads?
+- unauthorized access to client storage
+- **Password attack** - guessing or dictionary attack
+
+What is the protection?
+- encrypt all user data with key obtained from user password (or potentionally use password to encrypt data encryption key)
+- **Password attack** - mainly user reponsibility, altough some password form requirements may apply
