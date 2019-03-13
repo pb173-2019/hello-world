@@ -72,7 +72,7 @@ public:
         int exponent = static_cast<int>(std::pow(2, random.getBounded(4, 18)));
         exponent += 1; //primes
 
-        std::cout << exponent << "\n";
+        //std::cout << exponent << "\n";
 
         if (mbedtls_rsa_gen_key( rsa_ctx, mbedtls_ctr_drbg_random, random_ctx, KEY_SIZE, exponent ) != 0) {
             throw std::runtime_error("Could not generate RSA key.");
@@ -85,20 +85,20 @@ public:
             throw std::runtime_error("Could not write public key.");
         }
 
-        for (int i = MBEDTLS_MPI_MAX_SIZE - olen; i < MBEDTLS_MPI_MAX_SIZE; i++) {
-            std::cout << buffer[i];
-        }
-        std::cout << "\n\n";
+//        for (int i = MBEDTLS_MPI_MAX_SIZE - olen; i < MBEDTLS_MPI_MAX_SIZE; i++) {
+//            std::cout << buffer[i];
+//        }
+//        std::cout << "\n\n";
 
 
         if ((olen = mbedtls_pk_write_key_der( &key, buffer, MBEDTLS_MPI_MAX_SIZE)) < 0) {
             throw std::runtime_error("Could not write public key.");
         }
 
-        for (int i = MBEDTLS_MPI_MAX_SIZE - olen; i < MBEDTLS_MPI_MAX_SIZE; i++) {
-            std::cout << buffer[i];
-        }
-        std::cout << "\n\n";
+//        for (int i = MBEDTLS_MPI_MAX_SIZE - olen; i < MBEDTLS_MPI_MAX_SIZE; i++) {
+//            std::cout << buffer[i];
+//        }
+//        std::cout << "\n\n";
     }
 
 private:

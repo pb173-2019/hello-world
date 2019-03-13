@@ -39,8 +39,8 @@ namespace helloworld {
         std::vector<unsigned char> result(data, data + size);
 
         //addresses different! copied - insecure
-        std::cout << static_cast<const void *>(data) << "\n";
-        std::cout << static_cast<const void *>(result.data()) << "\n";
+//        std::cout << static_cast<const void *>(data) << "\n";
+//        std::cout << static_cast<const void *>(result.data()) << "\n";
         return result;
     }
 
@@ -97,11 +97,11 @@ namespace helloworld {
         buff[5] = static_cast<unsigned char>(lpSystemInfo.wProcessorArchitecture);
         buff[7] = static_cast<unsigned char>(lpSystemInfo.wProcessorRevision);
         buff[14] = static_cast<unsigned char>(lpSystemInfo.wReserved);
-        std::cout << "Entropy: ";
-        for (int i = 0; i < 16; i++) {
-            std::cout << buff[i] << ", ";
-        }
-        std::cout << "\n";
+//        std::cout << "Entropy: ";
+//        for (int i = 0; i < 16; i++) {
+//            std::cout << buff[i] << ", ";
+//        }
+//        std::cout << "\n";
 #else
         //todo linux
 #endif
