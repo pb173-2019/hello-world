@@ -17,6 +17,8 @@
 #include <vector>
 
 #include "symmetric_cipher.h"
+#include "random.h"
+#include "utils.h"
 
 #include "mbedtls/cipher.h"
 #include "mbedtls/ctr_drbg.h"
@@ -33,7 +35,7 @@ enum class Padding {
     NONE = MBEDTLS_PADDING_NONE,                   /**< Never pad (full blocks only).   */
 };
 
-class AES128 : public SymmetricCipher {
+class AES128 : public SymmetricCipher<AES128> {
 
     const static int KEY_SIZE = 16;
     const static int IV_SIZE = 16;
@@ -64,6 +66,10 @@ public:
     void encrypt(std::istream &in, std::ostream &out) override;
 
     void decrypt(std::istream &in, std::ostream &out) override;
+
+    static std::string generateKey() {
+        return to_hex(Random{}.get(16));
+    }
 
 private:
     void init(bool willEncrypt);

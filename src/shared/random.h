@@ -42,13 +42,31 @@ namespace helloworld {
 
         Random &operator=(const Random &other) = delete;
 
-        template<size_t N>
-        std::vector<unsigned char> get() {
-            unsigned char data[N];
-            if (mbedtls_ctr_drbg_random(&_ctr_drbg, data, N) != 0) {
+        std::vector<unsigned char> get(size_t size) {
+            unsigned char data[size];
+            if (mbedtls_ctr_drbg_random(&_ctr_drbg, data, size) != 0) {
                 throw std::runtime_error("Could not generate random sequence.");
             }
-            return std::vector<unsigned char>(data, data + N);
+            return std::vector<unsigned char>(data, data + size);
+        }
+
+        unsigned char getBounded(unsigned char lower, unsigned char upper) {
+            unsigned char data[1];
+            if (mbedtls_ctr_drbg_random(&_ctr_drbg, data, 1) != 0) {
+                throw std::runtime_error("Could not generate random sequence.");
+            }
+
+            if (*data >= lower && *data < upper) {
+                return *data;
+            } else if (*data % upper >= lower) {
+                return *data % upper;
+            } else {
+                getBounded(lower, upper);
+            }
+        }
+
+        mbedtls_ctr_drbg_context* getEngine() {
+            return &_ctr_drbg;
         }
 
         ~Random() {

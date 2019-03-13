@@ -68,7 +68,7 @@ void AES128::init(bool willEncrypt) {
     if (iv.empty()) {
         if (willEncrypt) {
             Random random{};
-            std::vector<unsigned char> new_iv = random.get<IV_SIZE>();
+            std::vector<unsigned char> new_iv = random.get(IV_SIZE);
             iv = to_hex(new_iv);
         } else {
             throw std::runtime_error("IV is missing.");

@@ -19,6 +19,7 @@ namespace helloworld {
 
 enum class Padding;
 
+template<typename Implementation>
 class SymmetricCipher {
 public:
   SymmetricCipher() = default;
@@ -80,6 +81,15 @@ public:
    * @param out decrypted data
    */
   virtual void decrypt(std::istream &in, std::ostream& out) = 0;
+
+  /**
+   * Static key implementation interface
+   *
+   * @return std::string key in hex string suitable for cipher
+   */
+  static std::string generateKey() {
+    return Implementation::generateKey();
+  }
 };
 
 }  // namespace helloworld

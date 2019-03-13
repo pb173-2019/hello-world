@@ -41,7 +41,7 @@ void from_hex(const std::string &input, unsigned char *output, size_t length) {
         throw std::runtime_error("Invalid conversion dimensions.");
     }
     std::vector<unsigned char> vector = from_hex(input);
-    //std::copy_n(vector.begin(), length, output);
+    //todo too much copying
     std::copy_n(vector.data(), length, output);
 }
 

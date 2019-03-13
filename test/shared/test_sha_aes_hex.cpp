@@ -263,7 +263,7 @@ TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding") {
 
             encrypted.seekg(20);
             Random random{};
-            std::vector<unsigned char> rand = random.get<22>();
+            std::vector<unsigned char> rand = random.get(22);
             encrypted.write((char *) rand.data(), 22);
 
             std::stringstream output;
@@ -313,7 +313,7 @@ TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding") {
 
             encrypted.seekg(20);
             Random random{};
-            std::vector<unsigned char> rand = random.get<22>();
+            std::vector<unsigned char> rand = random.get(22);
             encrypted.write((char *) rand.data(), 22);
 
             std::stringstream output;
@@ -349,6 +349,31 @@ TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding and generated IV") {
     aes3.encrypt(in2, out2);
     //don't be pseudo-random
     CHECK(aes3.getIv() != aes1.getIv());
+}
+
+TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding and generated KEY") {
+    AES128 aes1{};
+    aes1.setPadding(Padding::PKCS7);
+    aes1.setIv("2b7e151628aed2a6abf7158809cf4f3c");
+    aes1.setKey(AES128::generateKey());
+
+    std::stringstream in("Hello, world!, the best app ever.");
+    std::stringstream crypt;
+    CHECK_NOTHROW(aes1.encrypt(in, crypt));
+
+    AES128 aes2{};
+    aes2.setPadding(Padding::PKCS7);
+    aes2.setKey(aes1.getKey());
+    aes2.setIv("2b7e151628aed2a6abf7158809cf4f3c");
+
+    std::stringstream result;
+    CHECK_NOTHROW(aes2.decrypt(crypt, result));
+    CHECK(result.str() == "Hello, world!, the best app ever.");
+
+    //dont be pseudo random (generate several times)
+    CHECK(AES128::generateKey() != aes1.getKey());
+    CHECK(AES128::generateKey() != aes1.getKey());
+    CHECK(AES128::generateKey() != aes1.getKey());
 }
 
 TEST_CASE("AES lengthy errors") {

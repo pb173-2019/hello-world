@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+//#include "mbedtls/base64.h"
+
 #include "mbedtls/base64.h"
 
 namespace helloworld {
@@ -24,7 +26,6 @@ std::vector<unsigned char> Base64::decode(const std::vector<unsigned char>& data
 
     size_t actualOutput;
     unsigned char decoded[requiredSize];
-
     switch (mbedtls_base64_decode(decoded, requiredSize, &actualOutput, data.data(), data.size())) {
         case MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL:
             throw std::runtime_error("The buffer size provided for Base64 encoder is insufficient.");
