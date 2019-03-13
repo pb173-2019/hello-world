@@ -1,6 +1,13 @@
-//
-// Created by horak_000 on 24. 2. 2019.
-//
+/**
+ * @file random.h
+ * @author Jiří Horák (469130@mail.muni.cz)
+ * @brief DRBG random wrapper
+ * @version 0.1
+ * @date 2019-03-13
+ *
+ * @copyright Copyright (c) 2019
+ *
+ */
 #ifndef HELLOWORLD_SHARED_RANDOM_H_
 #define HELLOWORLD_SHARED_RANDOM_H_
 

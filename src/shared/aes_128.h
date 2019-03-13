@@ -1,3 +1,14 @@
+/**
+ * @file aes_128.h
+ * @author Jiří Horák (469130@mail.muni.cz)
+ * @brief AES128 wrapper
+ * @version 0.1
+ * @date 2019-03-07
+ *
+ * @copyright Copyright (c) 2019
+ *
+ */
+
 #ifndef HELLOWORLD_SHARED_AES_128_H_
 #define HELLOWORLD_SHARED_AES_128_H_
 
@@ -13,6 +24,7 @@
 
 namespace helloworld {
 
+//for testing purposes
 enum class Padding {
     PKCS7 = MBEDTLS_PADDING_PKCS7,                 /**< PKCS7 padding (default).        */
     ONE_AND_ZEROS = MBEDTLS_PADDING_ONE_AND_ZEROS, /**< ISO/IEC 7816-4 padding.         */

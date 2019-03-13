@@ -59,4 +59,13 @@ std::vector<unsigned char> from_hex(const std::string &input) {
     return vector;
 }
 
+//todo steal the contents
+std::vector<unsigned char> from_string(const std::string& input) {
+    return std::vector<unsigned char>(input.begin(), input.end());
+}
+
+std::string to_string(const std::vector<unsigned char>& input) {
+    return std::string(input.begin(), input.end());
+}
+
 } //namespace helloworld
