@@ -35,7 +35,7 @@ enum class Padding {
     NONE = MBEDTLS_PADDING_NONE,                   /**< Never pad (full blocks only).   */
 };
 
-class AES128 : public SymmetricCipher<AES128> {
+class AES128 : public SymmetricCipher {
 
     const static int KEY_SIZE = 16;
     const static int IV_SIZE = 16;
@@ -67,8 +67,11 @@ public:
 
     void decrypt(std::istream &in, std::ostream &out) override;
 
-    static std::string generateKey() {
-        return to_hex(Random{}.get(16));
+    std::string generateKey() override {
+        std::vector<unsigned char> data = Random{}.get(16);
+        std::string hex = to_hex(data);
+        //todo clear data
+        return hex;
     }
 
 private:

@@ -17,7 +17,6 @@
 
 namespace helloworld {
 
-template <typename Implementation>
 class AsymmetricCipher {
  public:
   AsymmetricCipher() = default;
@@ -69,13 +68,11 @@ class AsymmetricCipher {
                       const std::string &hash) = 0;
 
   /**
-   * Static key implementation interface
+   * Key generator
    *
    * @return std::string key in hex string suitable for cipher
    */
-  static std::string generateKey(bool isPublic) {
-    return Implementation::generateKey(isPublic);
-  }
+  virtual std::string generateKeyPair() = 0;
 };
 
 }  // namespace helloworld

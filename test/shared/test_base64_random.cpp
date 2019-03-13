@@ -2,10 +2,11 @@
 
 #include "../../src/shared/utils.h"
 #include "../../src/shared/base_64.h"
+#include "../../src/shared/random.h"
 
+using namespace helloworld;
 
 TEST_CASE("Base64 encode") {
-    using namespace helloworld;
     //RFC doc
     Base64 encoder;
 
@@ -19,7 +20,6 @@ TEST_CASE("Base64 encode") {
 }
 
 TEST_CASE("Base64 decode") {
-    using namespace helloworld;
     Base64 encoder;
 
     CHECK(encoder.decode(from_string("")) == from_string(""));
@@ -29,4 +29,22 @@ TEST_CASE("Base64 decode") {
     CHECK(encoder.decode(from_string("Zm9vYg==")) == from_string("foob"));
     CHECK(encoder.decode(from_string("Zm9vYmE=")) == from_string("fooba"));
     CHECK(encoder.decode(from_string("Zm9vYmFy")) == from_string("foobar"));
+}
+
+
+TEST_CASE("Random generator") {
+    using namespace helloworld;
+    Random random{};
+
+    size_t num = random.getBounded(5615231, 68541635);
+    CHECK(num >= 5615231);
+    CHECK(num < 68541635);
+
+    num = random.getBounded(0, 2);
+    CHECK(num >= 0);
+    CHECK(num < 2);
+
+    num = random.getBounded(5, 58);
+    CHECK(num >= 5);
+    CHECK(num < 58);
 }

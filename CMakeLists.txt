@@ -11,6 +11,11 @@ add_compile_definitions(MBEDTLS_CONFIG_FILE=<config.h>)
 SET(ENABLE_PROGRAMS OFF CACHE BOOL "Build mbed TLS programs.")
 SET(ENABLE_TESTING OFF CACHE BOOL "Build mbed TLS tests.")
 
+# system dependent functionality / using ELSE linux
+if (${CMAKE_SYSTEM_NAME} STREQUAL CYGWIN OR WIN32)
+    add_compile_definitions(WINDOWS)
+endif()
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 

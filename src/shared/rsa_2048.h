@@ -22,13 +22,14 @@
 
 #include "mbedtls/pk.h"
 #include "mbedtls/rsa.h"
+#include "mbedtls/bignum.h"
 
 #define MBEDTLS_PK_PARSE_C
 
 
 namespace helloworld {
 
-class RSA2048 : public AsymmetricCipher<RSA2048> {
+class RSA2048 : public AsymmetricCipher {
 
     const static int KEY_SIZE = 2048;
     const static int MAX_DATA_SIZE = 245;
@@ -44,7 +45,6 @@ public:
         if (mbedtls_pk_setup(&key, mbedtls_pk_info_from_type( MBEDTLS_PK_RSA )) != 0) {
             throw std::runtime_error("Could not initialize RSA ciper.");
         }
-        auto* context = (mbedtls_rsa_context *) (key).pk_ctx;
     }
 
     ~RSA2048() override {
@@ -62,22 +62,48 @@ public:
     bool verify(const std::vector<unsigned char> &signedData,
                         const std::string &hash) override;
 
-    static std::string generateKey(bool isPublic) {
+    std::string generateKeyPair() override {
         Random random{};
         mbedtls_ctr_drbg_context* random_ctx = random.getEngine();
 
-        mbedtls_rsa_context rsa_ctx;
-        mbedtls_rsa_init(&rsa_ctx, MBEDTLS_RSA_PKCS_V15, 0);
+        if (!valid()) throw std::runtime_error("Could not generate RSA key.");
+        auto* rsa_ctx = (mbedtls_rsa_context *) (key).pk_ctx;
 
-        size_t exponent = static_cast<size_t>(std::pow(2, random.getBounded(4, 18)));
+        int exponent = static_cast<int>(std::pow(2, random.getBounded(4, 18)));
         exponent += 1; //primes
 
-        if (mbedtls_rsa_gen_key( &rsa_ctx, mbedtls_ctr_drbg_random, random_ctx, KEY_SIZE, exponent ) != 0) {
+        std::cout << exponent << "\n";
+
+        if (mbedtls_rsa_gen_key( rsa_ctx, mbedtls_ctr_drbg_random, random_ctx, KEY_SIZE, exponent ) != 0) {
             throw std::runtime_error("Could not generate RSA key.");
         }
 
-        mbedtls_rsa_free(&rsa_ctx);
+        unsigned char buffer[MBEDTLS_MPI_MAX_SIZE];
+        int olen;
 
+        if ((olen = mbedtls_pk_write_pubkey_der( &key, buffer, MBEDTLS_MPI_MAX_SIZE)) < 0) {
+            throw std::runtime_error("Could not write public key.");
+        }
+
+        for (int i = MBEDTLS_MPI_MAX_SIZE - olen; i < MBEDTLS_MPI_MAX_SIZE; i++) {
+            std::cout << buffer[i];
+        }
+        std::cout << "\n\n";
+
+
+        if ((olen = mbedtls_pk_write_key_der( &key, buffer, MBEDTLS_MPI_MAX_SIZE)) < 0) {
+            throw std::runtime_error("Could not write public key.");
+        }
+
+        for (int i = MBEDTLS_MPI_MAX_SIZE - olen; i < MBEDTLS_MPI_MAX_SIZE; i++) {
+            std::cout << buffer[i];
+        }
+        std::cout << "\n\n";
+    }
+
+private:
+    bool valid() {
+        return mbedtls_pk_can_do( &key, MBEDTLS_PK_RSA ) == 1;
     }
 };
 
