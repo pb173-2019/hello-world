@@ -7,6 +7,6 @@ using namespace helloworld;
 TEST_CASE("Rsa keygen") {
     RSA2048 rsa{};
 
-    rsa.generateKeyPair();
+    //rsa.generateKeyPair();
 
 }

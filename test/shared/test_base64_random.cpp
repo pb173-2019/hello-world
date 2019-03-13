@@ -36,9 +36,9 @@ TEST_CASE("Random generator") {
     using namespace helloworld;
     Random random{};
 
-    size_t num = random.getBounded(5615231, 68541635);
-    CHECK(num >= 5615231);
-    CHECK(num < 68541635);
+    size_t num = random.getBounded(565231, 6854635);
+    CHECK(num >= 565231);
+    CHECK(num < 6854635);
 
     num = random.getBounded(0, 2);
     CHECK(num >= 0);
