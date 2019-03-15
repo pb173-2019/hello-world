@@ -14,7 +14,7 @@ namespace helloworld {
         if (mbedtls_pk_setup(&context.key, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA)) != 0) {
             throw std::runtime_error("Could not initialize RSA ciper.");
         }
-        auto* inner_ctx = (mbedtls_rsa_context *) (context.key).pk_ctx;
+        auto* inner_ctx = reinterpret_cast<mbedtls_rsa_context *>(context.key.pk_ctx);
         //set OAEP padding
         mbedtls_rsa_set_padding(inner_ctx, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA512);
 
@@ -41,17 +41,17 @@ namespace helloworld {
 
         //todo hash with pwd
 
-        out_pri.write((char *) buffer_private, keylen);
+        out_pri.write(reinterpret_cast<char *>(buffer_private), keylen);
     }
 
     bool RSAKeyGen::savePublicKey(const std::string &filename) {
         std::ofstream out_pub{filename, std::ios::binary};
-        if (! out_pub)
+        if (!out_pub)
             return false;
 
         int keylen = getKeyLength(buffer_public, MBEDTLS_MPI_MAX_SIZE, "-----END PUBLIC KEY-----\n");
         if (keylen == 0) return false;
-        out_pub.write((char *) buffer_public, keylen);
+        out_pub.write(reinterpret_cast<char *>(buffer_public), keylen);
     }
 
     int RSAKeyGen::getKeyLength(const unsigned char *key, int len, const std::string &terminator) {
@@ -91,7 +91,7 @@ namespace helloworld {
         setup(KeyType::PUBLIC_KEY);
     }
 
-    void RSA2048::loadPrivateKey(const std::string &keyFile, const std::string *pwd) {
+    void RSA2048::loadPrivateKey(const std::string &keyFile, const std::string */*pwd*/) {
         if (keyLoaded != KeyType::NO_KEY)
             return;
 
@@ -99,14 +99,14 @@ namespace helloworld {
             throw std::runtime_error("Could not read public key.");
         }
 
-        const char* data = (pwd == nullptr) ? nullptr : pwd->c_str();
+        //const char* data = (pwd == nullptr) ? nullptr : pwd->c_str();
         //todo decrypt private key
 
         setup(KeyType::PRIVATE_KEY);
     }
 
     void RSA2048::setup(KeyType type) {
-        basic_context = (mbedtls_rsa_context *) key.pk_ctx;
+        basic_context = reinterpret_cast<mbedtls_rsa_context *>(key.pk_ctx);
         mbedtls_rsa_set_padding(basic_context, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA512);
         keyLoaded = type;
     }
@@ -121,7 +121,7 @@ namespace helloworld {
         //label ignored
         if(mbedtls_rsa_rsaes_oaep_encrypt(basic_context, mbedtls_ctr_drbg_random,
                 random.getEngine(), MBEDTLS_RSA_PUBLIC, nullptr, 0, msg.size(),
-                (const unsigned char *) msg.c_str(), buf ) != 0 ) {
+                reinterpret_cast<const unsigned char *>(msg.c_str()), buf ) != 0 ) {
 
             throw std::runtime_error("Failed to encrypt data.");
         }
@@ -144,7 +144,7 @@ namespace helloworld {
             throw std::runtime_error("Failed to encrypt data.");
         }
         dirty = true;
-        return std::string((char*)buf, (char*)buf + olen);
+        return std::string(reinterpret_cast<char*>(buf), reinterpret_cast<char*>(buf) + olen);
     }
 
     std::vector<unsigned char> RSA2048::sign(const std::string &hash) {
