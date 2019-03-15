@@ -51,6 +51,10 @@ private:
     int getKeyLength(const unsigned char *key, int len, const std::string &terminator);
 };
 
+enum class KeyType {
+    PUBLIC_KEY, PRIVATE_KEY, NO_KEY
+};
+
 class RSA2048 : public AsymmetricCipher {
     friend RSAKeyGen;
     const static int KEY_SIZE = 2048;
@@ -59,6 +63,7 @@ class RSA2048 : public AsymmetricCipher {
     mbedtls_pk_context key{};
     mbedtls_rsa_context* basic_context;
 
+    KeyType keyLoaded = KeyType::NO_KEY;
     bool dirty = false;
 
 public:
@@ -81,9 +86,11 @@ public:
     bool verify(const std::vector<unsigned char> &signedData, const std::string &hash) override;
 
 private:
-    bool valid() {
-        return mbedtls_pk_can_do(&key, MBEDTLS_PK_RSA) == 1;
+    bool valid(KeyType keyNeeded) {
+        return mbedtls_pk_can_do(&key, MBEDTLS_PK_RSA) == 1 && keyLoaded == keyNeeded && !dirty;
     }
+
+    void setup(KeyType type);
 };
 
 } //namespace helloworld

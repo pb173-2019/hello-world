@@ -15,8 +15,6 @@ TEST_CASE("Rsa keygen") {
     rsa.loadPublicKey("pub.pem");
     std::vector<unsigned char> data = rsa.encrypt("My best message");
 
-    std::cout << "\n length:" << data.size() << "\n";
-
     RSA2048 rsa2;
     rsa2.loadPrivateKey("priv.pem", nullptr);
     std::string res = rsa2.decrypt(data);

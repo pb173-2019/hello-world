@@ -82,26 +82,37 @@ namespace helloworld {
 
 
     void RSA2048::loadPublicKey(const std::string &keyFile) {
+        if (keyLoaded != KeyType::NO_KEY)
+            return;
+
         if(mbedtls_pk_parse_public_keyfile(&key, keyFile.c_str()) != 0) {
            throw std::runtime_error("Could not read public key.");
         }
-        basic_context = (mbedtls_rsa_context *) key.pk_ctx;
-        mbedtls_rsa_set_padding(basic_context, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA512);
+        setup(KeyType::PUBLIC_KEY);
     }
 
     void RSA2048::loadPrivateKey(const std::string &keyFile, const std::string *pwd) {
-        const char* data = (pwd == nullptr) ? nullptr : pwd->c_str();
-        if(mbedtls_pk_parse_keyfile(&key, keyFile.c_str(), data) != 0) {
+        if (keyLoaded != KeyType::NO_KEY)
+            return;
+
+        if(mbedtls_pk_parse_keyfile(&key, keyFile.c_str(), nullptr) != 0) {
             throw std::runtime_error("Could not read public key.");
         }
 
+        const char* data = (pwd == nullptr) ? nullptr : pwd->c_str();
         //todo decrypt private key
 
+        setup(KeyType::PRIVATE_KEY);
+    }
+
+    void RSA2048::setup(KeyType type) {
+        basic_context = (mbedtls_rsa_context *) key.pk_ctx;
         mbedtls_rsa_set_padding(basic_context, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA512);
+        keyLoaded = type;
     }
 
     std::vector<unsigned char> RSA2048::encrypt(const std::string &msg) {
-        if (! valid())
+        if (! valid(KeyType::PUBLIC_KEY))
             throw std::runtime_error("RSA not initialized properly.");
 
         Random random{};
@@ -114,11 +125,12 @@ namespace helloworld {
 
             throw std::runtime_error("Failed to encrypt data.");
         }
+        dirty = true;
         return std::vector<unsigned char>(buf, buf + basic_context->len);
     }
 
     std::string RSA2048::decrypt(const std::vector<unsigned char> &data) {
-        if (! valid())
+        if (! valid(KeyType::PRIVATE_KEY))
             throw std::runtime_error("RSA not initialized properly.");
 
         Random random{};
@@ -131,6 +143,7 @@ namespace helloworld {
 
             throw std::runtime_error("Failed to encrypt data.");
         }
+        dirty = true;
         return std::string((char*)buf, (char*)buf + olen);
     }
 
