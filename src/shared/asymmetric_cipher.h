@@ -64,9 +64,9 @@ class AsymmetricCipher {
    * @brief Set required key for operation
    *
    * @param keyFile key filename to load
-   * @param pwd password to decrypt private key, nullptr if no pwd set
+   * @param pwd password to decrypt private key or empty string
   */
-  virtual void loadPrivateKey(const std::string &keyFile, const std::string *pwd) = 0;
+  virtual void loadPrivateKey(const std::string &keyFile, const std::string &pwd) = 0;
 
   /**
    * @brief Encrypt given message with key given

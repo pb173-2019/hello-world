@@ -17,7 +17,7 @@ TEST_CASE("Rsa keygen & key loading") {
     std::vector<unsigned char> data = rsa.encrypt("My best message");
 
     RSA2048 rsa2;
-    rsa2.loadPrivateKey("priv.pem", nullptr);
+    rsa2.loadPrivateKey("priv.pem", "");
     std::string res = rsa2.decrypt(data);
 
     CHECK(res == "My best message");
@@ -28,7 +28,7 @@ TEST_CASE("Rsa encryption & decryption") {
     rsa.loadPublicKey("pub.pem");
 
     RSA2048 rsa2;
-    rsa2.loadPrivateKey("priv.pem", nullptr);
+    rsa2.loadPrivateKey("priv.pem", "");
 
     SECTION("Empty string") {
         std::vector<unsigned char> data = rsa.encrypt("");
@@ -53,7 +53,7 @@ TEST_CASE("Rsa sign & verify") {
     rsa.loadPublicKey("pub.pem");
 
     RSA2048 rsa2;
-    rsa2.loadPrivateKey("priv.pem", nullptr);
+    rsa2.loadPrivateKey("priv.pem", "");
 
     std::vector<unsigned char> rand = Random{}.get(64);
     std::string hash = to_hex(rand);
@@ -67,7 +67,7 @@ TEST_CASE("Invalid use") {
     pubkey.loadPublicKey("pub.pem");
 
     RSA2048 privkey;
-    privkey.loadPrivateKey("priv.pem", nullptr);
+    privkey.loadPrivateKey("priv.pem", "");
 
     std::string str("Some random sentence.");
     std::vector<unsigned char> byte(256, 2);
@@ -97,7 +97,7 @@ TEST_CASE("Invalid use") {
         RSA2048 other_pubkey;
         other_pubkey.loadPublicKey("pub2.pem");
         RSA2048 other_privkey;
-        other_privkey.loadPrivateKey("priv2.pem", nullptr);
+        other_privkey.loadPrivateKey("priv2.pem", "");
 
         std::vector<unsigned char> data = other_pubkey.encrypt("Ahoj");
         CHECK_THROWS(privkey.decrypt(std::vector<unsigned char>(258, 2)));

@@ -75,7 +75,7 @@ public:
 
     void loadPublicKey(const std::string &keyFile) override;
 
-    void loadPrivateKey(const std::string &keyFile, const std::string *pwd) override;
+    void loadPrivateKey(const std::string &keyFile, const std::string &pwd) override;
 
     std::vector<unsigned char> encrypt(const std::string &msg) override;
 

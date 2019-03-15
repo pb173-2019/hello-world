@@ -91,7 +91,7 @@ namespace helloworld {
         setup(KeyType::PUBLIC_KEY);
     }
 
-    void RSA2048::loadPrivateKey(const std::string &keyFile, const std::string */*pwd*/) {
+    void RSA2048::loadPrivateKey(const std::string &keyFile, const std::string &/*pwd*/) {
         if (keyLoaded != KeyType::NO_KEY)
             return;
 
@@ -99,7 +99,6 @@ namespace helloworld {
             throw std::runtime_error("Could not read public key.");
         }
 
-        //const char* data = (pwd == nullptr) ? nullptr : pwd->c_str();
         //todo decrypt private key
 
         setup(KeyType::PRIVATE_KEY);
