@@ -17,7 +17,35 @@
 
 namespace helloworld {
 
+class AsymmetricKeyGen {
+public:
+    AsymmetricKeyGen() = default;
+    // Copying is not available
+    AsymmetricKeyGen(const AsymmetricKeyGen &other) = delete;
+    AsymmetricKeyGen &operator=(const AsymmetricKeyGen &other) = delete;
+    virtual ~AsymmetricKeyGen() = default;
+
+    /**
+     * @brief Save private key into file
+     *
+     * @param filename file to save the key
+     * @param pwd password to encrypt key
+     * @return bool true if succesfully saved
+     */
+    virtual bool savePrivateKey(const std::string& filename, const std::string& pwd) = 0;
+
+    /**
+     * @brief Save public key into file
+     *
+     * @param filename file to save the key
+     * @return bool true if succesfully saved
+     */
+    virtual bool savePublicKey(const std::string& filename) = 0;
+};
+
 class AsymmetricCipher {
+ friend AsymmetricKeyGen;
+
  public:
   AsymmetricCipher() = default;
   // Copying is not available
@@ -26,14 +54,22 @@ class AsymmetricCipher {
   virtual ~AsymmetricCipher() = default;
 
   /**
-   * @brief Set key for operation specified
+   * @brief Set required key for operation
    *
-   * @param key key to set
+   * @param keyFile key filename to load
    */
-  virtual void setKey(const std::string &key) = 0;
+  virtual void loadPublicKey(const std::string &keyFile) = 0;
 
   /**
-   * @brief Encrypt given message with key
+   * @brief Set required key for operation
+   *
+   * @param keyFile key filename to load
+   * @param pwd password to decrypt private key, nullptr if no pwd set
+  */
+  virtual void loadPrivateKey(const std::string &keyFile, const std::string *pwd) = 0;
+
+  /**
+   * @brief Encrypt given message with key given
    *
    * @param msg message to encrypt
    * @return std::vector<unsigned char> encrypted message
@@ -41,7 +77,7 @@ class AsymmetricCipher {
   virtual std::vector<unsigned char> encrypt(const std::string &msg) = 0;
 
   /**
-   * @brief Decrypt data with key and iv given
+   * @brief Decrypt data with key given
    *
    * @param data data data to decrypt
    * @return std::string original message
@@ -64,16 +100,10 @@ class AsymmetricCipher {
    * @return true if signature was verified correctly
    * @return false if signature was not verified correctly
    */
-  virtual bool verify(const std::vector<unsigned char> &signedData,
-                      const std::string &hash) = 0;
-
-  /**
-   * Key generator
-   *
-   * @return std::string key in hex string suitable for cipher
-   */
-  virtual std::string generateKeyPair() = 0;
+  virtual bool verify(const std::vector<unsigned char> &signedData, const std::string &hash) = 0;
 };
+
+
 
 }  // namespace helloworld
 

@@ -12,59 +12,65 @@
 #ifndef HELLOWORLD_SHARED_RSA_2048_H_
 #define HELLOWORLD_SHARED_RSA_2048_H_
 
-#include <iostream>
-#include <stdexcept>
 #include <vector>
-#include <cmath>
-#include <fstream>
 
 #include "asymmetric_cipher.h"
 #include "random.h"
-#include "sha_512.h"
 
 #include "mbedtls/pk.h"
 #include "mbedtls/rsa.h"
 
 #define MBEDTLS_PK_PARSE_C
 
-
 namespace helloworld {
 
-class RSAKeyManager {
+class RSAKeyGen : AsymmetricKeyGen {
+    unsigned char buffer_private[MBEDTLS_MPI_MAX_SIZE * 2];
+    size_t priv_olen;
+    unsigned char buffer_public[MBEDTLS_MPI_MAX_SIZE];
+    size_t pub_olen;
 
-    static void saveKey(const std::string& filename, const std::string* userPwd);
+    Random random{};
+    mbedtls_ctr_drbg_context *random_ctx = random.getEngine();
 
+public:
+    RSAKeyGen();
 
+    // Copying is not available
+    RSAKeyGen(const RSAKeyGen &other) = delete;
+
+    RSAKeyGen &operator=(const RSAKeyGen &other) = delete;
+
+    ~RSAKeyGen() override;
+
+    bool savePrivateKey(const std::string &filename, const std::string &pwd) override;
+
+    bool savePublicKey(const std::string &filename) override;
+
+private:
+    int getKeyLength(const unsigned char *key, int len, const std::string &terminator);
 };
 
-
 class RSA2048 : public AsymmetricCipher {
-
+    friend RSAKeyGen;
     const static int KEY_SIZE = 2048;
-    const static int MAX_DATA_SIZE = 245;
     const static int EXPONENT = 65537;
 
     mbedtls_pk_context key{};
+    mbedtls_rsa_context* basic_context;
 
-    std::string key_data{};
     bool dirty = false;
 
 public:
-    explicit RSA2048() {
-        mbedtls_pk_init(&key);
-        if (mbedtls_pk_setup(&key, mbedtls_pk_info_from_type( MBEDTLS_PK_RSA )) != 0) {
-            throw std::runtime_error("Could not initialize RSA ciper.");
-        }
-        //set OAEP padding
-        mbedtls_rsa_set_padding((mbedtls_rsa_context *) (key).pk_ctx, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA512);
-
-    }
+    explicit RSA2048();
 
     ~RSA2048() override {
         mbedtls_pk_free(&key);
     }
 
-    void setKey(const std::string &key) override;
+    void loadPublicKey(const std::string &keyFile) override;
+
+    void loadPrivateKey(const std::string &keyFile, const std::string *pwd) override;
 
     std::vector<unsigned char> encrypt(const std::string &msg) override;
 
@@ -72,69 +78,11 @@ public:
 
     std::vector<unsigned char> sign(const std::string &hash) override;
 
-    bool verify(const std::vector<unsigned char> &signedData,
-                        const std::string &hash) override;
-
-    std::string generateKeyPair() override {
-        Random random{};
-        mbedtls_ctr_drbg_context* random_ctx = random.getEngine();
-        if (!valid()) throw std::runtime_error("Could not generate RSA key.");
-        auto* rsa_ctx = (mbedtls_rsa_context *) (key).pk_ctx;
-
-        if (mbedtls_rsa_gen_key( rsa_ctx, mbedtls_ctr_drbg_random, random_ctx, KEY_SIZE, EXPONENT) != 0) {
-            throw std::runtime_error("Could not generate RSA key.");
-        }
-
-        unsigned char buffer_public[MBEDTLS_MPI_MAX_SIZE];
-        std::cout << "length: " << MBEDTLS_MPI_MAX_SIZE << "\n";
-        if (mbedtls_pk_write_pubkey_pem(&key, buffer_public, MBEDTLS_MPI_MAX_SIZE) != 0) {
-            throw std::runtime_error("Could not write public key.");
-        }
-        int keylen = getKeyLength(buffer_public, MBEDTLS_MPI_MAX_SIZE, "-----END PUBLIC KEY-----");
-        if (keylen == 0) {
-            throw std::runtime_error("Generated public key damaged.");
-        }
-        std::cout << "written: " << keylen << "\n";
-        std::ofstream out_pub{"public.txt", std::ios::binary};
-        out_pub.write((char *)buffer_public, keylen);
-
-
-        unsigned char buffer_private[MBEDTLS_MPI_MAX_SIZE * 2];
-        std::cout << "length: " << MBEDTLS_MPI_MAX_SIZE * 2 << "\n";
-
-        if (int res = mbedtls_pk_write_key_pem(&key, buffer_private, MBEDTLS_MPI_MAX_SIZE * 2) != 0) {
-            std::cout << "Error code " << std::hex << res << "\n";
-            throw std::runtime_error("Could not write private key.");
-        }
-        keylen = getKeyLength(buffer_private, MBEDTLS_MPI_MAX_SIZE * 2, "-----END RSA PRIVATE KEY-----");
-        if (keylen == 0) {
-            throw std::runtime_error("Generated private key damaged.");
-        }
-        std::cout << "written: " << keylen << "\n";
-        std::ofstream out_pri{"private.txt", std::ios::binary};
-        out_pri.write((char *)buffer_private, keylen);
-    }
+    bool verify(const std::vector<unsigned char> &signedData, const std::string &hash) override;
 
 private:
     bool valid() {
-        return mbedtls_pk_can_do( &key, MBEDTLS_PK_RSA ) == 1;
-    }
-
-    int getKeyLength(const unsigned char* key, int len, const std::string& terminator) {
-        int strIdx = 0;
-        int keyIdx = 300; //will not be shorter
-        while (keyIdx < len) {
-            if (key[keyIdx] == terminator[strIdx]) {
-                ++strIdx;
-            } else {
-                strIdx = 0;
-            }
-            ++keyIdx;
-
-            if (strIdx >= terminator.size())
-                return keyIdx;
-        }
-        return 0;
+        return mbedtls_pk_can_do(&key, MBEDTLS_PK_RSA) == 1;
     }
 };
 

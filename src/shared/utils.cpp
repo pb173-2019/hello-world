@@ -15,7 +15,7 @@ void write_n(std::ostream &out, unsigned char *data, size_t length) {
     out.write((char *) data, length);
 }
 
-std::string to_upper(std::string lowercase) {
+std::string& to_upper(std::string&& lowercase) {
     std::transform(lowercase.begin(), lowercase.end(), lowercase.begin(), ::toupper);
     return lowercase;
 }
@@ -43,6 +43,7 @@ void from_hex(const std::string &input, unsigned char *output, size_t length) {
     std::vector<unsigned char> vector = from_hex(input);
     //todo too much copying
     std::copy_n(vector.data(), length, output);
+    vector.clear(); //todo check whether erases data
 }
 
 std::vector<unsigned char> from_hex(const std::string &input) {
@@ -55,7 +56,6 @@ std::vector<unsigned char> from_hex(const std::string &input) {
         x >> std::hex >> c;
         vector.push_back(c);
     }
-
     return vector;
 }
 
