@@ -43,7 +43,7 @@ void from_hex(const std::string &input, unsigned char *output, size_t length) {
     std::vector<unsigned char> vector = from_hex(input);
     //todo too much copying
     std::copy_n(vector.data(), length, output);
-    vector.clear(); //todo check whether erases data
+    vector.clear();
 }
 
 std::vector<unsigned char> from_hex(const std::string &input) {
@@ -59,7 +59,6 @@ std::vector<unsigned char> from_hex(const std::string &input) {
     return vector;
 }
 
-//todo steal the contents
 std::vector<unsigned char> from_string(const std::string& input) {
     return std::vector<unsigned char>(input.begin(), input.end());
 }

@@ -43,25 +43,6 @@ void clear(Obj* array, size_t length) {
     std::fill_n(array, length, 0);
 }
 
-//struct safe {
-//    std::string str;
-//
-//    safe(const std::string& data) = delete;
-//    explicit safe(std::string&& data) : str(data) {}
-//
-//    safe(const safe& other) {
-//        str = other.str;
-//    }
-//
-//    safe&operator=(safe other) {
-//        std::swap(str, other.str);
-//    }
-//
-//    ~safe() {
-//        clear<const char>(str.data(), str.size());
-//    }
-//};
-
 }
 
 #endif //HELLOWORLD_SHARED_UTILS_H_
