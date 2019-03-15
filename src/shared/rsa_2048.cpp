@@ -148,10 +148,12 @@ namespace helloworld {
     }
 
     std::vector<unsigned char> RSA2048::sign(const std::string &hash) {
+        return std::vector<unsigned char>();
     }
 
     bool RSA2048::verify(const std::vector<unsigned char> &signedData,
                          const std::string &hash) {
+        return false;
     }
 } //namespace helloworld
 
