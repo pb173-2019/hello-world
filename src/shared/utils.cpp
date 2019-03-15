@@ -15,7 +15,7 @@ void write_n(std::ostream &out, unsigned char *data, size_t length) {
     out.write((char *) data, length);
 }
 
-std::string to_upper(std::string lowercase) {
+std::string& to_upper(std::string&& lowercase) {
     std::transform(lowercase.begin(), lowercase.end(), lowercase.begin(), ::toupper);
     return lowercase;
 }
@@ -41,8 +41,9 @@ void from_hex(const std::string &input, unsigned char *output, size_t length) {
         throw std::runtime_error("Invalid conversion dimensions.");
     }
     std::vector<unsigned char> vector = from_hex(input);
-    //std::copy_n(vector.begin(), length, output);
+    //todo too much copying
     std::copy_n(vector.data(), length, output);
+    vector.clear(); //todo check whether erases data
 }
 
 std::vector<unsigned char> from_hex(const std::string &input) {
@@ -55,8 +56,16 @@ std::vector<unsigned char> from_hex(const std::string &input) {
         x >> std::hex >> c;
         vector.push_back(c);
     }
-
     return vector;
+}
+
+//todo steal the contents
+std::vector<unsigned char> from_string(const std::string& input) {
+    return std::vector<unsigned char>(input.begin(), input.end());
+}
+
+std::string to_string(const std::vector<unsigned char>& input) {
+    return std::string(input.begin(), input.end());
 }
 
 } //namespace helloworld

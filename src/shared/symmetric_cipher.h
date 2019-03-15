@@ -80,6 +80,13 @@ public:
    * @param out decrypted data
    */
   virtual void decrypt(std::istream &in, std::ostream& out) = 0;
+
+  /**
+   * Key generator
+   *
+   * @return std::string key in hex string suitable for cipher
+   */
+  virtual std::string generateKey() = 0;
 };
 
 }  // namespace helloworld
