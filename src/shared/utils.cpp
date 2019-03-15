@@ -4,7 +4,16 @@
 
 #include "utils.h"
 
+
 namespace helloworld {
+
+size_t getSize(std::istream &file) {
+    auto original = file.tellg();
+    file.seekg(0, std::ios::end);
+    auto delta = static_cast<size_t >(file.tellg() - original);
+    file.seekg(original);
+    return delta;
+}
 
 size_t read_n(std::istream &in, unsigned char *data, size_t length) {
     in.read((char *) data, length);
@@ -15,7 +24,7 @@ void write_n(std::ostream &out, unsigned char *data, size_t length) {
     out.write((char *) data, length);
 }
 
-std::string& to_upper(std::string&& lowercase) {
+std::string &to_upper(std::string &&lowercase) {
     std::transform(lowercase.begin(), lowercase.end(), lowercase.begin(), ::toupper);
     return lowercase;
 }
@@ -59,11 +68,11 @@ std::vector<unsigned char> from_hex(const std::string &input) {
     return vector;
 }
 
-std::vector<unsigned char> from_string(const std::string& input) {
+std::vector<unsigned char> from_string(const std::string &input) {
     return std::vector<unsigned char>(input.begin(), input.end());
 }
 
-std::string to_string(const std::vector<unsigned char>& input) {
+std::string to_string(const std::vector<unsigned char> &input) {
     return std::string(input.begin(), input.end());
 }
 

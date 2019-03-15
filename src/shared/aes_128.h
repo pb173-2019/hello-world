@@ -49,7 +49,13 @@ class AES128 : public SymmetricCipher {
 public:
     explicit AES128();
 
+    AES128(const AES128& other) = delete;
+
+    AES128&operator=(const AES128& other) = delete;
+
     ~AES128() override {
+        key.clear();
+        iv.clear();
         mbedtls_cipher_free(&context);
     }
 

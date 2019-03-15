@@ -11,6 +11,7 @@ AES128::AES128() {
         case MBEDTLS_ERR_CIPHER_ALLOC_FAILED:
             throw std::runtime_error("mbedTLS library initialization for aes cipher failed: memory alloc failed.");
     }
+    setPadding(Padding::PKCS7);
 }
 
 bool AES128::setKey(const std::string &key) {

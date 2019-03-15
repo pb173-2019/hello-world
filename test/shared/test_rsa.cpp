@@ -7,28 +7,47 @@
 using namespace helloworld;
 
 TEST_CASE("Rsa keygen & key loading") {
+    std::string key{"2b7e151628aed2a6abf7158809cf4f3c"};
+    std::string iv{"323994cfb9da285a5d9642e1759b224a"};
     RSAKeyGen keyGen;
-
-    keyGen.savePublicKey("pub.pem");
-    keyGen.savePrivateKey("priv.pem", "");
-
     RSA2048 rsa;
-    rsa.loadPublicKey("pub.pem");
-    std::vector<unsigned char> data = rsa.encrypt("My best message");
-
     RSA2048 rsa2;
-    rsa2.loadPrivateKey("priv.pem", "");
-    std::string res = rsa2.decrypt(data);
+    std::vector<unsigned char> data;
 
+    SECTION("No encryption") {
+        keyGen.savePublicKey("pub.pem");
+        keyGen.savePrivateKey("priv.pem", "", "");
+        rsa.loadPublicKey("pub.pem");
+        data = rsa.encrypt("My best message");
+        rsa2.loadPrivateKey("priv.pem", "", "");
+    }
+
+    SECTION("With encryption") {
+        keyGen.savePublicKey("pub.pem");
+        keyGen.savePrivateKey("priv.pem", key, iv);
+        rsa.loadPublicKey("pub.pem");
+        data = rsa.encrypt("My best message");
+        rsa2.loadPrivateKey("priv.pem", key, iv);
+    }
+
+    std::string res = rsa2.decrypt(data);
     CHECK(res == "My best message");
 }
 
 TEST_CASE("Rsa encryption & decryption") {
+    //from now on in tests below, use these keys as the files generated remains
+    std::string key{"323994cfb9da285a5d9642e1759b224a"};
+    std::string iv{"2b7e151628aed2a6abf7158809cf4f3c"};
+
+    RSAKeyGen keyGen;
+    keyGen.savePublicKey("pub.pem");
+    keyGen.savePrivateKey("priv.pem", key, iv);
+
     RSA2048 rsa;
     rsa.loadPublicKey("pub.pem");
 
     RSA2048 rsa2;
-    rsa2.loadPrivateKey("priv.pem", "");
+    rsa2.loadPrivateKey("priv.pem", key, iv);
 
     SECTION("Empty string") {
         std::vector<unsigned char> data = rsa.encrypt("");
@@ -49,11 +68,14 @@ TEST_CASE("Rsa encryption & decryption") {
 }
 
 TEST_CASE("Rsa sign & verify") {
+    std::string key{"323994cfb9da285a5d9642e1759b224a"};
+    std::string iv{"2b7e151628aed2a6abf7158809cf4f3c"};
+
     RSA2048 rsa;
     rsa.loadPublicKey("pub.pem");
 
     RSA2048 rsa2;
-    rsa2.loadPrivateKey("priv.pem", "");
+    rsa2.loadPrivateKey("priv.pem", key, iv);
 
     std::vector<unsigned char> rand = Random{}.get(64);
     std::string hash = to_hex(rand);
@@ -63,11 +85,14 @@ TEST_CASE("Rsa sign & verify") {
 }
 
 TEST_CASE("Invalid use") {
+    std::string key{"323994cfb9da285a5d9642e1759b224a"};
+    std::string iv{"2b7e151628aed2a6abf7158809cf4f3c"};
+
     RSA2048 pubkey;
     pubkey.loadPublicKey("pub.pem");
 
     RSA2048 privkey;
-    privkey.loadPrivateKey("priv.pem", "");
+    privkey.loadPrivateKey("priv.pem", key, iv);
 
     std::string str("Some random sentence.");
     std::vector<unsigned char> byte(256, 2);
@@ -92,12 +117,12 @@ TEST_CASE("Invalid use") {
     SECTION("Key mismatch") {
         RSAKeyGen keyGen;
         keyGen.savePublicKey("pub2.pem");
-        keyGen.savePrivateKey("priv2.pem", "");
+        keyGen.savePrivateKey("priv2.pem", "", "");
 
         RSA2048 other_pubkey;
         other_pubkey.loadPublicKey("pub2.pem");
         RSA2048 other_privkey;
-        other_privkey.loadPrivateKey("priv2.pem", "");
+        other_privkey.loadPrivateKey("priv2.pem", "", "");
 
         std::vector<unsigned char> data = other_pubkey.encrypt("Ahoj");
         CHECK_THROWS(privkey.decrypt(std::vector<unsigned char>(258, 2)));

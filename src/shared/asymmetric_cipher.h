@@ -29,10 +29,11 @@ public:
      * @brief Save private key into file
      *
      * @param filename file to save the key
-     * @param pwd password to encrypt key
+     * @param key key for aes
+     * @param iv iv for aes
      * @return bool true if succesfully saved
      */
-    virtual bool savePrivateKey(const std::string& filename, const std::string& pwd) = 0;
+    virtual bool savePrivateKey(const std::string& filename, const std::string& key, const std::string& iv) = 0;
 
     /**
      * @brief Save public key into file
@@ -64,9 +65,10 @@ class AsymmetricCipher {
    * @brief Set required key for operation
    *
    * @param keyFile key filename to load
-   * @param pwd password to decrypt private key or empty string
+   * @param key key to decrypt private key or empty string
+   * @param iv iv for encryption or empty string if not encrypted
   */
-  virtual void loadPrivateKey(const std::string &keyFile, const std::string &pwd) = 0;
+  virtual void loadPrivateKey(const std::string &keyFile, const std::string &key, const std::string& iv) = 0;
 
   /**
    * @brief Encrypt given message with key given

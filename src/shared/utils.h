@@ -18,6 +18,8 @@
 
 namespace helloworld {
 
+size_t getSize(std::istream &file);
+
 size_t read_n(std::istream &in, unsigned char *data, size_t length);
 
 void write_n(std::ostream &out, unsigned char *data, size_t length);

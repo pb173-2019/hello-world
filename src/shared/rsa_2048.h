@@ -43,12 +43,12 @@ public:
 
     ~RSAKeyGen() override;
 
-    bool savePrivateKey(const std::string &filename, const std::string &pwd) override;
+    bool savePrivateKey(const std::string &filename, const std::string &key, const std::string& iv) override;
 
     bool savePublicKey(const std::string &filename) override;
 
 private:
-    int getKeyLength(const unsigned char *key, int len, const std::string &terminator);
+    size_t getKeyLength(const unsigned char *key, int len, const std::string &terminator);
 };
 
 enum class KeyType {
@@ -60,7 +60,7 @@ class RSA2048 : public AsymmetricCipher {
     const static int KEY_SIZE = 2048;
     const static int EXPONENT = 65537;
 
-    mbedtls_pk_context key{};
+    mbedtls_pk_context context{};
     mbedtls_rsa_context* basic_context;
 
     KeyType keyLoaded = KeyType::NO_KEY;
@@ -70,12 +70,12 @@ public:
     explicit RSA2048();
 
     ~RSA2048() override {
-        mbedtls_pk_free(&key);
+        mbedtls_pk_free(&context);
     }
 
     void loadPublicKey(const std::string &keyFile) override;
 
-    void loadPrivateKey(const std::string &keyFile, const std::string &pwd) override;
+    void loadPrivateKey(const std::string &keyFile, const std::string &key, const std::string& iv) override;
 
     std::vector<unsigned char> encrypt(const std::string &msg) override;
 
@@ -88,10 +88,12 @@ public:
 private:
 
     bool valid(KeyType keyNeeded) {
-        return mbedtls_pk_can_do(&key, MBEDTLS_PK_RSA) == 1 && keyLoaded == keyNeeded && !dirty;
+        return mbedtls_pk_can_do(&context, MBEDTLS_PK_RSA) == 1 && keyLoaded == keyNeeded && !dirty;
     }
 
     void setup(KeyType type);
+
+    void loadKeyFromStream(std::istream& input);
 };
 
 } //namespace helloworld
