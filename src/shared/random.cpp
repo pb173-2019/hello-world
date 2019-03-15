@@ -97,9 +97,11 @@ namespace helloworld {
         buff[5] = static_cast<unsigned char>(lpSystemInfo.wProcessorArchitecture);
         buff[7] = static_cast<unsigned char>(lpSystemInfo.wProcessorRevision);
         buff[14] = static_cast<unsigned char>(lpSystemInfo.wReserved);
-
 #else
-        //todo linux
+        //todo linux entropy source
+        for (unsigned char i = 0; i < 16; i++) {
+            buff[i] = i;
+        }
 #endif
     }
 }
