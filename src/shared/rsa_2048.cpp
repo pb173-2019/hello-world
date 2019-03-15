@@ -148,12 +148,31 @@ namespace helloworld {
     }
 
     std::vector<unsigned char> RSA2048::sign(const std::string &hash) {
-        return std::vector<unsigned char>();
+        if (! valid(KeyType::PRIVATE_KEY))
+            throw std::runtime_error("RSA not instantiated properly for verification.");
+
+        std::vector<unsigned char> hash_bytes = from_hex(hash);
+        unsigned char signature[basic_context->len];
+        size_t olen;
+        Random random{};
+
+        if (mbedtls_pk_sign(&key, MBEDTLS_MD_SHA512, hash_bytes.data(), hash_bytes.size(),
+                signature, &olen, mbedtls_ctr_drbg_random, random.getEngine()) != 0) {
+            throw std::runtime_error("Failed to create signature.");
+        }
+        return std::vector<unsigned char>(signature, signature + olen);
     }
 
     bool RSA2048::verify(const std::vector<unsigned char> &signedData,
                          const std::string &hash) {
-        return false;
+        if (! valid(KeyType::PUBLIC_KEY))
+            throw std::runtime_error("RSA not instantiated properly for verification.");
+
+        std::vector<unsigned char> hash_bytes = from_hex(hash);
+        return mbedtls_pk_verify_ext( MBEDTLS_PK_RSA, nullptr, &key, MBEDTLS_MD_SHA512,
+                                  hash_bytes.data(), hash_bytes.size(),
+                                  signedData.data(), signedData.size()) == 0;
     }
+
 } //namespace helloworld
 

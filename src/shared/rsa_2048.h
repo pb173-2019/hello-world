@@ -86,6 +86,7 @@ public:
     bool verify(const std::vector<unsigned char> &signedData, const std::string &hash) override;
 
 private:
+
     bool valid(KeyType keyNeeded) {
         return mbedtls_pk_can_do(&key, MBEDTLS_PK_RSA) == 1 && keyLoaded == keyNeeded && !dirty;
     }
