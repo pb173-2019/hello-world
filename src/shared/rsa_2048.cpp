@@ -1,8 +1,6 @@
 #include "rsa_2048.h"
 
-#include <cmath>
 #include <fstream>
-#include <iostream>
 #include <stdexcept>
 
 #include "utils.h"
@@ -32,7 +30,7 @@ namespace helloworld {
     }
 
     bool RSAKeyGen::savePrivateKey(const std::string &filename, const std::string &pwd) {
-        std::ofstream out_pri{filename, std::ios::binary};
+        std::ofstream out_pri{filename, std::ios::out | std::ios::binary};
         if (!out_pri)
             return false;
 
@@ -41,16 +39,18 @@ namespace helloworld {
 
         //todo hash with pwd
         write_n(out_pri, buffer_private, keylen);
+        return true;
     }
 
     bool RSAKeyGen::savePublicKey(const std::string &filename) {
-        std::ofstream out_pub{filename, std::ios::binary};
+        std::ofstream out_pub{filename, std::ios::out | std::ios::binary};
         if (!out_pub)
             return false;
 
         int keylen = getKeyLength(buffer_public, MBEDTLS_MPI_MAX_SIZE, "-----END PUBLIC KEY-----\n");
         if (keylen == 0) return false;
         write_n(out_pub, buffer_public, keylen);
+        return true;
     }
 
     int RSAKeyGen::getKeyLength(const unsigned char *key, int len, const std::string &terminator) {
