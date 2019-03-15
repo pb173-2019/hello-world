@@ -40,8 +40,7 @@ namespace helloworld {
         if (keylen == 0) return false;
 
         //todo hash with pwd
-
-        out_pri.write(reinterpret_cast<char *>(buffer_private), keylen);
+        write_n(out_pri, buffer_private, keylen);
     }
 
     bool RSAKeyGen::savePublicKey(const std::string &filename) {
@@ -51,7 +50,7 @@ namespace helloworld {
 
         int keylen = getKeyLength(buffer_public, MBEDTLS_MPI_MAX_SIZE, "-----END PUBLIC KEY-----\n");
         if (keylen == 0) return false;
-        out_pub.write(reinterpret_cast<char *>(buffer_public), keylen);
+        write_n(out_pub, buffer_public, keylen);
     }
 
     int RSAKeyGen::getKeyLength(const unsigned char *key, int len, const std::string &terminator) {
@@ -91,7 +90,7 @@ namespace helloworld {
         setup(KeyType::PUBLIC_KEY);
     }
 
-    void RSA2048::loadPrivateKey(const std::string &keyFile, const std::string &/*pwd*/) {
+    void RSA2048::loadPrivateKey(const std::string &keyFile, const std::string &pwd) {
         if (keyLoaded != KeyType::NO_KEY)
             return;
 
@@ -148,7 +147,7 @@ namespace helloworld {
 
     std::vector<unsigned char> RSA2048::sign(const std::string &hash) {
         if (! valid(KeyType::PRIVATE_KEY))
-            throw std::runtime_error("RSA not instantiated properly for verification.");
+            throw std::runtime_error("RSA not instantiated properly for signature.");
 
         std::vector<unsigned char> hash_bytes = from_hex(hash);
         unsigned char signature[basic_context->len];
