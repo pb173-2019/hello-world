@@ -69,7 +69,6 @@ struct Serializable {
         int n = sizeof(output);
         for(int y = 0; n --> 0; y++)
             output += (input[from + y] << (n*8));
-        std::cout << output << std::endl;
         return sizeof(output);
     }
 

@@ -103,12 +103,12 @@ void RSA2048::loadPublicKey(const std::string &keyFile) {
 }
 
 void RSA2048::loadKeyFromStream(std::istream& input) {
-    size_t length = getSize(input);
-    unsigned char buff[length + 1];
-    read_n(input, buff, length);
-    buff[length] = '\0'; //mbedtls_pk_parse_key expecting null terminator
+    size_t length = getSize(input) + 1;
+    std::vector<unsigned char> buff(length);
+    read_n(input, buff.data(), length - 1);
+    buff[length - 1] = '\0'; //mbedtls_pk_parse_key expecting null terminator
 
-    if (mbedtls_pk_parse_key(&context, buff, length + 1, nullptr, 0) != 0) {
+    if (mbedtls_pk_parse_key(&context, buff.data(), length, nullptr, 0) != 0) {
         throw std::runtime_error("Could not load private key from stream.");
     }
 }
@@ -181,15 +181,15 @@ std::vector<unsigned char> RSA2048::sign(const std::string &hash) {
         throw std::runtime_error("RSA not instantiated properly for signature.");
 
     std::vector<unsigned char> hash_bytes = from_hex(hash);
-    unsigned char signature[basic_context->len];
+    std::vector<unsigned char> signature(basic_context->len);
     size_t olen;
     Random random{};
 
     if (mbedtls_pk_sign(&context, MBEDTLS_MD_SHA512, hash_bytes.data(), hash_bytes.size(),
-                        signature, &olen, mbedtls_ctr_drbg_random, random.getEngine()) != 0) {
+                        signature.data(), &olen, mbedtls_ctr_drbg_random, random.getEngine()) != 0) {
         throw std::runtime_error("Failed to create signature.");
     }
-    return std::vector<unsigned char>(signature, signature + olen);
+    return signature;
 }
 
 bool RSA2048::verify(const std::vector<unsigned char> &signedData,
