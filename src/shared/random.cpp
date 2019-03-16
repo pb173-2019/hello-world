@@ -27,20 +27,11 @@ namespace helloworld {
         mbedtls_ctr_drbg_set_prediction_resistance(&_ctr_drbg, MBEDTLS_CTR_DRBG_PR_ON);
     }
 
-
     std::vector<unsigned char> Random::get(size_t size) {
-        //todo clear memory, used for key generators
-        //todo or better, move data from array to vector
-        unsigned char data[size];
-
-        if (mbedtls_ctr_drbg_random(&_ctr_drbg, data, size) != 0) {
+        std::vector<unsigned char> result(size);
+        if (mbedtls_ctr_drbg_random(&_ctr_drbg, result.data(), result.size()) != 0) {
             throw std::runtime_error("Could not generate random sequence.");
         }
-        std::vector<unsigned char> result(data, data + size);
-
-        //addresses different! copied - insecure
-//        std::cout << static_cast<const void *>(data) << "\n";
-//        std::cout << static_cast<const void *>(result.data()) << "\n";
         return result;
     }
 

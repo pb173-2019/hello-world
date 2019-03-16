@@ -15,6 +15,8 @@
 #include <vector>
 #include <cstdint>
 
+#include <iostream>
+
 namespace helloworld {
 
 template <typename Obj>
@@ -26,7 +28,7 @@ struct Serializable {
      *
      * @return std::vector<unsigned int> serialized object
      */
-    virtual std::vector<unsigned char> serialize() = 0;
+    virtual std::vector<unsigned char> serialize() const = 0;
 
     /**
      * Obj has to implement its static getter named deserialize
@@ -96,7 +98,7 @@ struct Serializable {
      */
     template <typename container>
     static uint64_t getContainer(const std::vector<unsigned char>& input, uint64_t from, container& output) {
-        uint64_t len;
+        uint64_t len = 0;
         uint64_t metadata = getNumeric(input, from, len);
         for (uint64_t i = 0; i < len; i++) {
             output.push_back(input[from + i + metadata]);

@@ -14,7 +14,7 @@
 
 #include <string>
 
-#include "shared/request_type.h"
+#include "../shared/request_type.h"
 
 namespace helloworld {
 

@@ -1,6 +1,6 @@
 #include "catch.hpp"
 
-#include "../../src/shared/client_info.h"
+#include "../../src/shared/user_data.h"
 
 using namespace helloworld;
 

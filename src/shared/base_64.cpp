@@ -12,30 +12,32 @@ std::vector<unsigned char> Base64::encode(const std::vector<unsigned char>& mess
     size_t requiredSize;
     mbedtls_base64_encode(nullptr, 0, &requiredSize, message.data(), message.size());
 
-    size_t actualOutput;
-    unsigned char encoded[requiredSize];
-    if (mbedtls_base64_encode(encoded, requiredSize, &actualOutput, message.data(), message.size()) != 0) {
+    size_t actualLength;
+    //unsigned char encoded[requiredSize];
+    std::vector<unsigned char> encoded(requiredSize);
+    if (mbedtls_base64_encode(encoded.data(), requiredSize, &actualLength, message.data(), message.size()) != 0) {
         throw std::runtime_error("The buffer size provided for Base64 encoder is too small.");
     }
-    return std::vector<unsigned char>(encoded, encoded + actualOutput);
+    encoded.resize(actualLength);
+    return encoded;
 }
 
 std::vector<unsigned char> Base64::decode(const std::vector<unsigned char>& data) {
     size_t requiredSize;
     mbedtls_base64_encode(nullptr, 0, &requiredSize, data.data(), data.size());
 
-    size_t actualOutput;
-    unsigned char decoded[requiredSize];
-    switch (mbedtls_base64_decode(decoded, requiredSize, &actualOutput, data.data(), data.size())) {
+    size_t actualLength;
+    std::vector<unsigned char> decoded(requiredSize);
+    switch (mbedtls_base64_decode(decoded.data(), requiredSize, &actualLength, data.data(), data.size())) {
         case MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL:
             throw std::runtime_error("The buffer size provided for Base64 encoder is insufficient.");
         case MBEDTLS_ERR_BASE64_INVALID_CHARACTER:
             throw std::runtime_error("Invalid Base64 conversion: invalid character.");
         default:
-            break;
+            decoded.resize(actualLength);
     }
 
-    return std::vector<unsigned char>(decoded, decoded + actualOutput);
+    return decoded;
 }
 
 } // namespace helloworld
