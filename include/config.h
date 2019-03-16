@@ -1,6 +1,9 @@
 #ifndef MBEDTLS_CONFIG_H
 #define MBEDTLS_CONFIG_H
 
+//visual studio is not happy with mbedTLS using fopen()
+#define _CRT_SECURE_NO_WARNINGS
+
 //encode
 #define MBEDTLS_BASE64_C
 //rsa dependent
