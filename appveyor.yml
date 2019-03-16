@@ -10,6 +10,7 @@ init:
 
 install:
   - git submodule update --init --recursive
+  - npm config set unsafe-perm=true
 
 before_build:
   - cmake -H. -BBuild -G "Visual Studio 15 2017 Win64" .
