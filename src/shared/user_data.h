@@ -24,8 +24,15 @@ struct UserData : Serializable<UserData> {
     bool online = false;
     std::string name;
     std::string publicKey;
+    
+    UserData() = default;
+    
+    UserData(uint32_t id, std::string name, std::string pubKey) : 
+             id(id), 
+             name(std::move(name)), 
+             publicKey(std::move(pubKey)) {}
 
-    std::vector<unsigned char> serialize() override {
+    std::vector<unsigned char> serialize() const override {
         std::vector<unsigned char> result;
         Serializable::addNumeric<uint32_t>(result, id);
         Serializable::addContainer<std::string>(result, name);
