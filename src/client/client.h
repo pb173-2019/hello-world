@@ -20,11 +20,6 @@
 
 namespace helloworld {
 
-struct UserData {
-  long id;
-  std::string name;
-};
-
 class Client {
   // specific connection
   Connection _connection;
