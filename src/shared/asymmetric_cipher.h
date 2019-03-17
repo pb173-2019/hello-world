@@ -42,6 +42,13 @@ public:
      * @return bool true if succesfully saved
      */
     virtual bool savePublicKey(const std::string& filename) = 0;
+
+    /**
+     * Direct getter for public key
+     *
+     * @return std::vector<unsigned char> public key
+     */
+    virtual std::vector<unsigned char> getPublicKey() = 0;
 };
 
 class AsymmetricCipher {
@@ -53,6 +60,13 @@ class AsymmetricCipher {
   AsymmetricCipher(const AsymmetricCipher &other) = delete;
   AsymmetricCipher &operator=(const AsymmetricCipher &other) = delete;
   virtual ~AsymmetricCipher() = default;
+
+  /**
+   * Direct setter for public key
+   *
+   * @param key public key in pem format
+   */
+  virtual void setPublicKey(std::vector<unsigned char>& key) = 0;
 
   /**
    * @brief Set required key for operation
