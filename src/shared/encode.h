@@ -1,7 +1,7 @@
 /**
  * @file encode.h
  * @author Jiří Horák (469130@mail.muni.cz)
- * @brief Base64 encoder interface
+ * @brief Encode interface
  * @version 0.1
  * @date 2019-03-07
  *
@@ -20,6 +20,7 @@ namespace helloworld {
 template <typename raw, typename encoded>
 class Encode {
  public:
+  Encode() = default;
   Encode(const Encode& other) = delete;
   Encode& operator=(const Encode& other) = delete;
   virtual ~Encode() = default;
@@ -40,9 +41,6 @@ class Encode {
    */
   virtual raw decode(const encoded& data) = 0;
 };
-
-// Alias for default type encoder to get rid of templates
-using Base64Encoder = Encode<std::string, std::vector<unsigned char>>;
 
 }  // namespace helloworld
 

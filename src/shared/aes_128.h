@@ -1,3 +1,14 @@
+/**
+ * @file aes_128.h
+ * @author Jiří Horák (469130@mail.muni.cz)
+ * @brief AES128 wrapper
+ * @version 0.1
+ * @date 2019-03-07
+ *
+ * @copyright Copyright (c) 2019
+ *
+ */
+
 #ifndef HELLOWORLD_SHARED_AES_128_H_
 #define HELLOWORLD_SHARED_AES_128_H_
 
@@ -6,6 +17,8 @@
 #include <vector>
 
 #include "symmetric_cipher.h"
+#include "random.h"
+#include "utils.h"
 
 #include "mbedtls/cipher.h"
 #include "mbedtls/ctr_drbg.h"
@@ -13,6 +26,7 @@
 
 namespace helloworld {
 
+//for testing purposes
 enum class Padding {
     PKCS7 = MBEDTLS_PADDING_PKCS7,                 /**< PKCS7 padding (default).        */
     ONE_AND_ZEROS = MBEDTLS_PADDING_ONE_AND_ZEROS, /**< ISO/IEC 7816-4 padding.         */
@@ -35,7 +49,13 @@ class AES128 : public SymmetricCipher {
 public:
     explicit AES128();
 
+    AES128(const AES128& other) = delete;
+
+    AES128&operator=(const AES128& other) = delete;
+
     ~AES128() override {
+        key.clear();
+        iv.clear();
         mbedtls_cipher_free(&context);
     }
 
@@ -52,6 +72,13 @@ public:
     void encrypt(std::istream &in, std::ostream &out) override;
 
     void decrypt(std::istream &in, std::ostream &out) override;
+
+    std::string generateKey() override {
+        std::vector<unsigned char> data = Random{}.get(16);
+        std::string hex = to_hex(data);
+        //todo clear data
+        return hex;
+    }
 
 private:
     void init(bool willEncrypt);

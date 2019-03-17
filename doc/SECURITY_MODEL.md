@@ -49,8 +49,7 @@ What is the protection?
 
 ##### channel establishment
 1. Registration - Client app generates asymmetric key pair for new user, generates session key (AES-128), 
-sends encrypted session key to the server using server public key and stores user private key encrypted with user hash 
-from user password. If attack is performed at this point, key (and data) is safe.
+sends his public key and encrypted session key to the server using server public key and stores user private key encrypted with user hash from user password. If attack is performed at this point, key (and data) is safe.
 Integrity violation will result in connection failure, as the AES key will be either damaged or unable to encrypt message.
 Server keeps the session key for the session lifetime, and from now on, uses it to compute HMAC, so message integrity is secured.
 Server also encrypts random data with user public key and sends challenge to the user. User will be required to decrypt data and 

@@ -1,3 +1,14 @@
+/**
+ * @file sha_512.h
+ * @author Jiří Horák (469130@mail.muni.cz)
+ * @brief SHA 512 wrapper
+ * @version 0.1
+ * @date 2019-03-13
+ *
+ * @copyright Copyright (c) 2019
+ *
+ */
+
 #ifndef HELLOWORLD_SHARED_SHA512_H_
 #define HELLOWORLD_SHARED_SHA512_H_
 

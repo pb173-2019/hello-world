@@ -11,6 +11,7 @@ AES128::AES128() {
         case MBEDTLS_ERR_CIPHER_ALLOC_FAILED:
             throw std::runtime_error("mbedTLS library initialization for aes cipher failed: memory alloc failed.");
     }
+    setPadding(Padding::PKCS7);
 }
 
 bool AES128::setKey(const std::string &key) {
@@ -68,7 +69,7 @@ void AES128::init(bool willEncrypt) {
     if (iv.empty()) {
         if (willEncrypt) {
             Random random{};
-            std::vector<unsigned char> new_iv = random.get<IV_SIZE>();
+            std::vector<unsigned char> new_iv = random.get(IV_SIZE);
             iv = to_hex(new_iv);
         } else {
             throw std::runtime_error("IV is missing.");
@@ -80,6 +81,7 @@ void AES128::init(bool willEncrypt) {
     if (mbedtls_cipher_set_iv(&context, ivData, IV_SIZE) != 0) {
         throw std::runtime_error("Failed to initialize init vector - unable to continue.");
     }
+    clear<unsigned char>(ivData, IV_SIZE);
 
     if (key.empty()) {
         throw std::runtime_error("Key is missing.");
@@ -90,6 +92,7 @@ void AES128::init(bool willEncrypt) {
     if (mbedtls_cipher_setkey(&context, keyData, KEY_SIZE * 8, willEncrypt ? MBEDTLS_ENCRYPT : MBEDTLS_DECRYPT) != 0) {
         throw std::runtime_error("Failed to initialize AES key - unable to continue.");
     }
+    clear<unsigned char>(keyData, KEY_SIZE);
 }
 
 void AES128::process(std::istream &in, std::ostream &out) {
@@ -106,6 +109,7 @@ void AES128::process(std::istream &in, std::ostream &out) {
             throw std::runtime_error("Failed to update cipher.");
         }
         write_n(out, output, out_len);
+        clear<unsigned char>(output, 256 + IV_SIZE);
     }
 
     unsigned char fin[IV_SIZE];
@@ -114,6 +118,7 @@ void AES128::process(std::istream &in, std::ostream &out) {
         throw std::runtime_error("Failed to finish cipher.");
     }
     write_n(out, fin, fin_len);
+    clear<unsigned char>(fin, fin_len);
 
     if (!in.good() && !in.eof())
         throw std::runtime_error("Wrong input file.");
