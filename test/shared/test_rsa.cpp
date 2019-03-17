@@ -34,6 +34,23 @@ TEST_CASE("Rsa keygen & key loading") {
     CHECK(res == "My best message");
 }
 
+TEST_CASE("Public key get & set") {
+    std::string key{"323994cfb9da285a5d9642e1759b224a"};
+    std::string iv{"2b7e151628aed2a6abf7158809cf4f3c"};
+    RSAKeyGen keyGen;
+    
+    keyGen.savePrivateKey("priv.pem", key, iv);
+    RSA2048 rsa2;
+    rsa2.loadPrivateKey("priv.pem", key, iv);
+    
+    std::vector<unsigned char> publicKey = keyGen.getPublicKey();
+    RSA2048 rsa;
+    rsa.setPublicKey(publicKey);
+    
+    std::vector<unsigned char> data = rsa.encrypt("-");
+    CHECK(rsa2.decrypt(data) == "-");
+}
+
 TEST_CASE("Rsa encryption & decryption") {
     //from now on in tests below, use these keys as the files generated remains
     std::string key{"323994cfb9da285a5d9642e1759b224a"};

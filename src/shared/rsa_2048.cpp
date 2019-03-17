@@ -13,6 +13,9 @@ namespace helloworld {
 
 RSAKeyGen::RSAKeyGen() {
     RSA2048 rsa{};
+    Random random{};
+    mbedtls_ctr_drbg_context *random_ctx = random.getEngine();
+
     if (mbedtls_pk_setup(&rsa.context, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA)) != 0) {
         throw std::runtime_error("Could not initialize RSA ciper.");
     }
@@ -21,17 +24,19 @@ RSAKeyGen::RSAKeyGen() {
     mbedtls_rsa_set_padding(inner_ctx, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA512);
 
     if (mbedtls_rsa_gen_key(inner_ctx, mbedtls_ctr_drbg_random, random_ctx,
-            RSA2048::KEY_SIZE, RSA2048::EXPONENT) != 0) {
+                            RSA2048::KEY_SIZE, RSA2048::EXPONENT) != 0) {
         throw std::runtime_error("RSA key generating failed.");
     }
 
     if (mbedtls_pk_write_pubkey_pem(&rsa.context, buffer_public, MBEDTLS_MPI_MAX_SIZE) != 0) {
         throw std::runtime_error("Could not load pem format for public key.");
     }
+    pub_olen = getKeyLength(buffer_public, MBEDTLS_MPI_MAX_SIZE, "-----END PUBLIC KEY-----\n");
 
     if (mbedtls_pk_write_key_pem(&rsa.context, buffer_private, MBEDTLS_MPI_MAX_SIZE * 2) != 0) {
         throw std::runtime_error("Could not load pem format for private key.");
     }
+    priv_olen = getKeyLength(buffer_private, MBEDTLS_MPI_MAX_SIZE * 2, "-----END RSA PRIVATE KEY-----\n");
 }
 
 bool RSAKeyGen::savePrivateKey(const std::string &filename, const std::string &key, const std::string &iv) {
@@ -39,18 +44,17 @@ bool RSAKeyGen::savePrivateKey(const std::string &filename, const std::string &k
     if (!out_pri)
         return false;
 
-    size_t keylen = getKeyLength(buffer_private, MBEDTLS_MPI_MAX_SIZE * 2, "-----END RSA PRIVATE KEY-----\n");
-    if (keylen == 0) return false;
+    if (priv_olen == 0) return false;
 
     if (!key.empty()) {
         std::stringstream keystream{};
         AES128 cipher{};
-        write_n(keystream, buffer_private, keylen);
+        write_n(keystream, buffer_private, priv_olen);
         cipher.setKey(key);
         cipher.setIv(iv);
         cipher.encrypt(keystream, out_pri);
     } else {
-        write_n(out_pri, buffer_private, keylen);
+        write_n(out_pri, buffer_private, priv_olen);
     }
     return true;
 }
@@ -60,9 +64,8 @@ bool RSAKeyGen::savePublicKey(const std::string &filename) {
     if (!out_pub)
         return false;
 
-    size_t keylen = getKeyLength(buffer_public, MBEDTLS_MPI_MAX_SIZE, "-----END PUBLIC KEY-----\n");
-    if (keylen == 0) return false;
-    write_n(out_pub, buffer_public, keylen);
+    if (pub_olen == 0) return false;
+    write_n(out_pub, buffer_public, pub_olen);
     return true;
 }
 
@@ -102,18 +105,15 @@ void RSA2048::loadPublicKey(const std::string &keyFile) {
     setup(KeyType::PUBLIC_KEY);
 }
 
-void RSA2048::loadKeyFromStream(std::istream& input) {
-    size_t length = getSize(input) + 1;
-    std::vector<unsigned char> buff(length);
-    read_n(input, buff.data(), length - 1);
-    buff[length - 1] = '\0'; //mbedtls_pk_parse_key expecting null terminator
-
-    if (mbedtls_pk_parse_key(&context, buff.data(), length, nullptr, 0) != 0) {
-        throw std::runtime_error("Could not load private key from stream.");
+void RSA2048::setPublicKey(std::vector<unsigned char> &key) {
+    key.push_back(static_cast<unsigned char>('\0')); //mbedtls expecting null terminator
+    if (mbedtls_pk_parse_public_key(&context, key.data(), key.size()) != 0) {
+        throw std::runtime_error("Could not load public key from vector.");
     }
+    setup(KeyType::PUBLIC_KEY);
 }
 
-void RSA2048::loadPrivateKey(const std::string &keyFile, const std::string &key, const std::string& iv) {
+void RSA2048::loadPrivateKey(const std::string &keyFile, const std::string &key, const std::string &iv) {
     if (keyLoaded != KeyType::NO_KEY)
         return;
 
@@ -132,12 +132,6 @@ void RSA2048::loadPrivateKey(const std::string &keyFile, const std::string &key,
         loadKeyFromStream(input);
     }
     setup(KeyType::PRIVATE_KEY);
-}
-
-void RSA2048::setup(KeyType type) {
-    basic_context = reinterpret_cast<mbedtls_rsa_context *>(context.pk_ctx);
-    mbedtls_rsa_set_padding(basic_context, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA512);
-    keyLoaded = type;
 }
 
 std::vector<unsigned char> RSA2048::encrypt(const std::string &msg) {
@@ -201,6 +195,23 @@ bool RSA2048::verify(const std::vector<unsigned char> &signedData,
     return mbedtls_pk_verify_ext(MBEDTLS_PK_RSA, nullptr, &context, MBEDTLS_MD_SHA512,
                                  hash_bytes.data(), hash_bytes.size(),
                                  signedData.data(), signedData.size()) == 0;
+}
+
+void RSA2048::setup(KeyType type) {
+    basic_context = reinterpret_cast<mbedtls_rsa_context *>(context.pk_ctx);
+    mbedtls_rsa_set_padding(basic_context, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA512);
+    keyLoaded = type;
+}
+
+void RSA2048::loadKeyFromStream(std::istream &input) {
+    size_t length = getSize(input) + 1;
+    std::vector<unsigned char> buff(length);
+    read_n(input, buff.data(), length - 1);
+    buff[length - 1] = '\0'; //mbedtls_pk_parse_key expecting null terminator
+
+    if (mbedtls_pk_parse_key(&context, buff.data(), length, nullptr, 0) != 0) {
+        throw std::runtime_error("Could not load private key from stream.");
+    }
 }
 
 } //namespace helloworld

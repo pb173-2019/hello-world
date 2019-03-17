@@ -29,10 +29,7 @@ class RSAKeyGen : AsymmetricKeyGen {
     size_t priv_olen;
     unsigned char buffer_public[MBEDTLS_MPI_MAX_SIZE];
     size_t pub_olen;
-
-    Random random{};
-    mbedtls_ctr_drbg_context *random_ctx = random.getEngine();
-
+    
 public:
     RSAKeyGen();
 
@@ -43,9 +40,31 @@ public:
 
     ~RSAKeyGen() override;
 
+    /**
+     * Save public key into file in perm format
+     * @param filename filename to save to
+     * @param key AES key to encrypt the private key, if empty string,
+     *        the key is saved as plaintext
+     * @param iv AES iv for encryption
+     * @return true if successfully saved
+     */
     bool savePrivateKey(const std::string &filename, const std::string &key, const std::string& iv) override;
 
+    /**
+     * Save public key into file in perm format
+     * @param filename filename to save to
+     * @return true if successfully saved
+     */
     bool savePublicKey(const std::string &filename) override;
+    
+    /**
+     * Return copy of the public key. Copy of private key is not supported
+     * 
+     * @return  std::vector<unsigned char> copy of public key
+     */
+    std::vector<unsigned char> getPublicKey() {
+        return std::vector<unsigned char>(buffer_public, buffer_public + pub_olen);
+    }
 
 private:
     size_t getKeyLength(const unsigned char *key, int len, const std::string &terminator);
@@ -76,6 +95,8 @@ public:
     void loadPublicKey(const std::string &keyFile) override;
 
     void loadPrivateKey(const std::string &keyFile, const std::string &key, const std::string& iv) override;
+    
+    void setPublicKey(std::vector<unsigned char>& key);
 
     std::vector<unsigned char> encrypt(const std::string &msg) override;
 
