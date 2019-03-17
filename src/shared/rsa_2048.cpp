@@ -212,6 +212,7 @@ void RSA2048::loadKeyFromStream(std::istream &input) {
     if (mbedtls_pk_parse_key(&context, buff.data(), length, nullptr, 0) != 0) {
         throw std::runtime_error("Could not load private key from stream.");
     }
+    clear<unsigned char>(buff.data(), length);
 }
 
 } //namespace helloworld

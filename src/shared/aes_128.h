@@ -76,7 +76,7 @@ public:
     std::string generateKey() override {
         std::vector<unsigned char> data = Random{}.get(16);
         std::string hex = to_hex(data);
-        //todo clear data
+        clear<unsigned char>(data.data(), data.size());
         return hex;
     }
 

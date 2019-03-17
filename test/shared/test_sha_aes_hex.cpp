@@ -252,8 +252,6 @@ TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding") {
 
             aes128.setKey("63bed6b8e3c1743b7116e69e22229515");
             std::stringstream output;
-            //invalid key decryption will throws because of padding
-            //todo possibly not force throw but return false instead
             CHECK_THROWS_AS(aes128.decrypt(encrypted, output), std::runtime_error);
         }
 

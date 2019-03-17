@@ -52,7 +52,7 @@ void from_hex(const std::string &input, unsigned char *output, size_t length) {
     std::vector<unsigned char> vector = from_hex(input);
     //todo too much copying
     std::copy_n(vector.data(), length, output);
-    vector.clear();
+    clear<unsigned char>(vector.data(), vector.size());
 }
 
 std::vector<unsigned char> from_hex(const std::string &input) {
