@@ -18,13 +18,11 @@ std::vector<unsigned char>& HMAC::key() { return key_; }
 std::string HMAC::generate(std::istream &message) {
     if (!message) throw std::runtime_error("input stream invalid");
 
-
     std::array<unsigned char, 4096> buffer;
     std::array<unsigned char, 64> output;
 
     mbedtls_md_context_t ctx;
     mbedtls_md_type_t md_type = MBEDTLS_MD_SHA512;
-
 
     mbedtls_md_init(&ctx);
     mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type) , 1);

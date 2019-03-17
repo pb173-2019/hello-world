@@ -51,3 +51,7 @@ const std::vector<std::unique_ptr<helloworld::UserData>>& FileDatabase::select(c
     }
     return cache;
 }
+
+void FileDatabase::drop() {
+    //nothing
+}

@@ -40,6 +40,11 @@ public:
      */
     virtual const std::vector<std::unique_ptr<helloworld::UserData>>& select(const helloworld::UserData& query) = 0;
 
+    /**
+     * Delete the database
+     */
+    virtual void drop() = 0;
+
 };
 
 #endif //HELLOWORLD_SERVER_DATABASE_H_

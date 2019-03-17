@@ -39,6 +39,8 @@ public:
 
     const std::vector<std::unique_ptr<helloworld::UserData>>& select(const helloworld::UserData &query) override;
 
+    void drop() override;
+
 };
 
 #endif //HELLOWORLD_SERVER_FILE_DATABASE_H_
