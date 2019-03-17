@@ -54,7 +54,7 @@ public:
 
 private:
 
-    void execute(std::string&& command, int (*callback)(void*,int,char**,char**), void* fstArg);
+    int execute(std::string&& command, int (*callback)(void*,int,char**,char**), void* fstArg);
 
     void createTableIfNExists();
 
@@ -71,11 +71,12 @@ private:
 
         auto* cache = static_cast<std::vector<std::unique_ptr<helloworld::UserData>> *>(data);
         auto id = static_cast<uint32_t>(std::stol(argv[0]));
-//        cache->emplace_back(id, argv[1], argv[2]);
         helloworld::UserData temp{id, argv[1], argv[2]};
         cache->push_back(std::make_unique<helloworld::UserData>(temp));
         return 0;
     }
+
+    static std::string getErrorMsgByReturnType(int ret);
 
 };
 
