@@ -92,7 +92,7 @@ namespace helloworld {
         std::ifstream randomSource("/dev/urandom");
         if (!randomSource)
             throw std::runtime_error("Couldn't acquire entropy");
-        randomSource.read(buff, 16);
+        randomSource.read(reinterpret_cast<char *>(buff), 16); //NOLINT
 #endif
     }
 }
