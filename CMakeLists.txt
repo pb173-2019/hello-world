@@ -6,8 +6,8 @@ project(helloworld)
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
-SET(CMAKE_CXX_FLAGS  -dl -pthread)
-SET(CMAKE_C_FLAGS  -dl -pthread)
+SET(CMAKE_CXX_FLAGS -pthread)
+SET(CMAKE_C_FLAGS -pthread)
 
 # mbedtls settings
 add_compile_definitions(MBEDTLS_CONFIG_FILE=<config.h>)
