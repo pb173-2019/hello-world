@@ -10,7 +10,7 @@
 #include <iostream>
 
 #else
-// todo linux
+#include <fstream>
 #endif
 
 namespace helloworld {
@@ -89,10 +89,10 @@ namespace helloworld {
         buff[7] = static_cast<unsigned char>(lpSystemInfo.wProcessorRevision);
         buff[14] = static_cast<unsigned char>(lpSystemInfo.wReserved);
 #else
-        //todo linux entropy source
-        for (unsigned char i = 0; i < 16; i++) {
-            buff[i] = i;
-        }
+        std::ifstream randomSource("/dev/urandom");
+        if (!randomSource)
+            throw std::runtime_error("Couldn't acquire entropy");
+        randomSource.read(reinterpret_cast<char *>(buff), 16); //NOLINT
 #endif
     }
 }
