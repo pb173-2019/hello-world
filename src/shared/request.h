@@ -20,7 +20,7 @@ namespace helloworld {
 
     struct Request {
         enum class Type {
-            LOGIN, LOGOUT, CREATE, DELETE, SEND, RECEIVE, FIND
+            LOGIN, LOGIN_COMPLETE, LOGOUT, CREATE, CREATE_COMPLETE, DELETE, SEND, RECEIVE, FIND
         };
 
         /**
@@ -45,7 +45,7 @@ namespace helloworld {
 
     struct Response {
         enum class Type {
-            OK = 128, NOT_FOUD, INVALID_AUTH, INVALID_MSG_NUM
+            OK = 128, NOT_FOUD, INVALID_AUTH, INVALID_MSG_NUM, SERVER_ERROR, CHALLENGE_RESPONSE_NEEDED
         };
 
         /**
@@ -54,7 +54,7 @@ namespace helloworld {
         * @param type. which validity is being checked
         * @return bool true if type is valid, false otherwise
         */
-        static bool isValidType(Type type) { return Type::OK <= type && type <= Type::INVALID_MSG_NUM; }
+        static bool isValidType(Type type) { return Type::OK <= type && type <= Type::CHALLENGE_RESPONSE_NEEDED; }
 
         struct Header {
             uint32_t messageNumber;

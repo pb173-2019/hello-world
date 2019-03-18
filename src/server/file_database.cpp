@@ -53,5 +53,6 @@ const std::vector<std::unique_ptr<helloworld::UserData>>& FileDatabase::select(c
 }
 
 void FileDatabase::drop() {
-    //nothing
+    std::ofstream ofs;
+    ofs.open(source, std::ofstream::out | std::ofstream::trunc);
 }
