@@ -59,7 +59,7 @@ private:
     void createTableIfNExists();
 
     /**
-     * Callback for execution, can perform, not used now
+     * Callback for execution, perform selection - save data
      * @param argc number of values in a row
      * @param argv values in array
      * @param colName coll names in array
