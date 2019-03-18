@@ -16,17 +16,9 @@
 
 #include "secure_channel.h"
 #include "shared/request_type.h"
+#include "shared/request.h"
 
 namespace helloworld {
-
-struct Request {
-  RequestType type;
-};
-
-struct Response {
-  bool successful;
-  size_t size;
-};
 
 class Connection {
  public:

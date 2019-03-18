@@ -83,5 +83,3 @@ TEST_CASE("Database no matching query") {
     const auto& res1 = db.select(query1);
     CHECK(res1.empty());
 }
-
-TEST_CASE("server test") { CHECK(1 == 1); }

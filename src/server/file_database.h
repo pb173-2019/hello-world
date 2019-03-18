@@ -16,7 +16,7 @@
 
 #include "database.h"
 
-class FileDatabase : Database {
+class FileDatabase : public Database {
 
     std::string source;
     uint32_t lastSearchedId = 0;
