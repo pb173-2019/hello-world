@@ -53,7 +53,6 @@ Response Server::registerUser(int connectionId, const Request &request) {
             "User " + userData.name + " is already in the process of verification.");
     }
 
-    _rsa.setPublicKey(registerRequest.publicKey);
     return {Response::Type::CHALLENGE_RESPONSE_NEEDED, challenge.secret,
             request.messageNumber};
 }
