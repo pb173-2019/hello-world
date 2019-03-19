@@ -72,8 +72,8 @@ Response Server::completeUserRegistration(int connectionId,
     }
 
     _database->insert(registration->second.userData);
-    _registrations.erase(curRequest.name);
     _connections[connectionId].username = registration->second.userData.name;
+    _registrations.erase(curRequest.name);
 
     return {Response::Type::OK, {}, request.messageNumber};
 }

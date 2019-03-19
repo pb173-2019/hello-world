@@ -19,6 +19,7 @@
 
 #include "sqlite3.h"
 
+const std::string specialCharacters = ":?\"";
 
 class SQLite : Database {
     std::vector<std::unique_ptr<helloworld::UserData>> _cache;
@@ -77,6 +78,8 @@ private:
     }
 
     static std::string _getErrorMsgByReturnType(int ret);
+
+    static std::string _sCheck(std::string query);
 
 };
 

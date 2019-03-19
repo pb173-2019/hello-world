@@ -1,5 +1,7 @@
 #include "sqlite_database.h"
 
+#include <algorithm>
+
 SQLite::SQLite() {
     if (int res = sqlite3_open(nullptr, &_handler) != SQLITE_OK) {
         throw std::runtime_error("Could not create database: " + _getErrorMsgByReturnType(res));
@@ -25,7 +27,7 @@ SQLite::~SQLite() {
 void SQLite::insert(const helloworld::UserData &data) {
     if (int res = _execute("INSERT INTO users VALUES (" +
                           std::to_string(data.id) + ", '" +
-                          data.name + "', '" +
+                          _sCheck(data.name) + "', '" +
                           data.publicKey + "');", nullptr, nullptr) != SQLITE_OK) {
         throw std::runtime_error("Insert command failed: " + _getErrorMsgByReturnType(res));
     }
@@ -37,8 +39,8 @@ const std::vector<std::unique_ptr<helloworld::UserData>> &SQLite::select(const h
     if (query.id == 0 && query.name.empty()) {
         res = _execute("SELECT * FROM users;", _fillData, &_cache);
     } else if (query.id == 0) {
-        res = _execute("SELECT * FROM users WHERE username LIKE '%" + query.name + "%' ORDER BY id DESC;", _fillData,
-                      &_cache);
+        res = _execute("SELECT * FROM users WHERE username LIKE '%" + _sCheck(query.name) + "%' ORDER BY id DESC;",
+                _fillData, &_cache);
     } else {
         res = _execute("SELECT * FROM users WHERE id=" + std::to_string(query.id) + ";", _fillData, &_cache);
     }
@@ -71,6 +73,13 @@ void SQLite::_createTableIfNExists() {
                           nullptr, nullptr) != SQLITE_OK) {
         throw std::runtime_error("Could not create database: " + _getErrorMsgByReturnType(res));
     }
+}
+
+std::string SQLite::_sCheck(std::string query) {
+    std::transform(query.begin(), query.end(), query.begin(), [](char c){
+        return specialCharacters.find(c) == std::string::npos ? c : ' ';
+    });
+    return query;
 }
 
 std::string SQLite::_getErrorMsgByReturnType(int ret) {
