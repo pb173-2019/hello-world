@@ -1,7 +1,6 @@
 project(server)
 
 add_executable(${PROJECT_NAME} main.cpp
-        config.h
         database.h
         file_database.h
         file_database.cpp

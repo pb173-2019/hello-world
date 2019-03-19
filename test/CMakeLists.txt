@@ -5,7 +5,6 @@ target_link_libraries(client_test shared)
 add_test(client_test_execute client_test)
 
 file(GLOB server_test_src "./server/*.h" "./server/*.cpp"
-        ../src/server/config.h
         ../src/server/database.h
         ../src/server/file_database.cpp
         ../src/server/file_database.h
