@@ -37,16 +37,16 @@ enum class Padding {
 
 class AES128 : public SymmetricCipher {
 
+    std::string _key{};
+    std::string _iv{};
+    bool dirty = false;
+
+    mbedtls_cipher_context_t _context{};
+
+public:
     const static int KEY_SIZE = 16;
     const static int IV_SIZE = 16;
 
-    std::string key{};
-    std::string iv{};
-    bool dirty = false;
-
-    mbedtls_cipher_context_t context{};
-
-public:
     explicit AES128();
 
     AES128(const AES128& other) = delete;
@@ -54,18 +54,18 @@ public:
     AES128&operator=(const AES128& other) = delete;
 
     ~AES128() override {
-        key.clear();
-        iv.clear();
-        mbedtls_cipher_free(&context);
+        _key.clear();
+        _iv.clear();
+        mbedtls_cipher_free(&_context);
     }
 
     bool setKey(const std::string &key) override;
 
-    const std::string &getKey() override;
+    const std::string &getKey() const override;
 
     bool setIv(const std::string &iv) override;
 
-    const std::string &getIv() override;
+    const std::string &getIv() const override;
 
     void setPadding(Padding p) override;
 
@@ -73,7 +73,7 @@ public:
 
     void decrypt(std::istream &in, std::ostream &out) override;
 
-    std::string generateKey() override {
+    std::string generateKey() const override {
         std::vector<unsigned char> data = Random{}.get(16);
         std::string hex = to_hex(data);
         clear<unsigned char>(data.data(), data.size());
@@ -81,11 +81,11 @@ public:
     }
 
 private:
-    void init(bool willEncrypt);
+    void _init(bool willEncrypt);
 
-    void process(std::istream &in, std::ostream &out);
+    void _process(std::istream &in, std::ostream &out);
 
-    void reset();
+    void _reset();
 };
 
 } //namespace helloworld

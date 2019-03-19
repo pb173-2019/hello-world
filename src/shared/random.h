@@ -58,7 +58,7 @@ namespace helloworld {
         ~Random();
 
     private:
-        void getSeedEntropy(unsigned char* buff);
+        void _getSeedEntropy(unsigned char* buff);
     };
 }
 

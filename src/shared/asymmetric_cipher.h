@@ -41,14 +41,14 @@ public:
      * @param filename file to save the key
      * @return bool true if succesfully saved
      */
-    virtual bool savePublicKey(const std::string& filename) = 0;
+    virtual bool savePublicKey(const std::string& filename) const = 0;
 
     /**
      * Direct getter for public key
      *
      * @return std::vector<unsigned char> public key
      */
-    virtual std::vector<unsigned char> getPublicKey() = 0;
+    virtual std::vector<unsigned char> getPublicKey() const = 0;
 };
 
 class AsymmetricCipher {

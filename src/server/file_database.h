@@ -18,10 +18,10 @@
 
 class FileDatabase : public Database {
 
-    std::string source;
-    uint32_t lastSearchedId = 0;
-    std::string lastSearched;
-    std::vector<std::unique_ptr<helloworld::UserData>> cache;
+    std::string _source;
+    uint32_t _lastSearchedId = 0;
+    std::string _lastSearched;
+    std::vector<std::unique_ptr<helloworld::UserData>> _cache;
 
 public:
     FileDatabase();

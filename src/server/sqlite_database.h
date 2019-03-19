@@ -21,9 +21,9 @@
 
 
 class SQLite : Database {
-    std::vector<std::unique_ptr<helloworld::UserData>> cache;
-    std::string tablename{"users"};
-    sqlite3 *handler = nullptr;
+    std::vector<std::unique_ptr<helloworld::UserData>> _cache;
+    std::string _tablename{"users"};
+    sqlite3 *_handler = nullptr;
 
 public:
     /**
@@ -54,9 +54,9 @@ public:
 
 private:
 
-    int execute(std::string&& command, int (*callback)(void*,int,char**,char**), void* fstArg);
+    int _execute(std::string&& command, int (*callback)(void*,int,char**,char**), void* fstArg);
 
-    void createTableIfNExists();
+    void _createTableIfNExists();
 
     /**
      * Callback for execution, perform selection - save data
@@ -65,7 +65,7 @@ private:
      * @param colName coll names in array
      * @return 0 on success
      */
-    static int fillData(void *data, int argc, char **argv, char **colName) {
+    static int _fillData(void *data, int argc, char **argv, char **colName) {
         if (argc != 3)
             return 1;
 
@@ -76,7 +76,7 @@ private:
         return 0;
     }
 
-    static std::string getErrorMsgByReturnType(int ret);
+    static std::string _getErrorMsgByReturnType(int ret);
 
 };
 

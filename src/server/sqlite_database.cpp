@@ -1,80 +1,79 @@
 #include "sqlite_database.h"
 
 SQLite::SQLite() {
-    if (int res = sqlite3_open(nullptr, &handler) != SQLITE_OK) {
-        throw std::runtime_error("Could not create database: " + getErrorMsgByReturnType(res));
+    if (int res = sqlite3_open(nullptr, &_handler) != SQLITE_OK) {
+        throw std::runtime_error("Could not create database: " + _getErrorMsgByReturnType(res));
     }
-    createTableIfNExists();
+    _createTableIfNExists();
 }
 
 SQLite::SQLite(std::string &&filename) {
     filename.push_back('\0');
-    if (int res = sqlite3_open(nullptr, &handler) != SQLITE_OK) {
-        throw std::runtime_error("Could not create database. " + getErrorMsgByReturnType(res));
+    if (int res = sqlite3_open(nullptr, &_handler) != SQLITE_OK) {
+        throw std::runtime_error("Could not create database. " + _getErrorMsgByReturnType(res));
     }
-    tablename = "users";
-    createTableIfNExists();
+    _createTableIfNExists();
 }
 
 SQLite::~SQLite() {
     // todo: can return SQLITE_BUSY when not ready to release (backup) ... solve?
-    if (sqlite3_close(handler) != SQLITE_OK) {
+    if (sqlite3_close(_handler) != SQLITE_OK) {
         //todo cannot throw, but also cannot destruct...
     }
 }
 
 void SQLite::insert(const helloworld::UserData &data) {
-    if (int res = execute("INSERT INTO users VALUES (" +
+    if (int res = _execute("INSERT INTO users VALUES (" +
                           std::to_string(data.id) + ", '" +
                           data.name + "', '" +
-                          data.publicKey + "');", nullptr, nullptr) != 0) {
-        throw std::runtime_error("Insert command failed: " + getErrorMsgByReturnType(res));
+                          data.publicKey + "');", nullptr, nullptr) != SQLITE_OK) {
+        throw std::runtime_error("Insert command failed: " + _getErrorMsgByReturnType(res));
     }
 }
 
 const std::vector<std::unique_ptr<helloworld::UserData>> &SQLite::select(const helloworld::UserData &query) {
-    cache.clear();
+    _cache.clear();
     int res;
     if (query.id == 0 && query.name.empty()) {
-        res = execute("SELECT * FROM users;", fillData, &cache);
+        res = _execute("SELECT * FROM users;", _fillData, &_cache);
     } else if (query.id == 0) {
-        res = execute("SELECT * FROM users WHERE username LIKE '%" + query.name + "%' ORDER BY id DESC;", fillData,
-                      &cache);
+        res = _execute("SELECT * FROM users WHERE username LIKE '%" + query.name + "%' ORDER BY id DESC;", _fillData,
+                      &_cache);
     } else {
-        res = execute("SELECT * FROM users WHERE id=" + std::to_string(query.id) + ";", fillData, &cache);
+        res = _execute("SELECT * FROM users WHERE id=" + std::to_string(query.id) + ";", _fillData, &_cache);
     }
     if (res != SQLITE_OK)
-        throw std::runtime_error("Select command failed: " + getErrorMsgByReturnType(res));
-    return cache;
+        throw std::runtime_error("Select command failed: " + _getErrorMsgByReturnType(res));
+    return _cache;
 }
 
 void SQLite::drop() {
-    if (int res = execute("DROP TABLE users;", nullptr, nullptr) != SQLITE_OK) {
-        throw std::runtime_error("Could not delete database: " + getErrorMsgByReturnType(res));
+    if (int res = _execute("DROP TABLE users;", nullptr, nullptr) != SQLITE_OK) {
+        throw std::runtime_error("Could not delete database: " + _getErrorMsgByReturnType(res));
     }
 }
 
-int SQLite::execute(std::string &&command, int (*callback)(void *, int, char **, char **), void *fstArg) {
+int SQLite::_execute(std::string &&command, int (*callback)(void *, int, char **, char **), void *fstArg) {
     command.push_back('\0'); //the c library - just to be sure
     char *error;
-    int res = sqlite3_exec(handler, command.data(), callback, fstArg, &error);
+    int res = sqlite3_exec(_handler, command.data(), callback, fstArg, &error);
     if (res != SQLITE_OK) {
         printf("%s\n", error);
     }
     return res;
 }
 
-void SQLite::createTableIfNExists() {
-    if (int res = execute("CREATE TABLE IF NOT EXISTS users ("
+void SQLite::_createTableIfNExists() {
+    if (int res = _execute("CREATE TABLE IF NOT EXISTS users ("
                           "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                           "username TEXT, "
                           "pubkey TEXT);",
                           nullptr, nullptr) != SQLITE_OK) {
-        throw std::runtime_error("Could not create database: " + getErrorMsgByReturnType(res));
+        throw std::runtime_error("Could not create database: " + _getErrorMsgByReturnType(res));
     }
 }
 
-std::string SQLite::getErrorMsgByReturnType(int ret) {
+std::string SQLite::_getErrorMsgByReturnType(int ret) {
     switch (ret) {
         /*
          * Doesn't consider following:

@@ -40,7 +40,7 @@ public:
    *
    * @return std::string key associated with cipher instance
    */
-  virtual const std::string& getKey() = 0;
+  virtual const std::string& getKey() const = 0;
 
   /**
    * @brief Set custom iv for cipher, generated random if not present
@@ -55,10 +55,10 @@ public:
    *
    * @return std::string iv associated with cipher instance
    */
-  virtual const std::string& getIv() = 0;
+  virtual const std::string& getIv() const = 0;
 
   /**
-   * @brief Set cipher padding
+   * @brief Set cipher padding, fot test purposes
    *
    * @param p padding to set
    */
@@ -86,7 +86,7 @@ public:
    *
    * @return std::string key in hex string suitable for cipher
    */
-  virtual std::string generateKey() = 0;
+  virtual std::string generateKey() const = 0;
 };
 
 }  // namespace helloworld

@@ -25,10 +25,10 @@
 namespace helloworld {
 
 class RSAKeyGen : AsymmetricKeyGen {
-    unsigned char buffer_private[MBEDTLS_MPI_MAX_SIZE * 2];
-    size_t priv_olen;
-    unsigned char buffer_public[MBEDTLS_MPI_MAX_SIZE];
-    size_t pub_olen;
+    unsigned char _buffer_private[MBEDTLS_MPI_MAX_SIZE * 2];
+    size_t _priv_olen;
+    unsigned char _buffer_public[MBEDTLS_MPI_MAX_SIZE];
+    size_t _pub_olen;
 
 public:
     RSAKeyGen();
@@ -42,14 +42,14 @@ public:
 
     bool savePrivateKey(const std::string &filename, const std::string &key, const std::string& iv) override;
 
-    bool savePublicKey(const std::string &filename) override;
+    bool savePublicKey(const std::string &filename) const override;
 
-    std::vector<unsigned char> getPublicKey() override {
-        return std::vector<unsigned char>(buffer_public, buffer_public + pub_olen);
+    std::vector<unsigned char> getPublicKey() const override {
+        return std::vector<unsigned char>(_buffer_public, _buffer_public + _pub_olen);
     }
 
 private:
-    size_t getKeyLength(const unsigned char *key, int len, const std::string &terminator);
+    size_t _getKeyLength(const unsigned char *key, int len, const std::string &terminator);
 };
 
 enum class KeyType {
@@ -58,20 +58,21 @@ enum class KeyType {
 
 class RSA2048 : public AsymmetricCipher {
     friend RSAKeyGen;
+
+    mbedtls_pk_context _context{};
+    mbedtls_rsa_context* _basic_context;
+
+    KeyType _keyLoaded = KeyType::NO_KEY;
+    bool _dirty = false;
+
+public:
     const static int KEY_SIZE = 2048;
     const static int EXPONENT = 65537;
 
-    mbedtls_pk_context context{};
-    mbedtls_rsa_context* basic_context;
-
-    KeyType keyLoaded = KeyType::NO_KEY;
-    bool dirty = false;
-
-public:
     explicit RSA2048();
 
     ~RSA2048() override {
-        mbedtls_pk_free(&context);
+        mbedtls_pk_free(&_context);
     }
 
     void setPublicKey(std::vector<unsigned char>& key) override;
@@ -90,13 +91,13 @@ public:
 
 private:
 
-    bool valid(KeyType keyNeeded) {
-        return mbedtls_pk_can_do(&context, MBEDTLS_PK_RSA) == 1 && keyLoaded == keyNeeded && !dirty;
+    bool _valid(KeyType keyNeeded) {
+        return mbedtls_pk_can_do(&_context, MBEDTLS_PK_RSA) == 1 && _keyLoaded == keyNeeded && !_dirty;
     }
 
-    void setup(KeyType type);
+    void _setup(KeyType type);
 
-    void loadKeyFromStream(std::istream& input);
+    void _loadKeyFromStream(std::istream& input);
 };
 
 } //namespace helloworld

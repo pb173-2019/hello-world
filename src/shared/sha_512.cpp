@@ -2,7 +2,7 @@
 
 namespace helloworld {
 
-std::string SHA512::get(std::istream &in) {
+std::string SHA512::get(std::istream &in)  {
     if (!in) throw std::runtime_error("input stream invalid");
 
     while (in.good()) {

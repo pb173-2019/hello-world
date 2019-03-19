@@ -31,10 +31,11 @@ struct Serializable {
     virtual std::vector<unsigned char> serialize() const = 0;
 
     /**
-     * Obj has to implement its static getter named deserialize
+     * Obj has to implement its static getter
+     * named deserialize with const std::vector<unsigned char>& as param
      *
      * @param data data to parse
-     * @return Obj deserialized value
+     * @return Obj deserialized object
      */
     static Obj deserialize(const std::vector<unsigned char>& data) {
         return Obj::deserialize(data);

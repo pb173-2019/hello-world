@@ -7,15 +7,15 @@
 using namespace helloworld;
 
 FileDatabase::FileDatabase() {
-    source = dbFileName;
+    _source = dbFileName;
 }
 
 FileDatabase::FileDatabase(const std::string& filename) {
-    source = filename;
+    _source = filename;
 }
 
 void FileDatabase::insert(const UserData& data) {
-    std::ofstream output{ source, std::ios::binary | std::ios::app };
+    std::ofstream output{ _source, std::ios::binary | std::ios::app };
     if (!output)
         throw std::runtime_error("Unable to open database stream.");
     std::vector<unsigned char> length;
@@ -26,8 +26,8 @@ void FileDatabase::insert(const UserData& data) {
 }
 
 const std::vector<std::unique_ptr<helloworld::UserData>>& FileDatabase::select(const UserData& query) {
-    cache.clear();
-    std::ifstream input{ source, std::ios::binary };
+    _cache.clear();
+    std::ifstream input{ _source, std::ios::binary };
     if (! input)
         throw std::runtime_error("Unable to read from database stream.");
 
@@ -46,13 +46,13 @@ const std::vector<std::unique_ptr<helloworld::UserData>>& FileDatabase::select(c
         if ((usrdata.name.empty() || usrdata.name.find(query.name) != std::string::npos)
                 && (query.id == 0 || query.id == usrdata.id)
                 /*&& (query.online == data.online)*/) {
-            cache.emplace_back(std::make_unique<UserData>(usrdata));
+            _cache.emplace_back(std::make_unique<UserData>(usrdata));
         }
     }
-    return cache;
+    return _cache;
 }
 
 void FileDatabase::drop() {
     std::ofstream ofs;
-    ofs.open(source, std::ofstream::out | std::ofstream::trunc);
+    ofs.open(_source, std::ofstream::out | std::ofstream::trunc);
 }

@@ -19,7 +19,7 @@ namespace helloworld {
         mbedtls_entropy_init(&_entropy);
         mbedtls_ctr_drbg_init(&_ctr_drbg);
         unsigned char salt[16];
-        getSeedEntropy(salt);
+        _getSeedEntropy(salt);
 
         if (mbedtls_ctr_drbg_seed(&_ctr_drbg, mbedtls_entropy_func, &_entropy, salt, 16) != 0) {
             throw std::runtime_error("Could not init seed.");
@@ -63,7 +63,7 @@ namespace helloworld {
         mbedtls_entropy_free(&_entropy);
     }
 
-    void Random::getSeedEntropy(unsigned char *buff) {
+    void Random::_getSeedEntropy(unsigned char *buff) {
 
 #if defined(WINDOWS)
         MEMORYSTATUS lpBuffer;

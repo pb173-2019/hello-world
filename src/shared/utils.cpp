@@ -20,7 +20,7 @@ size_t read_n(std::istream &in, unsigned char *data, size_t length) {
     return static_cast<size_t>(in.gcount());
 }
 
-void write_n(std::ostream &out, unsigned char *data, size_t length) {
+void write_n(std::ostream &out, const unsigned char *data, size_t length) {
     out.write((char *) data, length);
 }
 

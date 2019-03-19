@@ -27,10 +27,11 @@ enum class SHA {
 };
 
 class SHA512 : Hash {
-    const static int HASH_SIZE = 64;
     mbedtls_sha512_context _context{};
 
 public:
+    const static int HASH_SIZE = 64;
+
     explicit SHA512() {
         mbedtls_sha512_init(&_context);
         if (mbedtls_sha512_starts_ret(&_context, static_cast<int>(SHA::S512)) != 0) {
