@@ -20,31 +20,31 @@
 namespace helloworld {
 
 struct UserData : Serializable<UserData> {
-    uint32_t _id = 0;
-    std::string _name;
-    std::string _publicKey;
+    uint32_t id = 0;
+    std::string name;
+    std::string publicKey;
 
     UserData() = default;
 
     UserData(uint32_t id, std::string name, std::string pubKey) :
-            _id(id),
-            _name(std::move(name)),
-            _publicKey(std::move(pubKey)) {}
+             id(id),
+             name(std::move(name)),
+             publicKey(std::move(pubKey)) {}
 
     std::vector<unsigned char> serialize() const override {
         std::vector<unsigned char> result;
-        Serializable::addNumeric<uint32_t>(result, _id);
-        Serializable::addContainer<std::string>(result, _name);
-        Serializable::addContainer<std::string>(result, _publicKey);
+        Serializable::addNumeric<uint32_t>(result, id);
+        Serializable::addContainer<std::string>(result, name);
+        Serializable::addContainer<std::string>(result, publicKey);
         return result;
     }
 
     static UserData deserialize(const std::vector<unsigned char>& data) {
         UserData userData;
         uint64_t position = 0;
-        position += Serializable::getNumeric<uint32_t>(data, 0, userData._id);
-        position += Serializable::getContainer<std::string>(data, position, userData._name);
-        Serializable::getContainer<std::string>(data, position, userData._publicKey);
+        position += Serializable::getNumeric<uint32_t>(data, 0, userData.id);
+        position += Serializable::getContainer<std::string>(data, position, userData.name);
+        Serializable::getContainer<std::string>(data, position, userData.publicKey);
         return userData;
     }
 };

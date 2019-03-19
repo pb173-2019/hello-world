@@ -7,7 +7,7 @@
 using namespace helloworld;
 
 FileDatabase::FileDatabase() {
-    _source = dbFileName;
+    _source = defaultDbName;
 }
 
 FileDatabase::FileDatabase(const std::string& filename) {

@@ -16,6 +16,8 @@
 
 #include "database.h"
 
+const std::string defaultDbName = "users.db";
+
 class FileDatabase : public Database {
 
     std::string _source;
