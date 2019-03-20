@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <cmath>
+#include <string>
 
 #if defined(WINDOWS)
 #include <windows.h>
@@ -83,8 +84,8 @@ namespace helloworld {
                     PROV_RSA_FULL, CRYPT_NEWKEYSET) == 0) {
                 throw std::runtime_error("Could not initialize crypt context of windows system.");
             }
-            throw std::runtime_error("Windows error code: " + std::to_string(err) +
-                                     ", could not initialize cipher context.");
+            throw std::runtime_error(("Windows error code: " + std::to_string(err) +
+                                     ", could not initialize cipher context."));
         }
 
         if(! CryptGenRandom(hCryptProv, 16, buff)) {
