@@ -83,10 +83,11 @@ namespace helloworld {
             if (err == NTE_BAD_KEYSET && CryptAcquireContext(&hCryptProv, nullptr, nullptr,
                     PROV_RSA_FULL, CRYPT_NEWKEYSET) == 0) {
                 throw std::runtime_error("Could not initialize crypt context of windows system.");
+            } else {
+                throw std::runtime_error(("Windows error code: " + std::to_string(err) +
+                                          ", could not initialize cipher context."));
             }
-            throw std::runtime_error(("Windows error code: " + std::to_string(err) +
-                                     ", could not initialize cipher context."));
-        }
+        } 
 
         if(! CryptGenRandom(hCryptProv, 16, buff)) {
             throw std::runtime_error("Could not get entropy source of windows system.");

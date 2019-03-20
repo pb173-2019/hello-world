@@ -19,6 +19,9 @@
 namespace helloworld {
 
 
+    /**
+     * Super class
+     */
     class RRManipualator {
     protected:
         HMAC authentificator;
@@ -32,6 +35,9 @@ namespace helloworld {
         void setAuthentificationKey(std::vector<unsigned char> newKey);
     };
 
+    /**
+     * Super class
+     */
     template<typename T>
     class RRBuilder : RRManipualator {
     protected:
@@ -60,6 +66,9 @@ namespace helloworld {
         }
     };
 
+    /**
+     * Super class
+     */
     template<typename T>
     class RRParser : RRManipualator {
     protected:

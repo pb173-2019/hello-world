@@ -11,6 +11,7 @@ SET(CMAKE_C_FLAGS -pthread)
 # MSVC exceptions support
 if (MSVC)
     SET (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /EHsc")
+    SET (CMAKE_CPP_FLAGS "${CMAKE_CPP_FLAGS} /EHsc")
 endif()
 
 # mbedtls settings
