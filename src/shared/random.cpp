@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <cmath>
 
-#ifdef WINDOWS
+#if defined(WINDOWS)
 #include <windows.h>
 #include <wincrypt.h>
 #include <winbase.h>
