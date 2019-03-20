@@ -73,13 +73,18 @@ namespace helloworld {
         //  PROV_DSS
         //  PROV_DSS_DH
         //  PROV_SSL
+        // 0 considered as fail !
 
         HCRYPTPROV   hCryptProv;
-        if (!CryptAcquireContext(&hCryptProv, nullptr, nullptr, PROV_RSA_FULL, 0) ||
-            !(GetLastError() == NTE_BAD_KEYSET
-                && CryptAcquireContext(&hCryptProv, nullptr, nullptr, PROV_RSA_FULL, CRYPT_NEWKEYSET))) {
 
-            throw std::runtime_error("Could not initialize crypt context of windows system.");
+        if (CryptAcquireContext(&hCryptProv, nullptr, nullptr, PROV_RSA_FULL, 0) == 0) {
+            DWORD err = GetLastError();
+            if (err == NTE_BAD_KEYSET && CryptAcquireContext(&hCryptProv, nullptr, nullptr,
+                    PROV_RSA_FULL, CRYPT_NEWKEYSET) == 0) {
+                throw std::runtime_error("Could not initialize crypt context of windows system.");
+            }
+            throw std::runtime_error("Windows error code: " + std::to_string(err) +
+                                     ", could not initialize cipher context.");
         }
 
         if(! CryptGenRandom(hCryptProv, 16, buff)) {
