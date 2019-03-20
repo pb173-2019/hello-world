@@ -7,7 +7,6 @@
 #include <windows.h>
 #include <wincrypt.h>
 #include <winbase.h>
-#include <iostream>
 
 #else
 #include <fstream>
@@ -66,28 +65,30 @@ namespace helloworld {
     void Random::_getSeedEntropy(unsigned char *buff) {
 
 #if defined(WINDOWS)
-        MEMORYSTATUS lpBuffer;
-        POINT lpPoint;
-        SYSTEM_INFO lpSystemInfo;
-        GlobalMemoryStatus(&lpBuffer);
-        GetCursorPos(&lpPoint);
-        GetSystemInfo(&lpSystemInfo);
+        //used as advised in https://tls.mbed.org/kb/how-to/add-entropy-sources-to-entropy-pool
+        //CSP used: PROV_RSA_FULL
+        //alternatives:
+        //  PROV_RSA_AES
+        //  PROV_RSA_SIG
+        //  PROV_DSS
+        //  PROV_DSS_DH
+        //  PROV_SSL
 
-        buff[1] = static_cast<unsigned char>(lpBuffer.dwAvailPageFile);
-        buff[6] = static_cast<unsigned char>(lpBuffer.dwAvailPhys);
-        buff[12] = static_cast<unsigned char>(lpBuffer.dwAvailVirtual);
-        buff[4] = static_cast<unsigned char>(lpBuffer.dwLength);
-        buff[13] = static_cast<unsigned char>(lpBuffer.dwMemoryLoad);
-        buff[2] = static_cast<unsigned char>(lpBuffer.dwTotalPageFile);
-        buff[15] = static_cast<unsigned char>(lpBuffer.dwTotalVirtual);
-        buff[9] = static_cast<unsigned char>(lpBuffer.dwTotalPhys);
-        buff[8] = static_cast<unsigned char>(lpPoint.x);
-        buff[3] = static_cast<unsigned char>(lpPoint.y);
-        buff[10] = static_cast<unsigned char>(lpSystemInfo.dwProcessorType);
-        buff[11] = static_cast<unsigned char>(lpSystemInfo.dwActiveProcessorMask);
-        buff[5] = static_cast<unsigned char>(lpSystemInfo.wProcessorArchitecture);
-        buff[7] = static_cast<unsigned char>(lpSystemInfo.wProcessorRevision);
-        buff[14] = static_cast<unsigned char>(lpSystemInfo.wReserved);
+        HCRYPTPROV   hCryptProv;
+        if (!CryptAcquireContext(&hCryptProv, nullptr, nullptr, PROV_RSA_FULL, 0) ||
+            !(GetLastError() == NTE_BAD_KEYSET
+                && CryptAcquireContext(&hCryptProv, nullptr, nullptr, PROV_RSA_FULL, CRYPT_NEWKEYSET))) {
+
+            throw std::runtime_error("Could not initialize crypt context of windows system.");
+        }
+
+        if(! CryptGenRandom(hCryptProv, 16, buff)) {
+            throw std::runtime_error("Could not get entropy source of windows system.");
+        }
+
+        if(!CryptReleaseContext(hCryptProv, 0)) {
+            throw std::runtime_error("Failed to release cipher context of windows system.");
+        }
 #else
         std::ifstream randomSource("/dev/urandom");
         if (!randomSource)
