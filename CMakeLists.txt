@@ -8,19 +8,18 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 SET(CMAKE_CXX_FLAGS -pthread)
 SET(CMAKE_C_FLAGS -pthread)
+# MSVC exceptions support
+if (MSVC)
+    SET (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /EHc-")
+endif()
 
 # mbedtls settings
 add_compile_definitions(MBEDTLS_CONFIG_FILE=<config.h>)
 SET(ENABLE_PROGRAMS OFF CACHE BOOL "Build mbed TLS programs.")
 SET(ENABLE_TESTING OFF CACHE BOOL "Build mbed TLS tests.")
 
-# MSVC exceotions support
-if (MSVC)
-    SET (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /EHc-")
-endif()
-
 # system dependent functionality WINDOWS impementation ELSE assuming linux
-if (WIN32 ${CMAKE_SYSTEM_NAME} STREQUAL CYGWIN)
+if (WIN32 OR ${CMAKE_SYSTEM_NAME} STREQUAL CYGWIN)
     add_compile_definitions(WINDOWS)
 endif()
 
