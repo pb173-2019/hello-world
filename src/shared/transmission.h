@@ -23,6 +23,8 @@
 #ifndef HELLOWORLD_SHARED_TRANSMISSION_H_
 #define HELLOWORLD_SHARED_TRANSMISSION_H_
 
+#include <string>
+
 /**
  * Holds the logic of security forwarding
  * to-be containing: double ratchet
@@ -46,9 +48,6 @@ public:
 template <typename incoming, typename outcoming>
 class TransmissionManager {
 
-protected:
-
-
 public:
     TransmissionManager() = default;
     // Copying is not available
@@ -58,7 +57,7 @@ public:
 
     /**
      * Send request / response depending on side
-     * @param out
+     * @param out outcoming object to send
      */
     virtual void send(const outcoming& out) = 0;
 
@@ -66,9 +65,8 @@ public:
      * Receive request / response depending on side
      * in TCP, this method is waiting for any incoming request / reponse
      *
-     * @param out
      */
-    virtual void receive(const incoming& out) = 0;
+    virtual incoming receive() = 0;
 };
 
 
