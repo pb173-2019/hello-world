@@ -19,7 +19,7 @@
 
 namespace helloworld {
 
-struct UserData : Serializable<UserData> {
+struct UserData : public Serializable<UserData> {
     uint32_t id = 0;
     std::string name;
     std::string publicKey;

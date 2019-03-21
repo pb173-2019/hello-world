@@ -122,7 +122,7 @@ namespace helloworld {
     };
 
 
-    class RequestBuilder : RRBuilder<Request> {
+    class RequestBuilder : public RRBuilder<Request> {
         uint32_t lastMessageNumber;
 
     public:
@@ -144,7 +144,7 @@ namespace helloworld {
         void writeTo(Request &request, std::ostream &output);
     };
 
-    class RequestParser : RRParser<Request> {
+    class RequestParser : public RRParser<Request> {
 
         bool messageNumberSet;
         uint32_t expectedMessageNumber;
@@ -169,7 +169,7 @@ namespace helloworld {
     };
 
 
-    class ResponseBuilder : RRBuilder<Response> {
+    class ResponseBuilder : public RRBuilder<Response> {
     public:
         /**
         * @brief writes authentificated byte representation into output stream, ready for encryption
@@ -180,7 +180,7 @@ namespace helloworld {
         void writeTo(Response &response, std::ostream &output);
     };
 
-    class ResponseParser : RRParser<Response> {
+    class ResponseParser : public RRParser<Response> {
     public:
         /**
         * @brief parses response from input stream and verifies it

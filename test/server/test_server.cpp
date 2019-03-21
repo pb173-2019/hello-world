@@ -38,7 +38,7 @@ TEST_CASE("Add new user") {
 
         SECTION("Registration already started") {
             CHECK(registerAlice(connectionId, server).type ==
-                  Response::Type::SERVER_ERROR);
+                  Response::Type::GENERIC_SERVER_ERROR);
         }
 
         SECTION("Challenge incorrectly solved") {
@@ -47,7 +47,7 @@ TEST_CASE("Add new user") {
             Request request{Request::Type::CREATE_COMPLETE,
                             crRequest.serialize(), 2};
             auto response = server.handleUserRequest(1, request);
-            CHECK(response.type == Response::Type::SERVER_ERROR);
+            CHECK(response.type == Response::Type::GENERIC_SERVER_ERROR);
         }
 
         SECTION("Challenge correctly solved") {
@@ -77,7 +77,7 @@ TEST_CASE("User authentication") {
             Request request{Request::Type::LOGIN_COMPLETE,
                             caRequest.serialize(), 2};
             auto response = server.handleUserRequest(1, request);
-            CHECK(response.type == Response::Type::SERVER_ERROR);
+            CHECK(response.type == Response::Type::GENERIC_SERVER_ERROR);
         }
 
         SECTION("Challenge not solved") {
@@ -86,7 +86,7 @@ TEST_CASE("User authentication") {
             Request request{Request::Type::LOGIN_COMPLETE,
                             caRequest.serialize(), 2};
             auto response = server.handleUserRequest(1, request);
-            CHECK(response.type == Response::Type::SERVER_ERROR);
+            CHECK(response.type == Response::Type::GENERIC_SERVER_ERROR);
         }
     }
 
@@ -95,7 +95,7 @@ TEST_CASE("User authentication") {
         Request request{Request::Type::LOGIN, authRequest.serialize(), 10};
 
         auto response = server.handleUserRequest(connectionId, request);
-        CHECK(response.type == Response::Type::SERVER_ERROR);
+        CHECK(response.type == Response::Type::GENERIC_SERVER_ERROR);
     }
 }
 

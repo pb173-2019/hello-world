@@ -28,7 +28,7 @@ Response Server::handleUserRequest(int connectionId, const Request &request) {
         }
     } catch (ServerError &ex) {
         std::cerr << ex.what() << std::endl;
-        return {Response::Type::SERVER_ERROR, ex.serialize(),
+        return {Response::Type::GENERIC_SERVER_ERROR, ex.serialize(),
                 request.messageNumber};
     }
 }

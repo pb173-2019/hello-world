@@ -18,7 +18,7 @@ namespace helloworld {
 
 using Encoder = Encode<std::vector<unsigned char>, std::vector<unsigned char>>;
 
-class Base64 : Encoder {
+class Base64 : public Encoder {
 
 public:
     Base64() = default;

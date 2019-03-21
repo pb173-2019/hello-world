@@ -44,8 +44,34 @@ namespace helloworld {
     };
 
     struct Response {
+        /**
+         * number order in type: 1 | 2 | 3 | 4
+         * 1:   0 - ok
+         *      1 - error
+         *      2 - reponse needed
+         *      ...
+         * 2:   0 - generic event,
+         *      1 - database event
+         *      2 - security event
+         *      3 - channel event
+         *      ...
+         * 3 & 4 - further specification
+         */
         enum class Type {
-            OK = 128, NOT_FOUD, INVALID_AUTH, INVALID_MSG_NUM, SERVER_ERROR, CHALLENGE_RESPONSE_NEEDED
+            OK = 0x0080,
+
+            DATABASE_NOT_FOUD = 0x0150,
+            USERNAME_NOT_VALID = 0x1150,
+
+            USER_REGISTERED = 0x0300,
+            USER_AUTHENTICATED = 0x0301,
+
+            GENERIC_SERVER_ERROR = 0x1000,
+            INVALID_AUTH = 0x1200,
+            INVALID_MAC = 0x1201,
+            INVALID_MSG_NUM = 0x1050,
+
+            CHALLENGE_RESPONSE_NEEDED = 0x2200,
         };
 
         /**

@@ -120,7 +120,6 @@ class AsymmetricCipher {
 };
 
 
-
 }  // namespace helloworld
 
 #endif  // HELLOWORLD_SHARED_ASYMMETRICCIPHER_H_

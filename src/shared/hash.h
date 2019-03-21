@@ -18,19 +18,22 @@ namespace helloworld {
 
 class Hash {
 public:
-  Hash() = default;
-  // Copying is not available
-  Hash(const Hash &other) = delete;
-  Hash &operator=(const Hash &other) = delete;
-  virtual ~Hash() = default;
+    Hash() = default;
 
-  /**
-   * @brief Hash given data in stream
-   *
-   * @param in data to hash
-   * @return std::string hashed input
-   */
-  virtual std::string get(std::istream &in) = 0;
+    // Copying is not available
+    Hash(const Hash &other) = delete;
+
+    Hash &operator=(const Hash &other) = delete;
+
+    virtual ~Hash() = default;
+
+    /**
+     * @brief Hash given data in stream
+     *
+     * @param in data to hash
+     * @return std::string hashed input
+     */
+    virtual std::string get(std::istream &in) = 0;
 };
 
 }  // namespace helloworld

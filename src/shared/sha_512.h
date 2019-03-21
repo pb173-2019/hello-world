@@ -26,7 +26,7 @@ enum class SHA {
     S384 = 1
 };
 
-class SHA512 : Hash {
+class SHA512 : public Hash {
     mbedtls_sha512_context _context{};
 
 public:
