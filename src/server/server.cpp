@@ -5,8 +5,8 @@
 
 namespace helloworld {
 
-Server::Server() : _database(std::make_unique<FileDatabase>("test_db1.db")),
-                   _transmission(std::make_unique<FileManager>()) {}
+Server::Server() : _database(std::make_unique<FileDatabase>("test_db1.db"))/*,
+                   _transmission(std::make_unique<FileManager>())*/ {}
 
 void Server::setSessionKey(int connectionId,
                            std::vector<unsigned char> sessionKey) {

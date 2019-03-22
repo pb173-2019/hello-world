@@ -14,25 +14,20 @@
 #ifndef HELLOWORLD_SHARED_TRANSMISSION_FILE_H_
 #define HELLOWORLD_SHARED_TRANSMISSION_FILE_H_
 
-#include <string>
-#include <tuple>
-#include <iostream>
 #include <fstream>
 #include <sstream>
+#include <map>
 
 #include "transmission.h"
 #include "base_64.h"
 #include "utils.h"
 
 #if defined(WINDOWS)
-
 #include <windows.h>
 #include <io.h>
-#include <map>
-
 
 #else
-
+#include <dirent.h>
 #endif
 
 
