@@ -11,7 +11,7 @@ struct Test : public Callable<void, unsigned long, std::stringstream&&> {
 
     void callback(unsigned long id, std::stringstream&& data) override {
         if (data.str() != result) {
-            throw Error("test failed");
+            throw Error("test failed: " + data.str() + " != " + result);
         };
     }
 
