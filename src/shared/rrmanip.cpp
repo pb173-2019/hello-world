@@ -19,7 +19,7 @@ using namespace helloworld;
 RequestBuilder::RequestBuilder(uint32_t initialMessageNumber)
         : lastMessageNumber(initialMessageNumber) {}
 
-void RRManipualator::setAuthentificationKey(std::vector<unsigned char> key) {
+void RRManipualator::setAuthenticationKey(std::vector<unsigned char> key) {
     authentificator.setKey(std::move(key));
 }
 

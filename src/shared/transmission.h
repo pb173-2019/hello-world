@@ -1,17 +1,10 @@
 /**
  * @file transmission.h
  * @author Jiří Horák (469130@mail.muni.cz)
- * @brief Transmission manager takes care of all communication
- *  - establishing connection: will recognize request for new chanel and reacts according to it
- *      e.g. X3DH on client-client, challenge on client-server communication
- *  - maintain connection: client / server sets initial session keys, and the transmission manager
- *      takes care of key rotation (double ratchet)
- *  - delete unwanted metadata: will periodically clear
- *  - encodes in base64
- *
- * SEVER side implementation
- *  - implementation manager will also determine where to send the request to process
- *  - does not care of incoming registration, just encrypts and forwards
+ * @brief Transmission manager takes care of stream tranmission
+ *  - notifies server about new connection request
+ *  - generates ids for connection
+ *  - uses encoder
  *
  * @version 0.1
  * @date 21. 3. 2019
@@ -24,51 +17,45 @@
 #define HELLOWORLD_SHARED_TRANSMISSION_H_
 
 #include <string>
+#include <stdexcept>
 
-/**
- * Holds the logic of security forwarding
- * to-be containing: double ratchet
- */
-class SecurityManager {
+namespace helloworld {
 
-protected:
-    bool _established = false;
-    std::string _sessionKey;
-    std::string _iv;
-    std::string _macKey;
+using Call = void (*)(unsigned long, std::stringstream&&);
 
-public:
-    void initializeSecurity(std::string key, std::string iv, std::string macKey) {
-        _sessionKey = std::move(key);
-        _iv = std::move(iv);
-        _macKey = std::move(macKey);
-    }
-};
-
-template <typename incoming, typename outcoming>
 class TransmissionManager {
+protected:
+    /**
+     * Function that can handle receive() output
+     */
+    Call callback;
 
 public:
-    TransmissionManager() = default;
+    explicit TransmissionManager(Call callback) : callback(callback) {
+        if (callback == nullptr)
+            throw std::runtime_error("Null not allowed.");
+    };
     // Copying is not available
     TransmissionManager(const TransmissionManager &other) = delete;
     TransmissionManager &operator=(const TransmissionManager &other) = delete;
     virtual ~TransmissionManager() = default;
 
     /**
-     * Send request / response depending on side
-     * @param out outcoming object to send
+     * @brief Send data
+     *
+     * @param id connection id
+     * @param data data as iostream to process
      */
-    virtual void send(const outcoming& out) = 0;
+    virtual void send(unsigned long id, std::iostream& data) = 0;
 
     /**
-     * Receive request / response depending on side
-     * in TCP, this method is waiting for any incoming request / reponse
-     *
+     * @brief Receive request / response depending on side
+     *        in TCP, this method is waiting for any incoming request / reponse
+     *        uses callback to forward unsigned long, std::stringstream
      */
-    virtual incoming receive() = 0;
+    virtual void receive() = 0;
 };
 
-
+} //namespace helloworld
 
 #endif //HELLOWORLD_TRANSMISSION_H

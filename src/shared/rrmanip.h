@@ -18,7 +18,6 @@
 
 namespace helloworld {
 
-
     /**
      * Super class
      */
@@ -28,11 +27,11 @@ namespace helloworld {
     public:
 
         /**
-        * @brief sets key for authentification
+        * @brief sets key for authentication
         *
-        * @param new key which will be set for authentification
+        * @param new key which will be set for authentication
         */
-        void setAuthentificationKey(std::vector<unsigned char> newKey);
+        void setAuthenticationKey(std::vector<unsigned char> newKey);
     };
 
     /**
@@ -44,12 +43,12 @@ namespace helloworld {
 
         /**
         * @brief writes byte representation of header and payload
-        *        into destination with their authentification data
+        *        into destination with their authentication data
         *
         * @param src header which will be written into destination
         * @param payload which will be written into destination
         * @param dest destination, where will byte representation
-        *        written with its authentification data
+        *        written with its authentication data
         */
         void _writeTo(typename T::Header &src, std::vector<unsigned char> &payload, std::vector<unsigned char> &dest) {
             if (src.payloadLength > UINT32_MAX)
@@ -90,7 +89,7 @@ namespace helloworld {
         }
 
         /**
-        * @brief reads payload and authetificates whole message
+        * @brief reads payload and autheticates whole message
         *
         * @param input stream, from which header will be read
         * @param header of message already set and validated
@@ -120,7 +119,6 @@ namespace helloworld {
 
         }
     };
-
 
     class RequestBuilder : public RRBuilder<Request> {
         uint32_t lastMessageNumber;
@@ -152,7 +150,7 @@ namespace helloworld {
         explicit RequestParser();
 
         /**
-        * @brief sets expexted request number for next message
+        * @brief sets expected request number for next message
         *
         * @param new number expected from next message
         */
@@ -172,7 +170,7 @@ namespace helloworld {
     class ResponseBuilder : public RRBuilder<Response> {
     public:
         /**
-        * @brief writes authentificated byte representation into output stream, ready for encryption
+        * @brief writes authenticated byte representation into output stream, ready for encryption
         *
         * @param request which will be written into stream
         * @param output stream into which data will be written
