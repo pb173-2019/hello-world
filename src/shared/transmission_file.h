@@ -126,6 +126,10 @@ public:
         return "";
     }
 
+    const std::set<std::string>& getOpenConnections() override {
+        return _files;
+    }
+
 private:
     //from https://stackoverflow.com/questions/11140483/how-to-get-list-of-files-with-a-specific-extension-in-a-given-folder
 

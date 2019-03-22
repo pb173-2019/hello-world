@@ -20,7 +20,7 @@ namespace helloworld {
 
     struct Request {
         enum class Type {
-            LOGIN, LOGIN_COMPLETE, LOGOUT, CREATE, CREATE_COMPLETE, DELETE, SEND, RECEIVE, FIND
+            LOGIN, LOGIN_COMPLETE, LOGOUT, CREATE, CREATE_COMPLETE, DELETE, SEND, RECEIVE, FIND_USER, GET_ONLINE
         };
 
         /**
@@ -29,7 +29,7 @@ namespace helloworld {
         * @param  type. which validity is being checked
         * @return bool true if type is valid, false otherwise
         */
-        static bool isValidType(Type type) { return Type::LOGIN <= type && type <= Type::FIND; }
+        static bool isValidType(Type type) { return Type::LOGIN <= type && type <= Type::GET_ONLINE; }
 
         struct Header {
             uint32_t messageNumber;

@@ -75,6 +75,9 @@ struct Serializable {
 
     /**
      * Save container type value into output vector
+     * the input value must be of a primitive type, or at least have static length
+     * 
+     * !! this method works only for inner value types with sizeof(unsigned char)
      *
      * @tparam container container type supporting push_back() method, operator[] and size()
      * @param output output buffer
@@ -103,6 +106,45 @@ struct Serializable {
         uint64_t metadata = getNumeric(input, from, len);
         for (uint64_t i = 0; i < len; i++) {
             output.push_back(input[from + i + metadata]);
+        }
+        return len + metadata;
+    }
+
+    /**
+     * Save nested containers into buffer output, the inner container must be
+     * applicable to getContainer() method
+     * 
+     * !! this method works only for the most inner value types with sizeof(unsigned char)
+     *
+     * @tparam container container type supporting push_back() method, operator[] and size()
+     * @param output output buffer
+     * @param input input data container
+     */
+    template <typename container, typename inner>
+    static void addNestedContainer(std::vector<unsigned char>& output, const container& input) {
+        addNumeric(output, input.size());
+        for (uint64_t i = 0; i < input.size(); i++) {
+            addContainer(output, input[i]);
+        }
+    }
+
+    /**
+     * Inverse of addNestedContainer
+     *
+     * @tparam container container type supporting push_back() method, operator[] and size()
+     * @param input data buffer
+     * @param from index in buffer where to start reading
+     * @param output output container
+     * @return num of values read in bytes
+     */
+    template <typename container, typename inner>
+    static uint64_t getNestedContainer(const std::vector<unsigned char>& input, uint64_t from, container& output) {
+        uint64_t len = 0;
+        uint64_t metadata = getNumeric(input, from, len);
+        for (uint64_t i = 0; i < len; i++) {
+            inner tempContainer;
+            metadata += getContainer(input, metadata, tempContainer);
+            output.push_back(tempContainer);
         }
         return len + metadata;
     }

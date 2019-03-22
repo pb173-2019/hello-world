@@ -17,6 +17,7 @@
 #define HELLOWORLD_SHARED_TRANSMISSION_H_
 
 #include <string>
+#include <set>
 
 #include "utils.h"
 #include "serializable_error.h"
@@ -66,6 +67,11 @@ public:
      * @param connection
      */
     virtual void removeConnection(const std::string& usrname) = 0;
+
+    /**
+     * Get online user list
+     */
+    virtual const std::set<std::string>& getOpenConnections() = 0;
 };
 
 } //namespace helloworld
