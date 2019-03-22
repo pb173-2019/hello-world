@@ -43,7 +43,7 @@ class FileManager : public TransmissionManager {
     std::map<unsigned long, std::string> _files;
 
 public:
-    explicit FileManager(Call callback) : TransmissionManager(callback) {};
+    explicit FileManager(Callable<void, unsigned long, std::stringstream&&>* callback) : TransmissionManager(callback) {};
 
     // Copying is not available
     FileManager(const FileManager &other) = delete;
@@ -84,7 +84,7 @@ public:
         }
 
         result.seekg(0, std::ios::beg);
-        callback(exists(incoming), std::move(result));
+        Callable<void, unsigned long, std::stringstream&&>::call(callback, exists(incoming), std::move(result));
         incoming.push_back('\0'); //sichr
         if (remove(incoming.c_str()) != 0) {
             throw std::runtime_error("Could not finish transmission.\n");

@@ -19,19 +19,19 @@
 #include <string>
 #include <stdexcept>
 
-namespace helloworld {
+#include "utils.h"
 
-using Call = void (*)(unsigned long, std::stringstream&&);
+namespace helloworld {
 
 class TransmissionManager {
 protected:
     /**
      * Function that can handle receive() output
      */
-    Call callback;
+    Callable<void, unsigned long, std::stringstream&&>* callback;
 
 public:
-    explicit TransmissionManager(Call callback) : callback(callback) {
+    explicit TransmissionManager(Callable<void, unsigned long, std::stringstream&&>* callback) : callback(callback) {
         if (callback == nullptr)
             throw std::runtime_error("Null not allowed.");
     };

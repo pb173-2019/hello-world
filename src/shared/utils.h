@@ -17,6 +17,30 @@
 #include <iostream>
 
 namespace helloworld {
+
+template<typename returnType, typename ... Args>
+struct Callable {
+    virtual ~Callable() = default;
+
+    /**
+     * Callback method
+     * @param args argumens for method
+     * @return <returnType> type value
+     */
+    virtual returnType callback(Args ... args) = 0;
+
+    /**
+     * Allows call on class pointer
+     * @param callable class implementing callable
+     * @param args args for callback
+     * @return <returnType> type value
+     */
+    static returnType call(Callable *callable, Args&& ... args) {
+        return callable->callback( std::forward<Args>(args)... );
+    }
+};
+
+
 /**
  * @brief Compute file size
  *
@@ -47,24 +71,24 @@ void write_n(std::ostream &out, const unsigned char *data, size_t length);
 /**
  * Hex conversion bundle
  */
-std::string& to_upper(std::string&& lowercase);
+std::string &to_upper(std::string &&lowercase);
 
-std::string to_hex(const std::string& buff);
+std::string to_hex(const std::string &buff);
 
-std::string to_hex(const std::vector<unsigned char>& bytes);
+std::string to_hex(const std::vector<unsigned char> &bytes);
 
 std::string to_hex(const unsigned char *bytes, size_t length);
 
-std::vector<unsigned char> from_hex(const std::string& input);
+std::vector<unsigned char> from_hex(const std::string &input);
 
-void from_hex(const std::string &input, unsigned char* output, size_t length);
+void from_hex(const std::string &input, unsigned char *output, size_t length);
 
 /**
  * String <-> vector<unsigned char> conversion bundle
  */
-std::vector<unsigned char> from_string(const std::string& input);
+std::vector<unsigned char> from_string(const std::string &input);
 
-std::string to_string(const std::vector<unsigned char>& input);
+std::string to_string(const std::vector<unsigned char> &input);
 
 /**
  * @brief Rewrite memory
@@ -73,8 +97,8 @@ std::string to_string(const std::vector<unsigned char>& input);
  * @param array array to rewrite (format)
  * @param length length of array
  */
-template <typename Obj>
-void clear(Obj* array, size_t length) {
+template<typename Obj>
+void clear(Obj *array, size_t length) {
     std::fill_n(array, length, 0);
 }
 
