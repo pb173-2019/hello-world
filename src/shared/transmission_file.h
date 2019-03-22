@@ -17,6 +17,8 @@
 #include <fstream>
 #include <sstream>
 #include <map>
+#include <stdio.h>
+
 
 #include "transmission.h"
 #include "base_64.h"
