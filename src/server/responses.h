@@ -1,3 +1,5 @@
+#include <utility>
+
 /**
  * @file responses.h
  * @author Jiří Horák (xivora@fi.muni.cz)
@@ -12,35 +14,26 @@
 #ifndef HELLOWORLD_SERVER_RESPONSES_H_
 #define HELLOWORLD_SERVER_RESPONSES_H_
 
-#include <map>
-
 #include "../shared/serializable.h"
 
 namespace helloworld {
 
 struct OnlineUsersResponse : public Serializable<OnlineUsersResponse> {
-    std::map<std::string> online;
+    std::vector<std::string> online;
 
-    RegisterRequest() = default;
+    OnlineUsersResponse() = default;
 
-    RegisterRequest(const std::map<std::string>& users) : online(users) {}
+    explicit OnlineUsersResponse(std::vector<std::string> users) : online(std::move(users)) {}
 
     std::vector<unsigned char> serialize() const override {
         std::vector<unsigned char> result;
-        Serializable::addContainer<std::string>(result, name);
-        Serializable::addContainer<std::string>(result, publicKey);
-
+        Serializable::addNestedContainer<std::vector<std::string>, std::string>(result, online);
         return result;
     }
 
-    static RegisterRequest deserialize(const std::vector<unsigned char> &data) {
-        RegisterRequest result;
-        uint64_t position = 0;
-        position += Serializable::getContainer<std::string>(data, position,
-                                                            result.name);
-        Serializable::getContainer<std::string>(data, position,
-                                                result.publicKey);
-
+    static OnlineUsersResponse deserialize(const std::vector<unsigned char> &data) {
+        OnlineUsersResponse result;
+        Serializable::getNestedContainer<std::vector<std::string>, std::string>(data, 0, result.online);
         return result;
     }
 };

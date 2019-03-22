@@ -59,33 +59,23 @@ public:
      * @param data decoded data, ready to process (if 0, use server key to encrypt)
      */
     void callback(const std::string& username, std::stringstream &&data) override {
+        Request request;
         if (username.empty()) {
             //todo parse data using private key of the server
-            Request request;
-            handleUserRequest(request);
         } else {
             //todo parse data using session manager
-            Request request;
-            handleUserRequest(username, request);
         }
+        handleUserRequest(request);
     }
 
     /**
-     * @brief Handle incoming request on new port
+     * @brief Handle incoming request
      *
      * @param request request from not connected user
      * @return Response response data
      */
     Response handleUserRequest(const Request &request);
 
-    /**
-     * @brief Handle incoming request on user port
-     *
-     * @param connectionId connection id
-     * @param request request from user
-     * @return Response response data
-     */
-    Response handleUserRequest(const std::string& username, const Request &request);
 
     /**
      * @brief Handle incoming request for system on system port
@@ -131,7 +121,7 @@ private:
      * challenge. Request is received by assymetric cryptography using
      * the server's public key.
      *
-     * @param connectionId connection id
+     * @param connectionId temporarily removed connection id
      * @param request request from client
      * @return Response challenge response
      */
@@ -141,7 +131,7 @@ private:
      * @brief Check correctness of client's public key and register
      * him into the database.
      *
-     * @param connectionId connection id
+     * @param connectionId temporarily removed connection id
      * @param request request from client
      * @return Response OK if user was registered
      */
@@ -150,7 +140,7 @@ private:
     /**
      * @brief Authenticate user by his knowledge of private key.
      *
-     * @param connectionId connection id
+     * @param connectionId temporarily removed connection id
      * @param request request from client
      * @return Response OK challenge response
      */
@@ -159,11 +149,19 @@ private:
     /**
      * @brief Check correctness of client's public key and log him in.
      *
-     * @param connectionId connection id
+     * @param connectionId temporarily removed connection id
      * @param request request from client
      * @return Response OK response if user was registered
      */
     Response completeUserAuthentication(const Request &request);
+
+    /**
+     * @brief Get online user list
+     *
+     * @param request request from the client
+     * @return response containing list of online users
+     */
+    Response getOnline(const Request &request);
 };
 
 }    // namespace helloworld

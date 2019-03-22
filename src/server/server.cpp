@@ -4,6 +4,7 @@
 #include "../shared/serializable_error.h"
 #include "file_database.h"
 #include "requests.h"
+#include "responses.h"
 
 namespace helloworld {
 
@@ -25,23 +26,8 @@ Response Server::handleUserRequest(const Request &request) {
                 return authenticateUser(request);
             case Request::Type::LOGIN_COMPLETE:
                 return completeUserAuthentication(request);
-            default:
-                throw Error("Invalid operation.");
-        }
-    } catch (Error &ex) {
-        std::cerr << ex.what() << std::endl;
-        return {Response::Type::GENERIC_SERVER_ERROR, ex.serialize(),
-                request.messageNumber};
-    }
-}
-
-Response Server::handleUserRequest(const std::string &username, const Request &request) {
-    //todo do other stuff with open connections only
-    try {
-        switch (request.type) {
             case Request::Type::GET_ONLINE:
-                //todo obtain user list
-                break;
+                return getOnline(request);
             default:
                 throw Error("Invalid operation.");
         }
@@ -50,7 +36,6 @@ Response Server::handleUserRequest(const std::string &username, const Request &r
         return {Response::Type::GENERIC_SERVER_ERROR, ex.serialize(),
                 request.messageNumber};
     }
-    return {};
 }
 
 uint32_t Server::establishConnection() {
@@ -143,23 +128,8 @@ Response Server::completeUserAuthentication(const Request &request) {
 }
 
 Response Server::getOnline(const Request &request) {
-    CompleteRegistrationRequest curRequest =
-            CompleteRegistrationRequest::deserialize(request.payload);
-
-    auto authentication = _authentications.find(curRequest.name);
-    if (authentication == _authentications.end()) {
-        throw Error("No pending authentication for provided username.");
-    }
-
-    if (curRequest.secret != authentication->second.secret) {
-        throw Error("Cannot verify public key owner.");
-    }
-
-    _connections[curRequest.name].username = authentication->second.userData.name;
-    _transmission->registerConnection(curRequest.name);
-    _authentications.erase(curRequest.name);
-
-    return {Response::Type::OK, {}, request.messageNumber};
+    const std::set<std::string>& users = _transmission->getOpenConnections();;
+    return {Response::Type::OK, OnlineUsersResponse{{users.begin(), users.end()}}.serialize(), request.messageNumber};
 }
 
 
