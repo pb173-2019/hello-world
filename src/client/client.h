@@ -47,7 +47,7 @@ public:
     */
     void callback(std::stringstream &&data) override {
         Response reponse;
-        
+
         if (_isConnected) {
             //todo parse challenge and set _isConnected as true
         } else {
@@ -88,6 +88,16 @@ public:
      * @return std::vector<UserData> list of users matching the given query
      */
     std::vector<UserData> getUsers(const std::string &query);
+
+    //
+    //TESTING PURPOSE METHODS SECTION
+    //
+
+    //check for request, in future: either will run in thread later as listening
+    //or gets notified by TCP
+    void getRequest() {
+        _transmission->receive();
+    };
 
 private:
     bool _isConnected = false;
