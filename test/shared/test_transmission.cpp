@@ -6,7 +6,7 @@
 using namespace helloworld;
 
 struct Test : public Callable<void, unsigned long, std::stringstream&&> {
-    const std::string& result;
+    std::string result;
     explicit Test(const std::string& expected) : result(expected) {}
 
     void callback(unsigned long id, std::stringstream&& data) override {
@@ -20,7 +20,7 @@ struct Test : public Callable<void, unsigned long, std::stringstream&&> {
 
 TEST_CASE("Check the basic functionality") {
     std::stringstream data{"Some simple message"};
-    Test test{data.str()};
+    Test test{"Some simple message"};
 
     FileManager sender{&test};
     unsigned long cid = 0;
