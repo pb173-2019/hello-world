@@ -2,10 +2,10 @@
 
 /**
  * @file responses.h
- * @author Jiří Horák (xivora@fi.muni.cz)
- * @brief Main file for request objects
+ * @author Jiří Horák (469130@fi.muni.cz)
+ * @brief Main file for response payload objects
  * @version 0.1
- * @date 2019-03-17
+ * @date 2019-03-22
  *
  * @copyright Copyright (c) 2019
  *

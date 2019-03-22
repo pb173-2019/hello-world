@@ -1,7 +1,7 @@
 /**
  * @file requests.h
  * @author Adam Ivora (xivora@fi.muni.cz)
- * @brief Main file for request objects
+ * @brief Main file for request payload objects
  * @version 0.1
  * @date 2019-03-17
  *
