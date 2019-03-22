@@ -24,6 +24,18 @@
 #include "base_64.h"
 #include "utils.h"
 
+#if defined(WINDOWS)
+
+#include <windows.h>
+#include <io.h>
+#include <map>
+
+
+#else
+
+#endif
+
+
 namespace helloworld {
 
 /**
@@ -31,16 +43,20 @@ namespace helloworld {
 */
 class FileManager : public TransmissionManager {
 
-    helloworld::Base64 base64;
+    helloworld::Base64 _base64;
+    std::map<unsigned long, std::string> _files;
 
 public:
     explicit FileManager(Call callback) : TransmissionManager(callback) {};
+
     // Copying is not available
     FileManager(const FileManager &other) = delete;
-    FileManager &operator=(const FileManager &other) = delete;
-    ~FileManager() = default;
 
-    void send(unsigned long id, std::iostream& data) override {
+    FileManager &operator=(const FileManager &other) = delete;
+
+    ~FileManager() override = default;
+
+    void send(unsigned long id, std::iostream &data) override {
         data.seekg(0, std::ios::beg);
 
         std::ofstream send{std::to_string(id) + ".tcp", std::ios::binary | std::ios::out};
@@ -51,38 +67,116 @@ public:
         while (data.good()) {
             unsigned char buffer[256];
             size_t read = read_n(data, buffer, 256);
-            std::vector<unsigned char> encoded = base64.encode(std::vector<unsigned char>(buffer, buffer + read));
+            std::vector<unsigned char> encoded = _base64.encode(std::vector<unsigned char>(buffer, buffer + read));
             write_n(send, encoded.data(), encoded.size());
         }
     }
 
     void receive() override {
-        std::cout << "Not implemented in file manager, use the other with filename.\n";
-        throw std::runtime_error("Not implemented.\n");
-    }
-
-    /**
-     * Receive request / response depending on side
-     * this version simulates the TCP ability to recognize new connection
-     *
-     * @param cid identifier of the connection / testing purposes
-     */
-    void receive(unsigned long cid) {
-        std::ifstream receive{std::to_string(cid) + ".tcp", std::ios::binary | std::ios::in};
+        std::string incoming = getIncoming();
+        std::ifstream receive{incoming, std::ios::binary | std::ios::in};
         if (!receive) {
-            throw std::runtime_error("Transmission failed.\n");
+            return;
         }
 
         std::stringstream result{};
         while (receive.good()) {
             unsigned char buffer[256];
             size_t read = read_n(receive, buffer, 256);
-            std::vector<unsigned char> decoded = base64.decode(std::vector<unsigned char>(buffer, buffer + read));
+            std::vector<unsigned char> decoded = _base64.decode(std::vector<unsigned char>(buffer, buffer + read));
             write_n(result, decoded.data(), decoded.size());
         }
+
         result.seekg(0, std::ios::beg);
-        callback(cid, std::move(result));
+        callback(exists(incoming), std::move(result));
+        incoming.push_back('\0'); //sichr
+        if (remove(incoming.c_str()) != 0) {
+            throw std::runtime_error("Could not finish transmission.\n");
+        }
     }
+
+    /**
+     * Mark some connection as opened
+     * @param connection
+     */
+    void registerConnection(unsigned long connection) {
+        if (connection == 0)
+            return;
+        bool inserted = _files.emplace(connection, std::to_string(connection) + ".tcp").second;
+        if (!inserted) {
+            throw std::runtime_error("Could not register existing connection.");
+        }
+    }
+
+    /**
+     * Release connection
+     * @param connection
+     */
+    void removeConnection(unsigned long connection) {
+        _files.erase(connection);
+    }
+
+    /**
+     * Check filename for its connection
+     * @param filename name to check
+     * @return 0 if no connection found, otherwise >0
+     */
+    unsigned long exists(const std::string& filename) {
+        for (auto& item : _files) {
+            if (item.second == filename) {
+                return item.first;
+            }
+        }
+        return 0;
+    }
+
+private:
+    //from https://stackoverflow.com/questions/11140483/how-to-get-list-of-files-with-a-specific-extension-in-a-given-folder
+
+    /**
+     * Get the
+     */
+#if defined(WINDOWS)
+
+    std::string getIncoming() {
+        std::string file;
+
+        WIN32_FIND_DATAA data;
+        HANDLE handle = FindFirstFile(".\\*", &data);
+
+        long hFile;
+
+        if (handle) {
+            do {
+                std::wcout << data.cFileName << std::endl;
+                if (strstr(data.cFileName, ".tcp")) {
+                    file = data.cFileName;
+                    break;
+                }
+            } while ( FindNextFile(handle, &data));
+            FindClose(handle);
+        }
+        return file;
+    }
+
+#else
+    std::string getIncoming() {
+       std::string file;
+       DIR* dirFile = opendir( "." );
+       if ( dirFile ) {
+          struct dirent* hFile;
+          errno = 0;
+          while (( hFile = readdir( dirFile )) != nullptr ) {
+             if ( strstr( hFile->d_name, ".tcp" )) {
+                  file = hFile->d_name;
+                  break;
+             }
+          }
+          closedir( dirFile );
+       }
+       return file;
+    }
+#endif
 };
 
 } //namespace helloworld

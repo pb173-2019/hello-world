@@ -19,6 +19,7 @@
 #include "../shared/random.h"
 #include "../shared/request.h"
 #include "../shared/rsa_2048.h"
+#include "../shared/transmission_file.h"
 #include "database.h"
 
 namespace helloworld {
@@ -62,16 +63,16 @@ namespace helloworld {
         /**
          * @brief Handle incoming request for system on system port
          *
-         * @return int connection id
+         * @return unsigned long connection id
          */
-        int establishConnection();
+        unsigned long establishConnection();
 
         /**
          * @brief Terminate connection
          *
          * @param cid connection id
          */
-        void terminateConnection(int cid);
+        void terminateConnection(unsigned long cid);
 
         /**
          * @brief Set session key for a specific connection.
@@ -95,6 +96,7 @@ namespace helloworld {
         std::map<int, Challenge> _authentications;
         std::map<std::string, Challenge> _registrations;
         std::unique_ptr<Database> _database;
+        std::unique_ptr<TransmissionManager> _transmission;
         RSA2048 _rsa;
 
         /**

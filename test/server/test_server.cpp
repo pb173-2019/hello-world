@@ -29,7 +29,7 @@ Response completeAlice(int connectionId, Server &server,
 TEST_CASE("Add new user") {
     Server server;
     server.dropDatabase();
-    int connectionId = server.establishConnection();
+    int connectionId = 42;
     server.setSessionKey(connectionId, std::vector<unsigned char>(128, 0));
 
     SECTION("New user") {
@@ -60,7 +60,7 @@ TEST_CASE("Add new user") {
 TEST_CASE("User authentication") {
     Server server;
     server.dropDatabase();
-    int connectionId = server.establishConnection();
+    int connectionId = 42;
     server.setSessionKey(connectionId, std::vector<unsigned char>(256, 0));
     auto response = registerAlice(connectionId, server);
     completeAlice(connectionId, server, response.payload);
@@ -102,7 +102,7 @@ TEST_CASE("User authentication") {
 TEST_CASE("Get list") {
     Server server;
     server.dropDatabase();
-    int connectionId = server.establishConnection();
+    int connectionId = 42;
     server.setSessionKey(connectionId, std::vector<unsigned char>(128, 0));
 
     SECTION("Expected users in list") {

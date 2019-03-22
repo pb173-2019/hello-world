@@ -5,7 +5,8 @@
 
 namespace helloworld {
 
-Server::Server() : _database(std::make_unique<FileDatabase>("test_db1.db")) {}
+Server::Server() : _database(std::make_unique<FileDatabase>("test_db1.db")),
+                   _transmission(std::make_unique<FileManager>()) {}
 
 void Server::setSessionKey(int connectionId,
                            std::vector<unsigned char> sessionKey) {
@@ -33,9 +34,13 @@ Response Server::handleUserRequest(int connectionId, const Request &request) {
     }
 }
 
-int Server::establishConnection() { return 42; }
+unsigned long Server::establishConnection() {
+    return 42;
+}
 
-void Server::terminateConnection(int cid) {}
+void Server::terminateConnection(unsigned long cid) {
+
+}
 
 Response Server::registerUser(int connectionId, const Request &request) {
     RegisterRequest registerRequest =
