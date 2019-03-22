@@ -17,8 +17,7 @@
 #include <fstream>
 #include <sstream>
 #include <map>
-#include <stdio.h>
-
+#include <cstring>
 
 #include "transmission.h"
 #include "base_64.h"
@@ -146,7 +145,7 @@ private:
         if (handle) {
             do {
                 std::wcout << data.cFileName << std::endl;
-                if (strstr(data.cFileName, ".tcp")) {
+                if (std::strstr(data.cFileName, ".tcp")) {
                     file = data.cFileName;
                     break;
                 }
@@ -164,7 +163,7 @@ private:
           struct dirent* hFile;
           errno = 0;
           while (( hFile = readdir( dirFile )) != nullptr ) {
-             if ( strstr( hFile->d_name, ".tcp" )) {
+             if ( std::strstr( hFile->d_name, ".tcp" )) {
                   file = hFile->d_name;
                   break;
              }
