@@ -11,17 +11,17 @@
  *
  */
 
-#ifndef HELLOWORLD_SHARED_TRANSMISSION_FILE_H_
-#define HELLOWORLD_SHARED_TRANSMISSION_FILE_H_
+#ifndef HELLOWORLD_SHARED_TRANSMISSION_FILE_SERVER_H_
+#define HELLOWORLD_SHARED_TRANSMISSION_FILE_SERVER_H_
 
 #include <fstream>
 #include <sstream>
 #include <set>
 #include <cstring>
 
-#include "transmission.h"
-#include "base_64.h"
-#include "utils.h"
+#include "../shared/transmission.h"
+#include "../shared/base_64.h"
+#include "../shared/utils.h"
 
 #if defined(WINDOWS)
 #include <windows.h>
@@ -37,13 +37,14 @@ namespace helloworld {
 /**
 * TCP version will handle id generating
 */
-class FileManager : public TransmissionManager {
+class FileManager : public ServerTransmissionManager {
 
     helloworld::Base64 _base64;
     std::set<std::string> _files;
 
 public:
-    explicit FileManager(Callable<void, const std::string&, std::stringstream&&>* callback) : TransmissionManager(callback) {};
+    explicit FileManager(Callable<void, const std::string&, std::stringstream&&>* callback) : 
+                         ServerTransmissionManager(callback) {};
 
     // Copying is not available
     FileManager(const FileManager &other) = delete;
@@ -181,4 +182,4 @@ private:
 
 } //namespace helloworld
 
-#endif //HELLOWORLD_TRANSMISSION_H
+#endif //HELLOWORLD_SHARED_TRANSMISSION_FILE_SERVER_H_

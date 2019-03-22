@@ -24,22 +24,26 @@
 
 namespace helloworld {
 
-class TransmissionManager {
+class ServerTransmissionManager {
 protected:
     /**
      * Function that can handle receive() output
      */
-    Callable<void, const std::string&, std::stringstream&&>* callback;
+    Callable<void, const std::string &, std::stringstream &&> *callback;
 
 public:
-    explicit TransmissionManager(Callable<void, const std::string&, std::stringstream&&>* callback) : callback(callback) {
+    explicit ServerTransmissionManager(Callable<void, const std::string &, std::stringstream &&> *callback) : callback(
+            callback) {
         if (callback == nullptr)
             throw Error("Null not allowed.");
     };
+
     // Copying is not available
-    TransmissionManager(const TransmissionManager &other) = delete;
-    TransmissionManager &operator=(const TransmissionManager &other) = delete;
-    virtual ~TransmissionManager() = default;
+    ServerTransmissionManager(const ServerTransmissionManager &other) = delete;
+
+    ServerTransmissionManager &operator=(const ServerTransmissionManager &other) = delete;
+
+    virtual ~ServerTransmissionManager() = default;
 
     /**
      * @brief Send data
@@ -47,7 +51,7 @@ public:
      * @param usrname user name as connection id
      * @param data data as iostream to process
      */
-    virtual void send(const std::string& usrname, std::iostream& data) = 0;
+    virtual void send(const std::string &usrname, std::iostream &data) = 0;
 
     /**
      * @brief Receive request / response depending on side
@@ -60,18 +64,55 @@ public:
    * Mark some connection as opened
    * @param connection
    */
-    virtual void registerConnection(const std::string& usrname) = 0;
+    virtual void registerConnection(const std::string &usrname) = 0;
 
     /**
      * Release connection
      * @param connection
      */
-    virtual void removeConnection(const std::string& usrname) = 0;
+    virtual void removeConnection(const std::string &usrname) = 0;
 
     /**
      * Get online user list
      */
-    virtual const std::set<std::string>& getOpenConnections() = 0;
+    virtual const std::set<std::string> &getOpenConnections() = 0;
+};
+
+class UserTransmissionManager {
+protected:
+    /**
+     * Function that can handle receive() output
+     */
+    Callable<void, std::stringstream &&> *callback;
+    std::string username;
+
+public:
+    explicit UserTransmissionManager(Callable<void, std::stringstream &&> *callback,
+                                     std::string username) : callback(callback), username(std::move(username)) {
+        if (callback == nullptr)
+            throw Error("Null not allowed.");
+    };
+
+    // Copying is not available
+    UserTransmissionManager(const UserTransmissionManager &other) = delete;
+
+    UserTransmissionManager &operator=(const UserTransmissionManager &other) = delete;
+
+    virtual ~UserTransmissionManager() = default;
+
+    /**
+     * @brief Send data
+     *
+     * @param data data as iostream to process
+     */
+    virtual void send(std::iostream &data) = 0;
+
+    /**
+     * @brief Receive request / response depending on side
+     *        in TCP, this method is waiting for any incoming request / reponse
+     *        uses callback to forward unsigned long, std::stringstream
+     */
+    virtual void receive() = 0;
 };
 
 } //namespace helloworld

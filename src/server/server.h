@@ -19,7 +19,7 @@
 #include "../shared/random.h"
 #include "../shared/request.h"
 #include "../shared/rsa_2048.h"
-#include "../shared/transmission_file.h"
+#include "transmission_file_server.h"
 #include "database.h"
 
 namespace helloworld {
@@ -99,13 +99,19 @@ public:
      */
     void setSessionKey(const std::string& name, std::vector<unsigned char> sessionKey);
 
-    /**
-     * @brief Drop the server database
-     *
-     */
-    void dropDatabase();
+    //
+    //TESTING PURPOSE METHODS SECTION
+    //
 
+    //clear database to start from new
+    void dropDatabase();
+    //check users present in db
     std::vector<std::string> getUsers();
+    //check for request, in future: either will run in thread later as listening
+    //or gets notified by TCP
+    void getRequest() {
+        _transmission->receive();
+    };
 
 private:
     Random _random;
@@ -113,7 +119,7 @@ private:
     std::map<std::string, Challenge> _authentications;
     std::map<std::string, Challenge> _registrations;
     std::unique_ptr<Database> _database;
-    std::unique_ptr<TransmissionManager> _transmission;
+    std::unique_ptr<ServerTransmissionManager> _transmission;
     RSA2048 _rsa;
 
     /**

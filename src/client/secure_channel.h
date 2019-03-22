@@ -14,6 +14,8 @@
 
 #include <string>
 
+//TODO possibly delete this if not fits into our current design
+
 namespace helloworld {
 
 class SecureChannel {

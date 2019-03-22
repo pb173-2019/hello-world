@@ -3,7 +3,7 @@
 #include <iostream>
 #include "catch.hpp"
 
-#include "../../src/shared/transmission_file.h"
+#include "../../src/server/transmission_file_server.h"
 
 using namespace helloworld;
 
