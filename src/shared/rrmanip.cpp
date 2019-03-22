@@ -35,7 +35,7 @@ void RequestParser::setMessageNumber(uint32_t newNumber) {
 
 void RequestBuilder::writeTo(Request &request, std::ostream &output) {
     if (!output)
-        throw std::runtime_error("Wrong output stream");
+        throw Error("Wrong output stream");
 
 
     Request::Header newHeader{
@@ -68,9 +68,9 @@ Request RequestParser::parseRequest(std::istream &input) {
     result.messageNumber = newHeader.messageNumber;
 
     if (!Request::isValidType(result.type))
-        throw std::runtime_error("Invalid request type");
+        throw Error("Invalid request type");
     if (expectedMessageNumber != result.messageNumber && messageNumberSet)
-        throw std::runtime_error("Invalid message number");
+        throw Error("Invalid message number");
 
     _readPayload(input, newHeader, result.payload);
     expectedMessageNumber = result.messageNumber + 1;
@@ -82,7 +82,7 @@ Request RequestParser::parseRequest(std::istream &input) {
 void ResponseBuilder::writeTo(Response &response, std::ostream &output) {
 
     if (!output)
-        throw std::runtime_error("Wrong output stream");
+        throw Error("Wrong output stream");
 
     Response::Header newHeader{
             response.messageNumber,
@@ -110,7 +110,7 @@ Response ResponseParser::parseResponse(std::istream &input) {
     result.messageNumber = newHeader.messageNumber;
 
     if (!Response::isValidType(result.type))
-        throw std::runtime_error("Invalid request type");
+        throw Error("Invalid request type");
 
     _readPayload(input, newHeader, result.payload);
 

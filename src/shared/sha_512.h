@@ -12,10 +12,9 @@
 #ifndef HELLOWORLD_SHARED_SHA512_H_
 #define HELLOWORLD_SHARED_SHA512_H_
 
-#include <stdexcept>
-
 #include "hash.h"
 #include "utils.h"
+#include "serializable_error.h"
 
 #include "mbedtls/sha512.h"
 
@@ -35,7 +34,7 @@ public:
     explicit SHA512() {
         mbedtls_sha512_init(&_context);
         if (mbedtls_sha512_starts_ret(&_context, static_cast<int>(SHA::S512)) != 0) {
-            throw std::runtime_error("mbedTLS sha initialization failed");
+            throw Error("mbedTLS sha initialization failed");
         }
     }
 

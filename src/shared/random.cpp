@@ -1,8 +1,9 @@
 #include "random.h"
 
-#include <stdexcept>
 #include <cmath>
 #include <string>
+
+#include "serializable_error.h"
 
 #if defined(WINDOWS)
 #include <windows.h>
@@ -22,7 +23,7 @@ namespace helloworld {
         _getSeedEntropy(salt);
 
         if (mbedtls_ctr_drbg_seed(&_ctr_drbg, mbedtls_entropy_func, &_entropy, salt, 16) != 0) {
-            throw std::runtime_error("Could not init seed.");
+            throw Error("Could not init seed.");
         }
         mbedtls_ctr_drbg_set_prediction_resistance(&_ctr_drbg, MBEDTLS_CTR_DRBG_PR_ON);
     }
@@ -30,7 +31,7 @@ namespace helloworld {
     std::vector<unsigned char> Random::get(size_t size) {
         std::vector<unsigned char> result(size);
         if (mbedtls_ctr_drbg_random(&_ctr_drbg, result.data(), result.size()) != 0) {
-            throw std::runtime_error("Could not generate random sequence.");
+            throw Error("Could not generate random sequence.");
         }
         return result;
     }
@@ -38,7 +39,7 @@ namespace helloworld {
     size_t Random::getBounded(size_t lower, size_t upper) {
         unsigned char data[3];
         if (mbedtls_ctr_drbg_random(&_ctr_drbg, data, 3) != 0) {
-            throw std::runtime_error("Could not generate random sequence.");
+            throw Error("Could not generate random sequence.");
         }
 
         size_t result = 0;
@@ -82,24 +83,24 @@ namespace helloworld {
             DWORD err = GetLastError();
             if (err == NTE_BAD_KEYSET && CryptAcquireContext(&hCryptProv, nullptr, nullptr,
                     PROV_RSA_FULL, CRYPT_NEWKEYSET) == 0) {
-                throw std::runtime_error("Could not initialize crypt context of windows system.");
+                throw Error("Could not initialize crypt context of windows system.");
             } else {
-                throw std::runtime_error(("Windows error code: " + std::to_string(err) +
+                throw Error(("Windows error code: " + std::to_string(err) +
                                           ", could not initialize cipher context."));
             }
         } 
 
         if(! CryptGenRandom(hCryptProv, 16, buff)) {
-            throw std::runtime_error("Could not get entropy source of windows system.");
+            throw Error("Could not get entropy source of windows system.");
         }
 
         if(!CryptReleaseContext(hCryptProv, 0)) {
-            throw std::runtime_error("Failed to release cipher context of windows system.");
+            throw Error("Failed to release cipher context of windows system.");
         }
 #else
         std::ifstream randomSource("/dev/urandom");
         if (!randomSource)
-            throw std::runtime_error("Couldn't acquire entropy");
+            throw Error("Couldn't acquire entropy");
         randomSource.read(reinterpret_cast<char *>(buff), 16); //NOLINT
 #endif
     }

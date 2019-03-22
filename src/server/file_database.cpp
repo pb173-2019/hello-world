@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "config.h"
+#include "../shared/serializable_error.h"
 
 using namespace helloworld;
 
@@ -17,7 +18,7 @@ FileDatabase::FileDatabase(const std::string& filename) {
 void FileDatabase::insert(const UserData& data) {
     std::ofstream output{ _source, std::ios::binary | std::ios::app };
     if (!output)
-        throw std::runtime_error("Unable to open database stream.");
+        throw Error("Unable to open database stream.");
     std::vector<unsigned char> length;
     std::vector<unsigned char> serialized = data.serialize();
     Serializable<UserData>::addNumeric<uint64_t>(length, serialized.size());
@@ -29,7 +30,7 @@ const std::vector<std::unique_ptr<helloworld::UserData>>& FileDatabase::select(c
     _cache.clear();
     std::ifstream input{ _source, std::ios::binary };
     if (! input)
-        throw std::runtime_error("Unable to read from database stream.");
+        throw Error("Unable to read from database stream.");
 
     while (input.good() & ! input.eof()) {
         std::vector<unsigned char> length_bytes(8);

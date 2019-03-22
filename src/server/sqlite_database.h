@@ -8,7 +8,6 @@
  * @copyright Copyright (c) 2019
  *
  */
-
 #ifndef HELLOWORLD_SERVER_SQLITE_DATABASE_H_
 #define HELLOWORLD_SERVER_SQLITE_DATABASE_H_
 
@@ -21,11 +20,10 @@
 
 const std::string specialCharacters = ":?\"";
 
-class SQLite : Database {
+class SQLite : public Database {
     std::vector<std::unique_ptr<helloworld::UserData>> _cache;
     std::string _tablename{"users"};
     sqlite3 *_handler = nullptr;
-
 public:
     /**
      * Creates temporary in-memory database

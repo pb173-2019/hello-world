@@ -1,9 +1,5 @@
 #include "base_64.h"
-
-#include <stdexcept>
-
-//#include "mbedtls/base64.h"
-
+#include "serializable_error.h"
 #include "mbedtls/base64.h"
 
 namespace helloworld {
@@ -16,7 +12,7 @@ std::vector<unsigned char> Base64::encode(const std::vector<unsigned char>& mess
     //unsigned char encoded[requiredSize];
     std::vector<unsigned char> encoded(requiredSize);
     if (mbedtls_base64_encode(encoded.data(), requiredSize, &actualLength, message.data(), message.size()) != 0) {
-        throw std::runtime_error("The buffer size provided for Base64 encoder is too small.");
+        throw Error("The buffer size provided for Base64 encoder is too small.");
     }
     encoded.resize(actualLength);
     return encoded;
@@ -30,9 +26,9 @@ std::vector<unsigned char> Base64::decode(const std::vector<unsigned char>& data
     std::vector<unsigned char> decoded(requiredSize);
     switch (mbedtls_base64_decode(decoded.data(), requiredSize, &actualLength, data.data(), data.size())) {
         case MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL:
-            throw std::runtime_error("The buffer size provided for Base64 encoder is insufficient.");
+            throw Error("The buffer size provided for Base64 encoder is insufficient.");
         case MBEDTLS_ERR_BASE64_INVALID_CHARACTER:
-            throw std::runtime_error("Invalid Base64 conversion: invalid character.");
+            throw Error("Invalid Base64 conversion: invalid character.");
         default:
             decoded.resize(actualLength);
     }

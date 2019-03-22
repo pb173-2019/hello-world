@@ -1,13 +1,13 @@
 #include "rsa_2048.h"
 
 #include <fstream>
-#include <stdexcept>
 #include <memory>
 #include <sstream>
 
 #include "utils.h"
 #include "aes_128.h"
 #include "sha_512.h"
+#include "serializable_error.h"
 
 namespace helloworld {
 
@@ -17,7 +17,7 @@ RSAKeyGen::RSAKeyGen() {
     mbedtls_ctr_drbg_context *random_ctx = random.getEngine();
 
     if (mbedtls_pk_setup(&rsa._context, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA)) != 0) {
-        throw std::runtime_error("Could not initialize RSA ciper.");
+        throw Error("Could not initialize RSA ciper.");
     }
     auto *inner_ctx = reinterpret_cast<mbedtls_rsa_context *>(rsa._context.pk_ctx);
     //set OAEP padding
@@ -25,16 +25,16 @@ RSAKeyGen::RSAKeyGen() {
 
     if (mbedtls_rsa_gen_key(inner_ctx, mbedtls_ctr_drbg_random, random_ctx,
                             RSA2048::KEY_SIZE, RSA2048::EXPONENT) != 0) {
-        throw std::runtime_error("RSA key generating failed.");
+        throw Error("RSA key generating failed.");
     }
 
     if (mbedtls_pk_write_pubkey_pem(&rsa._context, _buffer_public, MBEDTLS_MPI_MAX_SIZE) != 0) {
-        throw std::runtime_error("Could not load pem format for public key.");
+        throw Error("Could not load pem format for public key.");
     }
     _pub_olen = _getKeyLength(_buffer_public, MBEDTLS_MPI_MAX_SIZE, "-----END PUBLIC KEY-----\n");
 
     if (mbedtls_pk_write_key_pem(&rsa._context, _buffer_private, MBEDTLS_MPI_MAX_SIZE * 2) != 0) {
-        throw std::runtime_error("Could not load pem format for private key.");
+        throw Error("Could not load pem format for private key.");
     }
     _priv_olen = _getKeyLength(_buffer_private, MBEDTLS_MPI_MAX_SIZE * 2, "-----END RSA PRIVATE KEY-----\n");
 }
@@ -100,7 +100,7 @@ void RSA2048::loadPublicKey(const std::string &keyFile) {
         return;
 
     if (mbedtls_pk_parse_public_keyfile(&_context, keyFile.c_str()) != 0) {
-        throw std::runtime_error("Could not read public key.");
+        throw Error("Could not read public key.");
     }
     _setup(KeyType::PUBLIC_KEY);
 }
@@ -108,7 +108,7 @@ void RSA2048::loadPublicKey(const std::string &keyFile) {
 void RSA2048::setPublicKey(std::vector<unsigned char> &key) {
     key.push_back(static_cast<unsigned char>('\0')); //mbedtls expecting null terminator
     if (mbedtls_pk_parse_public_key(&_context, key.data(), key.size()) != 0) {
-        throw std::runtime_error("Could not load public key from vector.");
+        throw Error("Could not load public key from vector.");
     }
     _setup(KeyType::PUBLIC_KEY);
 }
@@ -136,7 +136,7 @@ void RSA2048::loadPrivateKey(const std::string &keyFile, const std::string &key,
 
 std::vector<unsigned char> RSA2048::encrypt(const std::string &msg) {
     if (!_valid(KeyType::PUBLIC_KEY))
-        throw std::runtime_error("RSA not initialized properly.");
+        throw Error("RSA not initialized properly.");
 
     Random random{};
     unsigned char buf[MBEDTLS_MPI_MAX_SIZE];
@@ -146,7 +146,7 @@ std::vector<unsigned char> RSA2048::encrypt(const std::string &msg) {
                                        random.getEngine(), MBEDTLS_RSA_PUBLIC, nullptr, 0, msg.size(),
                                        reinterpret_cast<const unsigned char *>(msg.c_str()), buf) != 0) {
 
-        throw std::runtime_error("Failed to encrypt data.");
+        throw Error("Failed to encrypt data.");
     }
     _dirty = true;
     return std::vector<unsigned char>(buf, buf + _basic_context->len);
@@ -154,7 +154,7 @@ std::vector<unsigned char> RSA2048::encrypt(const std::string &msg) {
 
 std::string RSA2048::decrypt(const std::vector<unsigned char> &data) {
     if (!_valid(KeyType::PRIVATE_KEY))
-        throw std::runtime_error("RSA not initialized properly.");
+        throw Error("RSA not initialized properly.");
 
     Random random{};
     unsigned char buf[MBEDTLS_MPI_MAX_SIZE];
@@ -164,7 +164,7 @@ std::string RSA2048::decrypt(const std::vector<unsigned char> &data) {
                                        random.getEngine(), MBEDTLS_RSA_PRIVATE, nullptr, 0, &olen, data.data(), buf,
                                        MBEDTLS_MPI_MAX_SIZE) != 0) {
 
-        throw std::runtime_error("Failed to encrypt data.");
+        throw Error("Failed to encrypt data.");
     }
     _dirty = true;
     return std::string(reinterpret_cast<char *>(buf), reinterpret_cast<char *>(buf) + olen);
@@ -172,7 +172,7 @@ std::string RSA2048::decrypt(const std::vector<unsigned char> &data) {
 
 std::vector<unsigned char> RSA2048::sign(const std::string &hash) {
     if (!_valid(KeyType::PRIVATE_KEY))
-        throw std::runtime_error("RSA not instantiated properly for signature.");
+        throw Error("RSA not instantiated properly for signature.");
 
     std::vector<unsigned char> hash_bytes = from_hex(hash);
     std::vector<unsigned char> signature(_basic_context->len);
@@ -181,7 +181,7 @@ std::vector<unsigned char> RSA2048::sign(const std::string &hash) {
 
     if (mbedtls_pk_sign(&_context, MBEDTLS_MD_SHA512, hash_bytes.data(), hash_bytes.size(),
                         signature.data(), &olen, mbedtls_ctr_drbg_random, random.getEngine()) != 0) {
-        throw std::runtime_error("Failed to create signature.");
+        throw Error("Failed to create signature.");
     }
     return signature;
 }
@@ -189,7 +189,7 @@ std::vector<unsigned char> RSA2048::sign(const std::string &hash) {
 bool RSA2048::verify(const std::vector<unsigned char> &signedData,
                      const std::string &hash) {
     if (!_valid(KeyType::PUBLIC_KEY))
-        throw std::runtime_error("RSA not instantiated properly for verification.");
+        throw Error("RSA not instantiated properly for verification.");
 
     std::vector<unsigned char> hash_bytes = from_hex(hash);
     return mbedtls_pk_verify_ext(MBEDTLS_PK_RSA, nullptr, &_context, MBEDTLS_MD_SHA512,
@@ -210,7 +210,7 @@ void RSA2048::_loadKeyFromStream(std::istream &input) {
     buff[length - 1] = '\0'; //mbedtls_pk_parse_key expecting null terminator
 
     if (mbedtls_pk_parse_key(&_context, buff.data(), length, nullptr, 0) != 0) {
-        throw std::runtime_error("Could not load private key from stream.");
+        throw Error("Could not load private key from stream.");
     }
     clear<unsigned char>(buff.data(), length);
 }

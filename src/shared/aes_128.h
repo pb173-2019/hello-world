@@ -13,12 +13,12 @@
 #define HELLOWORLD_SHARED_AES_128_H_
 
 #include <iostream>
-#include <stdexcept>
 #include <vector>
 
 #include "symmetric_cipher.h"
 #include "random.h"
 #include "utils.h"
+#include "serializable_error.h"
 
 #include "mbedtls/cipher.h"
 #include "mbedtls/ctr_drbg.h"

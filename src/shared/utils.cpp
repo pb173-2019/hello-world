@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include "utils.h"
-
+#include "serializable_error.h"
 
 namespace helloworld {
 
@@ -47,7 +47,7 @@ std::string to_hex(const unsigned char bytes[], size_t length) {
 
 void from_hex(const std::string &input, unsigned char *output, size_t length) {
     if (input.size() != length * 2) {
-        throw std::runtime_error("Invalid conversion dimensions.");
+        throw Error("Invalid conversion dimensions.");
     }
     std::vector<unsigned char> vector = from_hex(input);
     //todo too much copying

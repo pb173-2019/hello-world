@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef HELLOWORLD_SHARED_SERVERROR_H_
-#define HELLOWORLD_SHARED_SERVERROR_H_
+#ifndef HELLOWORLD_SHARED_ERROR_H_
+#define HELLOWORLD_SHARED_ERROR_H_
 
 #include <exception>
 #include <iostream>
@@ -19,12 +19,12 @@
 
 namespace helloworld {
 
-struct ServerError : public std::exception, public Serializable<ServerError> {
+struct Error : public std::exception, public Serializable<Error> {
     std::string message;
 
-    ServerError() = default;
+    Error() = default;
 
-    explicit ServerError(std::string message) : message(std::move(message)) {}
+    explicit Error(std::string message) : message(std::move(message)) {}
 
     const char *what() const throw() override { return message.c_str(); }
 
@@ -35,16 +35,15 @@ struct ServerError : public std::exception, public Serializable<ServerError> {
         return result;
     }
 
-    static ServerError deserialize(const std::vector<unsigned char> &data) {
-        ServerError result;
+    static Error deserialize(const std::vector<unsigned char> &data) {
+        Error result;
         uint64_t position = 0;
         position += Serializable::getContainer<std::string>(data, position,
                                                             result.message);
-
         return result;
     }
 };
 
-}    // namespace helloworld
+} // namespace helloworld
 
-#endif    // HELLOWORLD_SHARED_SERVERROR_H_
+#endif // HELLOWORLD_SHARED_ERROR_H_

@@ -5,19 +5,13 @@
 
 using namespace helloworld;
 
-bool evaluated = false;
-
-
-
 struct Test : public Callable<void, unsigned long, std::stringstream&&> {
     const std::string& result;
-    bool verified = false;
-
     explicit Test(const std::string& expected) : result(expected) {}
 
     void callback(unsigned long id, std::stringstream&& data) override {
         if (data.str() != result) {
-            throw std::runtime_error("test failed");
+            throw Error("test failed");
         };
     }
 

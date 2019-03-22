@@ -3031,7 +3031,7 @@ namespace Catch {
 #define CATCH_ERROR( msg ) \
     Catch::throw_exception(CATCH_PREPARE_EXCEPTION( std::domain_error, msg ))
 #define CATCH_RUNTIME_ERROR( msg ) \
-    Catch::throw_exception(CATCH_PREPARE_EXCEPTION( std::runtime_error, msg ))
+    Catch::throw_exception(CATCH_PREPARE_EXCEPTION( Error, msg ))
 #define CATCH_ENFORCE( condition, msg ) \
     do{ if( !(condition) ) CATCH_ERROR( msg ); } while(false)
 

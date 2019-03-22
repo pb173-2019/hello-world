@@ -252,7 +252,7 @@ TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding") {
 
             aes128.setKey("63bed6b8e3c1743b7116e69e22229515");
             std::stringstream output;
-            CHECK_THROWS_AS(aes128.decrypt(encrypted, output), std::runtime_error);
+            CHECK_THROWS_AS(aes128.decrypt(encrypted, output), Error);
         }
 
         SECTION("corrupted encryption") {
@@ -265,7 +265,7 @@ TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding") {
             encrypted.write((char *) rand.data(), 22);
 
             std::stringstream output;
-            CHECK_THROWS_AS(aes128.decrypt(encrypted, output), std::runtime_error);
+            CHECK_THROWS_AS(aes128.decrypt(encrypted, output), Error);
         }
     }
 
@@ -302,7 +302,7 @@ TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding") {
             std::stringstream output;
             //invalid key decryption will throws because of padding
             //todo possibly not force throw but return false instead
-            CHECK_THROWS_AS(aes128.decrypt(encrypted, output), std::runtime_error);
+            CHECK_THROWS_AS(aes128.decrypt(encrypted, output), Error);
         }
 
         SECTION("corrupted encryption") {
@@ -315,7 +315,7 @@ TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding") {
             encrypted.write((char *) rand.data(), 22);
 
             std::stringstream output;
-            CHECK_THROWS_AS(aes128.decrypt(encrypted, output), std::runtime_error);
+            CHECK_THROWS_AS(aes128.decrypt(encrypted, output), Error);
         }
     }
 }
@@ -384,13 +384,13 @@ TEST_CASE("AES lengthy errors") {
     std::stringstream in;
     std::stringstream out;
 
-    CHECK_THROWS_AS(aes128.encrypt(in, out), std::runtime_error);
-    CHECK_THROWS_AS(aes128.decrypt(in, out), std::runtime_error);
+    CHECK_THROWS_AS(aes128.encrypt(in, out), Error);
+    CHECK_THROWS_AS(aes128.decrypt(in, out), Error);
 
     //correct key but IV missing
     aes128.setKey("73bed6b8e3c1743b7116e69e22229516");
     CHECK_NOTHROW(aes128.encrypt(in, out));
-    CHECK_THROWS_AS(aes128.decrypt(in, out), std::runtime_error);
+    CHECK_THROWS_AS(aes128.decrypt(in, out), Error);
 }
 
 TEST_CASE("file not exists or cannot be read/written into") {

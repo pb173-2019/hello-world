@@ -1,6 +1,9 @@
 project(server)
 
 add_executable(${PROJECT_NAME} main.cpp
+        server.h
+        server.cpp
+        requests.h
         database.h
         file_database.h
         file_database.cpp

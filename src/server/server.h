@@ -45,11 +45,38 @@ namespace helloworld {
         std::string username;
     };
 
-    class Server {
+    class Server : public Callable<void, unsigned long, std::stringstream&&> {
         static const size_t CHALLENGE_SECRET_LENGTH = 256;
 
     public:
         Server();
+
+        /**
+         * @brief This function is called when transmission manager discovers new
+         *        incoming request
+         *
+         * @param id id of incoming connection, 0 if not opened (e.g. authentication needed)
+         * @param data decoded data, ready to process (if 0, use server key to encrypt)
+         */
+        void callback(unsigned long id, std::stringstream&& data) override {
+            if (id == 0) {
+                //todo parse data using private key of the server
+                Request request;
+                handleUserRequest(request);
+            } else {
+                //todo parse data using session manager
+                Request request;
+                handleUserRequest(id, request);
+            }
+        }
+
+        /**
+         * @brief Handle incoming request on new port
+         *
+         * @param request request from not connected user
+         * @return Response response data
+         */
+        Response handleUserRequest(const Request &request);
 
         /**
          * @brief Handle incoming request on user port
@@ -58,7 +85,7 @@ namespace helloworld {
          * @param request request from user
          * @return Response response data
          */
-        Response handleUserRequest(int connectionId, const Request &request);
+        Response handleUserRequest(unsigned long connectionId, const Request &request);
 
         /**
          * @brief Handle incoming request for system on system port
@@ -80,7 +107,7 @@ namespace helloworld {
          * @param connectionId connection id
          * @param sessionKey symmetric cryptography key
          */
-        void setSessionKey(int connectionId, std::vector<unsigned char> sessionKey);
+        void setSessionKey(unsigned long connectionId, std::vector<unsigned char> sessionKey);
 
         /**
          * @brief Drop the server database
@@ -92,8 +119,8 @@ namespace helloworld {
 
     private:
         Random _random;
-        std::map<int, SocketInfo> _connections;
-        std::map<int, Challenge> _authentications;
+        std::map<unsigned long, SocketInfo> _connections;
+        std::map<unsigned long, Challenge> _authentications;
         std::map<std::string, Challenge> _registrations;
         std::unique_ptr<Database> _database;
         std::unique_ptr<TransmissionManager> _transmission;
@@ -108,7 +135,7 @@ namespace helloworld {
          * @param request request from client
          * @return Response challenge response
          */
-        Response registerUser(int connectionId, const Request &request);
+        Response registerUser(unsigned long connectionId, const Request &request);
 
         /**
          * @brief Check correctness of client's public key and register
@@ -118,7 +145,7 @@ namespace helloworld {
          * @param request request from client
          * @return Response OK if user was registered
          */
-        Response completeUserRegistration(int connectionId, const Request &request);
+        Response completeUserRegistration(unsigned long connectionId, const Request &request);
 
         /**
          * @brief Authenticate user by his knowledge of private key.
@@ -127,7 +154,7 @@ namespace helloworld {
          * @param request request from client
          * @return Response OK challenge response
          */
-        Response authenticateUser(int connectionId, const Request &request);
+        Response authenticateUser(unsigned long connectionId, const Request &request);
 
         /**
          * @brief Check correctness of client's public key and log him in.
@@ -136,7 +163,7 @@ namespace helloworld {
          * @param request request from client
          * @return Response OK response if user was registered
          */
-        Response completeUserAuthentication(int connectionId,
+        Response completeUserAuthentication(unsigned long connectionId,
                                             const Request &request);
     };
 

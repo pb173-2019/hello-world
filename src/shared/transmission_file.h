@@ -57,7 +57,7 @@ public:
 
         std::ofstream send{std::to_string(id) + ".tcp", std::ios::binary | std::ios::out};
         if (!send) {
-            throw std::runtime_error("Transmission failed.\n");
+            throw Error("Transmission failed.\n");
         }
 
         while (data.good()) {
@@ -87,7 +87,7 @@ public:
         Callable<void, unsigned long, std::stringstream&&>::call(callback, exists(incoming), std::move(result));
         incoming.push_back('\0'); //sichr
         if (remove(incoming.c_str()) != 0) {
-            throw std::runtime_error("Could not finish transmission.\n");
+            throw Error("Could not finish transmission.\n");
         }
     }
 
@@ -100,7 +100,7 @@ public:
             return;
         bool inserted = _files.emplace(connection, std::to_string(connection) + ".tcp").second;
         if (!inserted) {
-            throw std::runtime_error("Could not register existing connection.");
+            throw Error("Could not register existing connection.");
         }
     }
 

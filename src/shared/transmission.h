@@ -17,9 +17,9 @@
 #define HELLOWORLD_SHARED_TRANSMISSION_H_
 
 #include <string>
-#include <stdexcept>
 
 #include "utils.h"
+#include "serializable_error.h"
 
 namespace helloworld {
 
@@ -33,7 +33,7 @@ protected:
 public:
     explicit TransmissionManager(Callable<void, unsigned long, std::stringstream&&>* callback) : callback(callback) {
         if (callback == nullptr)
-            throw std::runtime_error("Null not allowed.");
+            throw Error("Null not allowed.");
     };
     // Copying is not available
     TransmissionManager(const TransmissionManager &other) = delete;

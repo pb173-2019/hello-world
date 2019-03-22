@@ -12,9 +12,11 @@
 #ifndef HELLOWORLD_RRMANIP_H
 #define HELLOWORLD_RRMANIP_H
 
+#include <array>
+
 #include "request.h"
 #include "hmac.h"
-#include <array>
+#include "serializable_error.h"
 
 namespace helloworld {
 
@@ -52,7 +54,7 @@ namespace helloworld {
         */
         void _writeTo(typename T::Header &src, std::vector<unsigned char> &payload, std::vector<unsigned char> &dest) {
             if (src.payloadLength > UINT32_MAX)
-                throw std::runtime_error("Payload data too long.");
+                throw Error("Payload data too long.");
 
             dest.resize(sizeof(typename T::Header) + src.payloadLength);
 
@@ -80,12 +82,12 @@ namespace helloworld {
         */
         void _readHeader(std::istream &input, typename T::Header &dest) {
             if (!input)
-                throw std::runtime_error("Wrong input stream!");
+                throw Error("Wrong input stream!");
 
 
             input.read(reinterpret_cast<char *>(&dest), sizeof(typename T::Header)); //NOLINT
             if (input.gcount() != sizeof(typename T::Header))
-                throw std::runtime_error("Cannot read whole header!");
+                throw Error("Cannot read whole header!");
         }
 
         /**
@@ -97,14 +99,14 @@ namespace helloworld {
         */
         void _readPayload(std::istream &input, typename T::Header &header, std::vector<unsigned char> &payload) {
             if (!input)
-                throw std::runtime_error("Wrong input stream!");
+                throw Error("Wrong input stream!");
 
 
             payload.resize(header.payloadLength);
             input.read(reinterpret_cast<char *>(payload.data()), header.payloadLength); //NOLINT
 
             if (input.gcount() != header.payloadLength)
-                throw std::runtime_error("Cannot read whole payload");
+                throw Error("Cannot read whole payload");
 
 
             std::array<unsigned char, HMAC::hmac_size> hmac;
@@ -115,7 +117,7 @@ namespace helloworld {
             std::copy(&header, &header + 1, reinterpret_cast<typename T::Header *>(toAuth.data()));
             std::copy(payload.begin(), payload.end(), toAuth.data() + sizeof(typename T::Header));
             if (hmac != authentificator.generate(toAuth))
-                throw std::runtime_error("Authentification failed");
+                throw Error("Authentification failed");
 
         }
     };
