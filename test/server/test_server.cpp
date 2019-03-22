@@ -1,3 +1,5 @@
+#include <utility>
+
 #include <fstream>
 #include "catch.hpp"
 
@@ -6,8 +8,7 @@
 
 using namespace helloworld;
 
-Response registerAlice(int connectionId, Server &server,
-                       const std::string &name = "alice") {
+Response registerAlice(Server &server, const std::string &name) {
     std::ifstream input("pub.pem");
     std::string publicKey((std::istreambuf_iterator<char>(input)),
                           std::istreambuf_iterator<char>());
@@ -15,43 +16,42 @@ Response registerAlice(int connectionId, Server &server,
     RegisterRequest registerRequest(name, publicKey);
     Request request{Request::Type::CREATE, registerRequest.serialize(), 1};
 
-    return server.handleUserRequest(connectionId, request);
+    return server.handleUserRequest(request);
 }
 
-Response completeAlice(int connectionId, Server &server,
-                       std::vector<unsigned char> secret,
-                       const std::string &name = "alice") {
-    CompleteRegistrationRequest crRequest(secret, name);
+Response completeAlice(Server &server, std::vector<unsigned char> secret,
+                       const std::string &name) {
+    CompleteRegistrationRequest crRequest(std::move(secret), name);
     Request request{Request::Type::CREATE_COMPLETE, crRequest.serialize(), 2};
-    return server.handleUserRequest(connectionId, request);
+    return server.handleUserRequest(request);
 }
 
 TEST_CASE("Add new user") {
     Server server;
     server.dropDatabase();
-    int connectionId = 42;
-    server.setSessionKey(connectionId, std::vector<unsigned char>(128, 0));
+    std::string name = "alice";
+
+    server.setSessionKey(name, std::vector<unsigned char>(128, 0));
 
     SECTION("New user") {
-        auto response = registerAlice(connectionId, server);
+        auto response = registerAlice(server, name);
         CHECK(response.type == Response::Type::CHALLENGE_RESPONSE_NEEDED);
 
         SECTION("Registration already started") {
-            CHECK(registerAlice(connectionId, server).type ==
-                  Response::Type::GENERIC_SERVER_ERROR);
+            CHECK(registerAlice(server, name).type == Response::Type::GENERIC_SERVER_ERROR);
         }
 
         SECTION("Challenge incorrectly solved") {
             CompleteRegistrationRequest crRequest(
-                std::vector<unsigned char>(256, 10), "alice");
+                std::vector<unsigned char>(256, 10), name);
             Request request{Request::Type::CREATE_COMPLETE,
                             crRequest.serialize(), 2};
-            auto response = server.handleUserRequest(1, request);
+            response = server.handleUserRequest(request);
             CHECK(response.type == Response::Type::GENERIC_SERVER_ERROR);
         }
 
         SECTION("Challenge correctly solved") {
-            CHECK(completeAlice(connectionId, server, response.payload).type ==
+            CHECK(completeAlice(server, response.payload, name).type ==
                   Response::Type::OK);
         }
     }
@@ -60,32 +60,33 @@ TEST_CASE("Add new user") {
 TEST_CASE("User authentication") {
     Server server;
     server.dropDatabase();
-    int connectionId = 42;
-    server.setSessionKey(connectionId, std::vector<unsigned char>(256, 0));
-    auto response = registerAlice(connectionId, server);
-    completeAlice(connectionId, server, response.payload);
+    std::string name = "alice";
+
+    server.setSessionKey(name, std::vector<unsigned char>(256, 0));
+    auto response = registerAlice(server, name);
+    completeAlice(server, response.payload, name);
 
     SECTION("Existing user") {
         AuthenticateRequest authRequest("alice");
         Request request{Request::Type::LOGIN, authRequest.serialize(), 10};
 
-        auto response = server.handleUserRequest(connectionId, request);
+        auto response = server.handleUserRequest(request);
         CHECK(response.type == Response::Type::CHALLENGE_RESPONSE_NEEDED);
 
         SECTION("Challenge solved") {
-            CompleteAuthenticationRequest caRequest(response.payload, "alice");
+            CompleteAuthenticationRequest caRequest(response.payload, name);
             Request request{Request::Type::LOGIN_COMPLETE,
                             caRequest.serialize(), 2};
-            auto response = server.handleUserRequest(1, request);
+            response = server.handleUserRequest(request);
             CHECK(response.type == Response::Type::GENERIC_SERVER_ERROR);
         }
 
         SECTION("Challenge not solved") {
             CompleteAuthenticationRequest caRequest(
-                std::vector<unsigned char>(128, 10), "alice");
+                std::vector<unsigned char>(128, 10), name);
             Request request{Request::Type::LOGIN_COMPLETE,
                             caRequest.serialize(), 2};
-            auto response = server.handleUserRequest(1, request);
+            response = server.handleUserRequest(request);
             CHECK(response.type == Response::Type::GENERIC_SERVER_ERROR);
         }
     }
@@ -94,7 +95,7 @@ TEST_CASE("User authentication") {
         AuthenticateRequest authRequest("bob");
         Request request{Request::Type::LOGIN, authRequest.serialize(), 10};
 
-        auto response = server.handleUserRequest(connectionId, request);
+        auto response = server.handleUserRequest(request);
         CHECK(response.type == Response::Type::GENERIC_SERVER_ERROR);
     }
 }
@@ -102,15 +103,16 @@ TEST_CASE("User authentication") {
 TEST_CASE("Get list") {
     Server server;
     server.dropDatabase();
-    int connectionId = 42;
-    server.setSessionKey(connectionId, std::vector<unsigned char>(128, 0));
+    std::string name = "alice";
+
+    server.setSessionKey(name, std::vector<unsigned char>(128, 0));
 
     SECTION("Expected users in list") {
         SECTION("No users") { CHECK(server.getUsers().empty()); }
 
         SECTION("Alice") {
-            auto response = registerAlice(connectionId, server);
-            completeAlice(connectionId, server, response.payload);
+            auto response = registerAlice(server, name);
+            completeAlice(server, response.payload, name);
 
             CHECK(server.getUsers() == std::vector<std::string>{"alice"});
         }
@@ -118,8 +120,8 @@ TEST_CASE("Get list") {
         SECTION("Lots of users") {
             for (int i = 0; i < 100; ++i) {
                 std::string name = "alice-" + std::to_string(i);
-                auto response = registerAlice(connectionId, server, name);
-                completeAlice(connectionId, server, response.payload, name);
+                auto response = registerAlice(server, name);
+                completeAlice(server, response.payload, name);
             }
 
             CHECK(server.getUsers().size() == 100);

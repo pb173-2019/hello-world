@@ -16,7 +16,7 @@
 
 #include <fstream>
 #include <sstream>
-#include <map>
+#include <set>
 #include <cstring>
 
 #include "transmission.h"
@@ -40,10 +40,10 @@ namespace helloworld {
 class FileManager : public TransmissionManager {
 
     helloworld::Base64 _base64;
-    std::map<unsigned long, std::string> _files;
+    std::set<std::string> _files;
 
 public:
-    explicit FileManager(Callable<void, unsigned long, std::stringstream&&>* callback) : TransmissionManager(callback) {};
+    explicit FileManager(Callable<void, const std::string&, std::stringstream&&>* callback) : TransmissionManager(callback) {};
 
     // Copying is not available
     FileManager(const FileManager &other) = delete;
@@ -52,10 +52,10 @@ public:
 
     ~FileManager() override = default;
 
-    void send(unsigned long id, std::iostream &data) override {
+    void send(const std::string& usrname, std::iostream &data) override {
         data.seekg(0, std::ios::beg);
 
-        std::ofstream send{std::to_string(id) + ".tcp", std::ios::binary | std::ios::out};
+        std::ofstream send{usrname + ".tcp", std::ios::binary | std::ios::out};
         if (!send) {
             throw Error("Transmission failed.\n");
         }
@@ -84,7 +84,7 @@ public:
         }
 
         result.seekg(0, std::ios::beg);
-        Callable<void, unsigned long, std::stringstream&&>::call(callback, exists(incoming), std::move(result));
+        Callable<void, const std::string&, std::stringstream&&>::call(callback, exists(incoming), std::move(result));
         incoming.push_back('\0'); //sichr
         if (remove(incoming.c_str()) != 0) {
             throw Error("Could not finish transmission.\n");
@@ -95,10 +95,10 @@ public:
      * Mark some connection as opened
      * @param connection
      */
-    void registerConnection(unsigned long connection) {
-        if (connection == 0)
+    void registerConnection(const std::string& username) override {
+        if (username.empty())
             return;
-        bool inserted = _files.emplace(connection, std::to_string(connection) + ".tcp").second;
+        bool inserted = _files.emplace(username).second;
         if (!inserted) {
             throw Error("Could not register existing connection.");
         }
@@ -108,8 +108,8 @@ public:
      * Release connection
      * @param connection
      */
-    void removeConnection(unsigned long connection) {
-        _files.erase(connection);
+    void removeConnection(const std::string& username) override {
+        _files.erase(username);
     }
 
     /**
@@ -117,13 +117,13 @@ public:
      * @param filename name to check
      * @return 0 if no connection found, otherwise >0
      */
-    unsigned long exists(const std::string& filename) {
+    std::string exists(const std::string& filename) {
         for (auto& item : _files) {
-            if (item.second == filename) {
-                return item.first;
+            if (item == filename) {
+                return item;
             }
         }
-        return 0;
+        return "";
     }
 
 private:

@@ -10,22 +10,21 @@ namespace helloworld {
 Server::Server() : _database(std::make_unique<FileDatabase>("test_db1.db")),
                    _transmission(std::make_unique<FileManager>(this)) {}
 
-void Server::setSessionKey(unsigned long connectionId,
-                           std::vector<unsigned char> sessionKey) {
-    _connections[connectionId].sessionKey = std::move(sessionKey);
+void Server::setSessionKey(const std::string& name, std::vector<unsigned char> sessionKey) {
+    _connections[name].sessionKey = std::move(sessionKey);
 }
 
 Response Server::handleUserRequest(const Request &request) {
     try {
         switch (request.type) {
             case Request::Type::CREATE:
-                return registerUser(0, request);
+                return registerUser(request);
             case Request::Type::CREATE_COMPLETE:
-                return completeUserRegistration(0, request);
+                return completeUserRegistration(request);
             case Request::Type::LOGIN:
-                return authenticateUser(0, request);
+                return authenticateUser(request);
             case Request::Type::LOGIN_COMPLETE:
-                return completeUserAuthentication(0, request);
+                return completeUserAuthentication(request);
             default:
                 throw Error("Invalid operation.");
         }
@@ -36,37 +35,20 @@ Response Server::handleUserRequest(const Request &request) {
     }
 }
 
-Response Server::handleUserRequest(unsigned long connectionId, const Request &request) {
+Response Server::handleUserRequest(const std::string& username, const Request &request) {
     //todo do other stuff with open connections only
-    try {
-        switch (request.type) {
-            case Request::Type::CREATE:
-                return registerUser(connectionId, request);
-            case Request::Type::CREATE_COMPLETE:
-                return completeUserRegistration(connectionId, request);
-            case Request::Type::LOGIN:
-                return authenticateUser(connectionId, request);
-            case Request::Type::LOGIN_COMPLETE:
-                return completeUserAuthentication(connectionId, request);
-            default:
-                throw Error("Unimplemented operation.");
-        }
-    } catch (Error &ex) {
-        std::cerr << ex.what() << std::endl;
-        return {Response::Type::GENERIC_SERVER_ERROR, ex.serialize(),
-                request.messageNumber};
-    }
+    return {};
 }
 
-unsigned long Server::establishConnection() {
+uint32_t Server::establishConnection() {
     return 42;
 }
 
-void Server::terminateConnection(unsigned long cid) {
+void Server::terminateConnection(uint32_t cid) {
 
 }
 
-Response Server::registerUser(unsigned long connectionId, const Request &request) {
+Response Server::registerUser(const Request &request) {
     RegisterRequest registerRequest =
         RegisterRequest::deserialize(request.payload);
 
@@ -86,8 +68,7 @@ Response Server::registerUser(unsigned long connectionId, const Request &request
             request.messageNumber};
 }
 
-Response Server::completeUserRegistration(unsigned long connectionId,
-                                          const Request &request) {
+Response Server::completeUserRegistration(const Request &request) {
     CompleteRegistrationRequest curRequest =
         CompleteRegistrationRequest::deserialize(request.payload);
 
@@ -101,13 +82,15 @@ Response Server::completeUserRegistration(unsigned long connectionId,
     }
 
     _database->insert(registration->second.userData);
-    _connections[connectionId].username = registration->second.userData.name;
+
+    _connections[curRequest.name].username = registration->second.userData.name;
+    _transmission->registerConnection(curRequest.name);
     _registrations.erase(curRequest.name);
 
     return {Response::Type::OK, {}, request.messageNumber};
 }
 
-Response Server::authenticateUser(unsigned long connectionId, const Request &request) {
+Response Server::authenticateUser(const Request &request) {
     AuthenticateRequest authenticateRequest =
         AuthenticateRequest::deserialize(request.payload);
 
@@ -117,7 +100,7 @@ Response Server::authenticateUser(unsigned long connectionId, const Request &req
     }
 
     Challenge challenge{userData, _random.get(CHALLENGE_SECRET_LENGTH)};
-    bool inserted = _authentications.emplace(connectionId, challenge).second;
+    bool inserted = _authentications.emplace(authenticateRequest.name, challenge).second;
     if (!inserted) {
         throw Error(
             "User with given name is already in the process of verification.");
@@ -126,12 +109,11 @@ Response Server::authenticateUser(unsigned long connectionId, const Request &req
             request.messageNumber};
 }
 
-Response Server::completeUserAuthentication(unsigned long connectionId,
-                                            const Request &request) {
+Response Server::completeUserAuthentication(const Request &request) {
     CompleteRegistrationRequest curRequest =
         CompleteRegistrationRequest::deserialize(request.payload);
 
-    auto authentication = _authentications.find(connectionId);
+    auto authentication = _authentications.find(curRequest.name);
     if (authentication == _authentications.end()) {
         throw Error("No pending authentication for provided username.");
     }
@@ -140,8 +122,9 @@ Response Server::completeUserAuthentication(unsigned long connectionId,
         throw Error("Cannot verify public key owner.");
     }
 
-    _connections[connectionId].username = authentication->second.userData.name;
-    _authentications.erase(connectionId);
+    _connections[curRequest.name].username = authentication->second.userData.name;
+    _transmission->registerConnection(curRequest.name);
+    _authentications.erase(curRequest.name);
 
     return {Response::Type::OK, {}, request.messageNumber};
 }

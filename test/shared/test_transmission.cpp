@@ -1,3 +1,5 @@
+#include <utility>
+
 #include <iostream>
 #include "catch.hpp"
 
@@ -5,11 +7,11 @@
 
 using namespace helloworld;
 
-struct Test : public Callable<void, unsigned long, std::stringstream&&> {
+struct Test : public Callable<void, const std::string&, std::stringstream&&> {
     std::string result;
-    explicit Test(const std::string& expected) : result(expected) {}
+    explicit Test(std::string expected) : result(std::move(expected)) {}
 
-    void callback(unsigned long id, std::stringstream&& data) override {
+    void callback(const std::string& username, std::stringstream&& data) override {
         if (data.str() != result) {
             throw Error("test failed: " + data.str() + " != " + result);
         };
@@ -23,8 +25,8 @@ TEST_CASE("Check the basic functionality") {
     Test test{"Some simple message"};
 
     FileManager sender{&test};
-    unsigned long cid = 0;
-    sender.send(cid, data);
+    std::string username = "alice";
+    sender.send(username, data);
     sender.receive();
 
     CHECK_NOTHROW(sender.receive());
