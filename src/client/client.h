@@ -42,7 +42,6 @@ public:
     * @brief This function is called when transmission manager discovers new
     *        incoming request
     *
-    * @param id id of incoming connection, "" if not opened (e.g. authentication needed)
     * @param data decoded data, ready to process (if "", use user private key to do challenge)
     */
     void callback(std::stringstream &&data) override {
@@ -53,6 +52,7 @@ public:
         } else {
             //todo parse response
         }
+        // do something with response
     }
 
     /**
@@ -70,6 +70,10 @@ public:
 
     /**
      * @brief Send request to the server to register new user
+     *
+     * 1) generate rsa key
+     * 2) generate 16 bytes of random chars,  and save into file named username_salt.txt
+     * 3)
      *
      * @param username  name of user
      * @param password password of user

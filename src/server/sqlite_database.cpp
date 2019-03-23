@@ -2,9 +2,13 @@
 
 #include <algorithm>
 
+#include "../shared/serializable_error.h"
+
+namespace helloworld {
+
 SQLite::SQLite() {
     if (int res = sqlite3_open(nullptr, &_handler) != SQLITE_OK) {
-        throw std::runtime_error("Could not create database: " + _getErrorMsgByReturnType(res));
+        throw Error("Could not create database: " + _getErrorMsgByReturnType(res));
     }
     _createTableIfNExists();
 }
@@ -12,7 +16,7 @@ SQLite::SQLite() {
 SQLite::SQLite(std::string &&filename) {
     filename.push_back('\0');
     if (int res = sqlite3_open(nullptr, &_handler) != SQLITE_OK) {
-        throw std::runtime_error("Could not create database. " + _getErrorMsgByReturnType(res));
+        throw Error("Could not create database. " + _getErrorMsgByReturnType(res));
     }
     _createTableIfNExists();
 }
@@ -24,16 +28,16 @@ SQLite::~SQLite() {
     }
 }
 
-void SQLite::insert(const helloworld::UserData &data) {
+void SQLite::insert(const UserData &data) {
     if (int res = _execute("INSERT INTO users VALUES (" +
                           std::to_string(data.id) + ", '" +
                           _sCheck(data.name) + "', '" +
                           data.publicKey + "');", nullptr, nullptr) != SQLITE_OK) {
-        throw std::runtime_error("Insert command failed: " + _getErrorMsgByReturnType(res));
+        throw Error("Insert command failed: " + _getErrorMsgByReturnType(res));
     }
 }
 
-const std::vector<std::unique_ptr<helloworld::UserData>> &SQLite::select(const helloworld::UserData &query) {
+const std::vector<std::unique_ptr<UserData>> &SQLite::select(const UserData &query) {
     _cache.clear();
     int res;
     if (query.id == 0 && query.name.empty()) {
@@ -45,13 +49,13 @@ const std::vector<std::unique_ptr<helloworld::UserData>> &SQLite::select(const h
         res = _execute("SELECT * FROM users WHERE id=" + std::to_string(query.id) + ";", _fillData, &_cache);
     }
     if (res != SQLITE_OK)
-        throw std::runtime_error("Select command failed: " + _getErrorMsgByReturnType(res));
+        throw Error("Select command failed: " + _getErrorMsgByReturnType(res));
     return _cache;
 }
 
 void SQLite::drop() {
     if (int res = _execute("DROP TABLE users;", nullptr, nullptr) != SQLITE_OK) {
-        throw std::runtime_error("Could not delete database: " + _getErrorMsgByReturnType(res));
+        throw Error("Could not delete database: " + _getErrorMsgByReturnType(res));
     }
 }
 
@@ -71,7 +75,7 @@ void SQLite::_createTableIfNExists() {
                           "username TEXT, "
                           "pubkey TEXT);",
                           nullptr, nullptr) != SQLITE_OK) {
-        throw std::runtime_error("Could not create database: " + _getErrorMsgByReturnType(res));
+        throw Error("Could not create database: " + _getErrorMsgByReturnType(res));
     }
 }
 
@@ -124,3 +128,5 @@ std::string SQLite::_getErrorMsgByReturnType(int ret) {
             return "Unknown error.";
     }
 }
+
+} //  namespace helloworld

@@ -4,8 +4,10 @@
 #include <string>
 
 #include "serializable_error.h"
+#include "utils.h"
 
 #if defined(WINDOWS)
+
 #include <windows.h>
 #include <wincrypt.h>
 #include <winbase.h>
@@ -16,92 +18,135 @@
 
 namespace helloworld {
 
-    Random::Random() {
-        mbedtls_entropy_init(&_entropy);
-        mbedtls_ctr_drbg_init(&_ctr_drbg);
-        unsigned char salt[16];
-        _getSeedEntropy(salt);
+Random::Random() {
+    mbedtls_entropy_init(&_entropy);
+    mbedtls_ctr_drbg_init(&_ctr_drbg);
+    unsigned char salt[16];
+    _getSeedEntropy(salt);
 
-        if (mbedtls_ctr_drbg_seed(&_ctr_drbg, mbedtls_entropy_func, &_entropy, salt, 16) != 0) {
-            throw Error("Could not init seed.");
-        }
-        mbedtls_ctr_drbg_set_prediction_resistance(&_ctr_drbg, MBEDTLS_CTR_DRBG_PR_ON);
+    if (mbedtls_ctr_drbg_seed(&_ctr_drbg, mbedtls_entropy_func, &_entropy, salt, 16) != 0) {
+        throw Error("Could not init seed.");
+    }
+    mbedtls_ctr_drbg_set_prediction_resistance(&_ctr_drbg, MBEDTLS_CTR_DRBG_PR_ON);
+}
+
+std::vector<unsigned char> Random::get(size_t size) {
+    std::vector<unsigned char> result(size);
+    if (mbedtls_ctr_drbg_random(&_ctr_drbg, result.data(), result.size()) != 0) {
+        throw Error("Could not generate random sequence.");
+    }
+    return result;
+}
+
+size_t Random::getBounded(size_t lower, size_t upper) {
+    unsigned char data[3];
+    if (mbedtls_ctr_drbg_random(&_ctr_drbg, data, 3) != 0) {
+        throw Error("Could not generate random sequence.");
     }
 
-    std::vector<unsigned char> Random::get(size_t size) {
-        std::vector<unsigned char> result(size);
-        if (mbedtls_ctr_drbg_random(&_ctr_drbg, result.data(), result.size()) != 0) {
-            throw Error("Could not generate random sequence.");
-        }
+    size_t result = 0;
+    for (int i = 0; i < 3; i++) {
+        result += static_cast<size_t>(std::pow(255, i)) * data[i];
+    }
+
+    result = result % upper;
+    if (result >= lower) {
         return result;
+    } else {
+        return getBounded(lower, upper);
     }
+}
 
-    size_t Random::getBounded(size_t lower, size_t upper) {
-        unsigned char data[3];
-        if (mbedtls_ctr_drbg_random(&_ctr_drbg, data, 3) != 0) {
-            throw Error("Could not generate random sequence.");
-        }
+mbedtls_ctr_drbg_context *Random::getEngine() {
+    return &_ctr_drbg;
+}
 
-        size_t result = 0;
-        for (int i = 0; i < 3; i++) {
-            result += static_cast<size_t>(std::pow(255, i)) * data[i];
-        }
+Random::~Random() {
+    mbedtls_ctr_drbg_free(&_ctr_drbg);
+    mbedtls_entropy_free(&_entropy);
+}
 
-        result = result % upper;
-        if (result >= lower) {
-            return result;
-        } else {
-            return getBounded(lower, upper);
-        }
-    }
-
-    mbedtls_ctr_drbg_context *Random::getEngine() {
-        return &_ctr_drbg;
-    }
-
-    Random::~Random() {
-        mbedtls_ctr_drbg_free(&_ctr_drbg);
-        mbedtls_entropy_free(&_entropy);
-    }
-
-    void Random::_getSeedEntropy(unsigned char *buff) {
+void Random::_getSeedEntropy(unsigned char *buff) {
 
 #if defined(WINDOWS)
-        //used as advised in https://tls.mbed.org/kb/how-to/add-entropy-sources-to-entropy-pool
-        //CSP used: PROV_RSA_FULL
-        //alternatives:
-        //  PROV_RSA_AES
-        //  PROV_RSA_SIG
-        //  PROV_DSS
-        //  PROV_DSS_DH
-        //  PROV_SSL
-        // 0 considered as fail !
+    //used as advised in https://tls.mbed.org/kb/how-to/add-entropy-sources-to-entropy-pool
+    //CSP used: PROV_RSA_FULL
+    //alternatives:
+    //  PROV_RSA_AES
+    //  PROV_RSA_SIG
+    //  PROV_DSS
+    //  PROV_DSS_DH
+    //  PROV_SSL
+    // 0 considered as fail !
 
-        HCRYPTPROV   hCryptProv;
+    HCRYPTPROV hCryptProv;
 
-        if (CryptAcquireContext(&hCryptProv, nullptr, nullptr, PROV_RSA_FULL, 0) == 0) {
-            DWORD err = GetLastError();
-            if (err == NTE_BAD_KEYSET && CryptAcquireContext(&hCryptProv, nullptr, nullptr,
-                    PROV_RSA_FULL, CRYPT_NEWKEYSET) == 0) {
-                throw Error("Could not initialize crypt context of windows system.");
-            } else {
-                throw Error(("Windows error code: " + std::to_string(err) +
-                                          ", could not initialize cipher context."));
-            }
-        } 
-
-        if(! CryptGenRandom(hCryptProv, 16, buff)) {
-            throw Error("Could not get entropy source of windows system.");
+    if (CryptAcquireContext(&hCryptProv, nullptr, nullptr, PROV_RSA_FULL, 0) == 0) {
+        DWORD err = GetLastError();
+        if (err == NTE_BAD_KEYSET && CryptAcquireContext(&hCryptProv, nullptr, nullptr,
+                                                         PROV_RSA_FULL, CRYPT_NEWKEYSET) == 0) {
+            throw Error("Could not initialize crypt context of windows system.");
+        } else {
+            throw Error(("Windows error code: " + std::to_string(err) +
+                         ", could not initialize cipher context."));
         }
-
-        if(!CryptReleaseContext(hCryptProv, 0)) {
-            throw Error("Failed to release cipher context of windows system.");
-        }
-#else
-        std::ifstream randomSource("/dev/urandom");
-        if (!randomSource)
-            throw Error("Couldn't acquire entropy");
-        randomSource.read(reinterpret_cast<char *>(buff), 16); //NOLINT
-#endif
     }
+
+    if (!CryptGenRandom(hCryptProv, 16, buff)) {
+        throw Error("Could not get entropy source of windows system.");
+    }
+
+    if (!CryptReleaseContext(hCryptProv, 0)) {
+        throw Error("Failed to release cipher context of windows system.");
+    }
+#else
+    std::ifstream randomSource("/dev/urandom");
+    if (!randomSource)
+        throw Error("Couldn't acquire entropy");
+    randomSource.read(reinterpret_cast<char *>(buff), 16); //NOLINT
+#endif
+}
+
+// from https://github.com/ARMmbed/mbedtls/blob/development/tests/suites/test_suite_ctr_drbg.function
+// pseudo random generator
+// always generates the same sequence for same seed
+
+static size_t test_offset_idx = 0;
+int pseudorandom_entropy_func(void *data, unsigned char *output, size_t len) {
+    size_t test_max_idx  = 1024;
+    const unsigned char *p = (unsigned char *) data;
+    if( test_offset_idx + len > test_max_idx )
+        return( MBEDTLS_ERR_ENTROPY_SOURCE_FAILED );
+    memcpy( output, p + test_offset_idx, len );
+    test_offset_idx += len;
+    return( 0 );
+}
+
+Salt::Salt(const std::string &seed) {
+    if (seed.size() < 16)
+        throw Error("Invalid seed.");
+
+    mbedtls_entropy_init(&_entropy);
+    mbedtls_ctr_drbg_init(&_ctr_drbg);
+
+    if (mbedtls_ctr_drbg_seed(&_ctr_drbg, pseudorandom_entropy_func, &_entropy,
+                              reinterpret_cast<const unsigned char *>(seed.data()), 16) != 0) {
+        throw Error("Could not init seed.");
+    }
+    mbedtls_ctr_drbg_set_prediction_resistance(&_ctr_drbg, MBEDTLS_CTR_DRBG_PR_OFF);
+}
+
+std::string Salt::get() {
+    std::vector<unsigned char> result(16);
+    if (mbedtls_ctr_drbg_random(&_ctr_drbg, result.data(), result.size()) != 0) {
+        throw Error("Could not generate random sequence.");
+    }
+    return to_hex(result);
+}
+
+Salt::~Salt() {
+    mbedtls_ctr_drbg_free(&_ctr_drbg);
+    mbedtls_entropy_free(&_entropy);
+}
+
 }

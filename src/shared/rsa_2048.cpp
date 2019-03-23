@@ -148,7 +148,6 @@ std::vector<unsigned char> RSA2048::encrypt(const std::string &msg) {
 
         throw Error("Failed to encrypt data.");
     }
-    _dirty = true;
     return std::vector<unsigned char>(buf, buf + _basic_context->len);
 }
 
@@ -166,7 +165,6 @@ std::string RSA2048::decrypt(const std::vector<unsigned char> &data) {
 
         throw Error("Failed to encrypt data.");
     }
-    _dirty = true;
     return std::string(reinterpret_cast<char *>(buf), reinterpret_cast<char *>(buf) + olen);
 }
 

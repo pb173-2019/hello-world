@@ -16,6 +16,8 @@
 
 #include "database.h"
 
+namespace helloworld {
+
 const std::string defaultDbName = "users.db";
 
 class FileDatabase : public Database {
@@ -23,7 +25,7 @@ class FileDatabase : public Database {
     std::string _source;
     uint32_t _lastSearchedId = 0;
     std::string _lastSearched;
-    std::vector<std::unique_ptr<helloworld::UserData>> _cache;
+    std::vector<std::unique_ptr<UserData>> _cache;
 
 public:
     FileDatabase();
@@ -37,12 +39,14 @@ public:
 
     ~FileDatabase() override = default;
 
-    void insert(const helloworld::UserData &data) override;
+    void insert(const UserData &data) override;
 
-    const std::vector<std::unique_ptr<helloworld::UserData>>& select(const helloworld::UserData &query) override;
+    const std::vector<std::unique_ptr<UserData>>& select(const UserData &query) override;
 
     void drop() override;
 
 };
+
+} //  namespace helloworld
 
 #endif //HELLOWORLD_SERVER_FILE_DATABASE_H_

@@ -63,7 +63,6 @@ class RSA2048 : public AsymmetricCipher {
     mbedtls_rsa_context* _basic_context;
 
     KeyType _keyLoaded = KeyType::NO_KEY;
-    bool _dirty = false;
 
 public:
     const static int KEY_SIZE = 2048;
@@ -79,6 +78,12 @@ public:
 
     void loadPublicKey(const std::string &keyFile) override;
 
+    /**
+     * Expects private key exaclty 32 chars in hex (e.g. 16 bytes) long
+     * @param keyFile file to load
+     * @param key key for aes to decrypt
+     * @param iv iv for aes to decrypt
+     */
     void loadPrivateKey(const std::string &keyFile, const std::string &key, const std::string& iv) override;
 
     std::vector<unsigned char> encrypt(const std::string &msg) override;
@@ -92,7 +97,7 @@ public:
 private:
 
     bool _valid(KeyType keyNeeded) {
-        return mbedtls_pk_can_do(&_context, MBEDTLS_PK_RSA) == 1 && _keyLoaded == keyNeeded && !_dirty;
+        return mbedtls_pk_can_do(&_context, MBEDTLS_PK_RSA) == 1 && _keyLoaded == keyNeeded;
     }
 
     void _setup(KeyType type);

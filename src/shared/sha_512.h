@@ -46,7 +46,13 @@ public:
 
     SHA512 &operator=(const SHA512 &other) = delete;
 
-    std::string get(std::istream &in) override;
+    std::string getHex(std::istream &in) override;
+
+    std::string getHex(const std::string& in) override;
+
+    std::vector<unsigned char> get(std::istream &in) override;
+
+    std::vector<unsigned char> get(const std::string& in) override;
 };
 
 } //namespace helloworld

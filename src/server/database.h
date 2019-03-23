@@ -16,6 +16,8 @@
 
 #include "../shared/user_data.h"
 
+namespace helloworld {
+
 class Database {
 
 public:
@@ -30,15 +32,15 @@ public:
      *
      * @param data data to insert
      */
-    virtual void insert(const helloworld::UserData& data) = 0;
+    virtual void insert(const UserData& data) = 0;
 
     /**
      * Select from database data by query
      *
      * @param query search request
-     * @return std::vector<std::unique_ptr<helloworld::UserData>>& data matching the query
+     * @return std::vector<std::unique_ptr<UserData>>& data matching the query
      */
-    virtual const std::vector<std::unique_ptr<helloworld::UserData>>& select(const helloworld::UserData& query) = 0;
+    virtual const std::vector<std::unique_ptr<UserData>>& select(const UserData& query) = 0;
 
     /**
      * Delete the database
@@ -46,5 +48,7 @@ public:
     virtual void drop() = 0;
 
 };
+
+} //  namespace helloworld
 
 #endif //HELLOWORLD_SERVER_DATABASE_H_

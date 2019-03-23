@@ -1,5 +1,5 @@
 /**
- * @file transmission_file.h
+ * @file transmission_file_client.h
  * @author Jiří Horák (469130@mail.muni.cz)
  * @brief Transmission manager implementation
  *          temporary testing solution
@@ -30,7 +30,7 @@ namespace helloworld {
 */
 class FileManager : public UserTransmissionManager {
 
-    helloworld::Base64 _base64;
+    Base64 _base64;
 
 public:
     explicit FileManager(Callable<void, std::stringstream &&> *callback,

@@ -35,7 +35,7 @@ TEST_CASE("SHA-512") {
 
     SECTION("ABC") {
         std::stringstream abc{"abc"};
-        CHECK(hash.get(abc) == "ddaf35a193617abacc417349ae204131"
+        CHECK(hash.getHex(abc) == "ddaf35a193617abacc417349ae204131"
                                "12e6fa4e89a97ea20a9eeee64b55d39a"
                                "2192992a274fc1a836ba3c23a3feebbd"
                                "454d4423643ce80e2a9ac94fa54ca49f");
@@ -43,7 +43,7 @@ TEST_CASE("SHA-512") {
 
     SECTION("EMPTY") {
         std::stringstream empty{""};
-        CHECK(hash.get(empty) == "cf83e1357eefb8bdf1542850d66d8007"
+        CHECK(hash.getHex(empty) == "cf83e1357eefb8bdf1542850d66d8007"
                                  "d620e4050b5715dc83f4a921d36ce9ce"
                                  "47d0d13c5d85f2b0ff8318d2877eec2f"
                                  "63b931bd47417a81a538327af927da3e");
@@ -51,7 +51,7 @@ TEST_CASE("SHA-512") {
 
     SECTION("ALPHABET") {
         std::stringstream alphabet{"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"};
-        CHECK(hash.get(alphabet) == "204a8fc6dda82f0a0ced7beb8e08a416"
+        CHECK(hash.getHex(alphabet) == "204a8fc6dda82f0a0ced7beb8e08a416"
                                     "57c16ef468b228a8279be331a703c335"
                                     "96fd15c13b1b07f9aa1d3bea57789ca0"
                                     "31ad85c7a71dd70354ec631238ca3445");
@@ -60,7 +60,7 @@ TEST_CASE("SHA-512") {
     SECTION("ALPHABET 2") {
         std::stringstream alphabet2{"abcdefghbcdefghicdefghijdefghijkefghijklfghij"
                                     "klmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"};
-        CHECK(hash.get(alphabet2) == "8e959b75dae313da8cf4f72814fc143f"
+        CHECK(hash.getHex(alphabet2) == "8e959b75dae313da8cf4f72814fc143f"
                                      "8f7779c6eb9f7fa17299aeadb6889018"
                                      "501d289e4900f7e4331b99dec4b5433a"
                                      "c7d329eeb6dd26545e96e55b874be909");
@@ -68,7 +68,7 @@ TEST_CASE("SHA-512") {
 
     SECTION("A billion times") {
         std::stringstream billion_a{std::string(1000000, 'a')};
-        CHECK(hash.get(billion_a) == "e718483d0ce769644e2e42c7bc15b463"
+        CHECK(hash.getHex(billion_a) == "e718483d0ce769644e2e42c7bc15b463"
                                      "8e1f98b13b2044285632a803afa973eb"
                                      "de0ff244877ea60a4cb0432ce577c31b"
                                      "eb009c5c2c49aa2e4eadb217ad8cc09b");

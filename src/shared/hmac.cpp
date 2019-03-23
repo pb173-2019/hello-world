@@ -14,8 +14,7 @@
 #include "hmac.h"
 #include "serializable_error.h"
 
-using namespace helloworld;
-
+namespace helloworld {
 
 void HMAC::setKey(std::vector<unsigned char> newKey) { key_ = std::move(newKey); }
 
@@ -36,3 +35,5 @@ std::array<unsigned char, HMAC::hmac_size> HMAC::generate(const std::vector<unsi
 
     return output;
 }
+
+} //  namespace helloworld

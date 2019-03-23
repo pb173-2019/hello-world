@@ -5,7 +5,7 @@
 #include "config.h"
 #include "../shared/serializable_error.h"
 
-using namespace helloworld;
+namespace helloworld {
 
 FileDatabase::FileDatabase() {
     _source = defaultDbName;
@@ -26,7 +26,7 @@ void FileDatabase::insert(const UserData& data) {
     output.write(reinterpret_cast<char *>(serialized.data()), serialized.size());
 }
 
-const std::vector<std::unique_ptr<helloworld::UserData>>& FileDatabase::select(const UserData& query) {
+const std::vector<std::unique_ptr<UserData>>& FileDatabase::select(const UserData& query) {
     _cache.clear();
     std::ifstream input{ _source, std::ios::binary };
     if (! input)
@@ -57,3 +57,5 @@ void FileDatabase::drop() {
     std::ofstream ofs;
     ofs.open(_source, std::ofstream::out | std::ofstream::trunc);
 }
+
+} //  namespace helloworld

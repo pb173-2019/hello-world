@@ -13,6 +13,7 @@
 #define HELLOWORLD_SHARED_HASH_H_
 
 #include <string>
+#include <vector>
 
 namespace helloworld {
 
@@ -31,9 +32,33 @@ public:
      * @brief Hash given data in stream
      *
      * @param in data to hash
-     * @return std::string hashed input
+     * @return std::string hashed input in HEX string form
      */
-    virtual std::string get(std::istream &in) = 0;
+    virtual std::string getHex(std::istream &in) = 0;
+
+    /**
+     * @brief Hash given data in string
+     *
+     * @param in data to hash
+     * @return std::string hashed input in HEX string form
+     */
+    virtual std::string getHex(const std::string& in) = 0;
+
+    /**
+     * @brief Hash given data in stream
+     *
+     * @param in data to hash
+     * @return std::vector<unsigned char> hashed input in bytes
+     */
+    virtual std::vector<unsigned char> get(std::istream &in) = 0;
+
+    /**
+     * @brief Hash given data in string
+     *
+     * @param in data to hash
+     * @return std::vector<unsigned char> hashed input in bytes
+     */
+    virtual std::vector<unsigned char> get(const std::string& in) = 0;
 };
 
 }  // namespace helloworld

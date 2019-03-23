@@ -18,10 +18,12 @@
 
 #include "sqlite3.h"
 
+namespace helloworld {
+
 const std::string specialCharacters = ":?\"";
 
 class SQLite : public Database {
-    std::vector<std::unique_ptr<helloworld::UserData>> _cache;
+    std::vector<std::unique_ptr<UserData>> _cache;
     std::string _tablename{"users"};
     sqlite3 *_handler = nullptr;
 public:
@@ -45,9 +47,9 @@ public:
 
     ~SQLite() override;
 
-    void insert(const helloworld::UserData &data) override;
+    void insert(const UserData &data) override;
 
-    const std::vector<std::unique_ptr<helloworld::UserData>>& select(const helloworld::UserData &query) override;
+    const std::vector<std::unique_ptr<UserData>>& select(const UserData &query) override;
 
     void drop() override;
 
@@ -68,10 +70,10 @@ private:
         if (argc != 3)
             return 1;
 
-        auto* cache = static_cast<std::vector<std::unique_ptr<helloworld::UserData>> *>(data);
+        auto* cache = static_cast<std::vector<std::unique_ptr<UserData>> *>(data);
         auto id = static_cast<uint32_t>(std::stol(argv[0]));
-        helloworld::UserData temp{id, argv[1], argv[2]};
-        cache->push_back(std::make_unique<helloworld::UserData>(temp));
+        UserData temp{id, argv[1], argv[2]};
+        cache->push_back(std::make_unique<UserData>(temp));
         return 0;
     }
 
@@ -80,5 +82,7 @@ private:
     static std::string _sCheck(std::string query);
 
 };
+
+} //  namespace helloworld
 
 #endif //HELLOWORLD_SERVER_SQLITE_DATABASE_H_
