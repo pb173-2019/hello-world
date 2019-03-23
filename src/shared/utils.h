@@ -13,7 +13,7 @@
 #define HELLOWORLD_SHARED_UTILS_H_
 
 #include <vector>
-#include <algorithm>
+#include <cstring>
 #include <iostream>
 
 namespace helloworld {
@@ -94,12 +94,12 @@ std::string to_string(const std::vector<unsigned char> &input);
  * @brief Rewrite memory
  *
  * @tparam Obj array type
- * @param array array to rewrite (format)
- * @param length length of array
+ * @param array pointer to array first element to rewrite (format)
+ * @param length length of array in bytes
  */
-template<typename Obj>
-void clear(Obj *array, size_t length) {
-    std::fill_n(array, length, 0);
+template<typename T>
+void clear(T *array, size_t length) {
+    std::memset(array, 0, length * sizeof(T));
 }
 
 }
