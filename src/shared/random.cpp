@@ -1,7 +1,7 @@
 #include "random.h"
 
 #include <cmath>
-#include <string>
+#include <cstring>
 
 #include "serializable_error.h"
 #include "utils.h"
@@ -117,7 +117,7 @@ int pseudorandom_entropy_func(void *data, unsigned char *output, size_t len) {
     const unsigned char *p = (unsigned char *) data;
     if( test_offset_idx + len > test_max_idx )
         return( MBEDTLS_ERR_ENTROPY_SOURCE_FAILED );
-    memcpy( output, p + test_offset_idx, len );
+    std::memcpy( output, p + test_offset_idx, len );
     test_offset_idx += len;
     return( 0 );
 }
