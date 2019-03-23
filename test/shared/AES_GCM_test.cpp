@@ -28,7 +28,6 @@ TEST_CASE("Test vectors") {
         iv = "CAFEBABEFACEDBADDECAF888";
 
 
-
         tag = "3247184B3C4F69A44DBCD22887BBB418";
         cipher = "";
     }
@@ -38,7 +37,9 @@ TEST_CASE("Test vectors") {
         iv = "CAFEBABEFACEDBADDECAF888";
 
         unsigned char bytes[64];
-        from_hex("D9313225F88406E5A55909C5AFF5269A86A7A9531534F7DA2E4C303D8A318A721C3C0C95956809532FCF0E2449A6B525B16AEDF5AA0DE657BA637B391AAFD255", bytes, 64);
+        from_hex(
+                "D9313225F88406E5A55909C5AFF5269A86A7A9531534F7DA2E4C303D8A318A721C3C0C95956809532FCF0E2449A6B525B16AEDF5AA0DE657BA637B391AAFD255",
+                bytes, 64);
         plaintext.write((char *) bytes, 64);
 
         tag = "4D5C2AF327CD64A62CF35ABD2BA6FAB4";
@@ -79,13 +80,13 @@ TEST_CASE("Test vectors") {
         from_hex("D9313225F88406E5A55909C5AFF5269A"
                  "86A7A9531534F7DA2E4C303D8A318A72"
                  "1C3C0C95956809532FCF0E2449A6B525"
-                 "B16AEDF5AA0DE657BA637B39", bytes, 480/8);
-        plaintext.write((char *) bytes, 480/8);
+                 "B16AEDF5AA0DE657BA637B39", bytes, 480 / 8);
+        plaintext.write((char *) bytes, 480 / 8);
 
 
         from_hex("3AD77BB40D7A3660A89ECAF32466EF97"
-                 "F5D3D585", bytes, 160/8);
-        additionalData.write((char *) bytes, 160/8);
+                 "F5D3D585", bytes, 160 / 8);
+        additionalData.write((char *) bytes, 160 / 8);
 
         tag = "F07C2528EEA2FCA1211F905E1B6A881B";
         cipher = "42831EC2217774244B7221B784D0D49C"

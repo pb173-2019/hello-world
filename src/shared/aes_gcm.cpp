@@ -15,7 +15,7 @@ void AESGCM::encrypt(std::istream &in, std::ostream &out) {
     std::stringstream tmp;
     _process(in, tmp);
 
-    std::array<unsigned char, 16> tag;
+    std::array<unsigned char, 16> tag{};
     if (mbedtls_cipher_write_tag(&_context, tag.data(), 16))
         throw Error("mbedTLS error while generating tag");
 
@@ -35,7 +35,7 @@ void AESGCM::encryptWithAd(std::istream &in, std::istream &ad, std::ostream &out
 
     std::stringstream tmp;
     _process(in, tmp);
-    std::array<unsigned char, 16> tag;
+    std::array<unsigned char, 16> tag{};
     if (mbedtls_cipher_write_tag(&_context, tag.data(), 16) != 0)
         throw Error("mbedTLS error while generating tag");
 
@@ -49,7 +49,7 @@ void AESGCM::decrypt(std::istream &in, std::ostream &out) {
         _reset();
     }
 
-    std::array<unsigned char, 16> tag;
+    std::array<unsigned char, 16> tag{};
     in.read(reinterpret_cast<char *>(tag.data()), tag.size());
 
     _init(false);
@@ -68,7 +68,7 @@ void AESGCM::decryptWithAd(std::istream &in, std::istream &ad, std::ostream &out
     }
 
 
-    std::array<unsigned char, 16> tag;
+    std::array<unsigned char, 16> tag{};
     in.read(reinterpret_cast<char *>(tag.data()), tag.size());
 
     _init(false);

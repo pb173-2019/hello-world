@@ -17,7 +17,7 @@ void Server::setSessionKey(const std::string &name, std::vector<unsigned char> s
 
 Response Server::handleUserRequest(const Request &request) {
     try {
-        switch (request.type) {
+        switch (request.header.type) {
             case Request::Type::CREATE:
                 return registerUser(request);
             case Request::Type::CREATE_COMPLETE:
@@ -33,8 +33,7 @@ Response Server::handleUserRequest(const Request &request) {
         }
     } catch (Error &ex) {
         std::cerr << ex.what() << std::endl;
-        return {Response::Type::GENERIC_SERVER_ERROR, ex.serialize(),
-                request.messageNumber};
+        return {{ Response::Type::GENERIC_SERVER_ERROR, request.header.messageNumber, request.header.userId }, ex.serialize()};
     }
 }
 
@@ -62,8 +61,7 @@ Response Server::registerUser(const Request &request) {
                 "User " + userData.name + " is already in the process of verification.");
     }
 
-    return {Response::Type::CHALLENGE_RESPONSE_NEEDED, challenge.secret,
-            request.messageNumber};
+    return { {Response::Type::CHALLENGE_RESPONSE_NEEDED, request.header.messageNumber, request.header.userId}, challenge.secret};
 }
 
 Response Server::completeUserRegistration(const Request &request) {
@@ -85,7 +83,7 @@ Response Server::completeUserRegistration(const Request &request) {
     _transmission->registerConnection(curRequest.name);
     _registrations.erase(curRequest.name);
 
-    return {Response::Type::OK, {}, request.messageNumber};
+    return {{Response::Type::OK, request.header.messageNumber, request.header.userId}, {}};
 }
 
 Response Server::authenticateUser(const Request &request) {
@@ -103,8 +101,7 @@ Response Server::authenticateUser(const Request &request) {
         throw Error(
                 "User with given name is already in the process of verification.");
     }
-    return {Response::Type::CHALLENGE_RESPONSE_NEEDED, challenge.secret,
-            request.messageNumber};
+    return {{Response::Type::CHALLENGE_RESPONSE_NEEDED, request.header.messageNumber, request.header.userId },challenge.secret};
 }
 
 Response Server::completeUserAuthentication(const Request &request) {
@@ -124,12 +121,12 @@ Response Server::completeUserAuthentication(const Request &request) {
     _transmission->registerConnection(curRequest.name);
     _authentications.erase(curRequest.name);
 
-    return {Response::Type::OK, {}, request.messageNumber};
+    return {{Response::Type::OK, request.header.messageNumber, request.header.userId}, {}};
 }
 
 Response Server::getOnline(const Request &request) {
     const std::set<std::string>& users = _transmission->getOpenConnections();;
-    return {Response::Type::OK, OnlineUsersResponse{{users.begin(), users.end()}}.serialize(), request.messageNumber};
+    return {{Response::Type::OK, request.header.messageNumber, request.header.userId}, OnlineUsersResponse{{users.begin(), users.end()}}.serialize()};
 }
 
 

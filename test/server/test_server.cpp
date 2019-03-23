@@ -14,7 +14,7 @@ Response registerAlice(Server &server, const std::string &name) {
                           std::istreambuf_iterator<char>());
 
     RegisterRequest registerRequest(name, publicKey);
-    Request request{Request::Type::CREATE, registerRequest.serialize(), 1};
+    Request request{{Request::Type::CREATE, 1, 0} , registerRequest.serialize()};
 
     return server.handleUserRequest(request);
 }
@@ -22,7 +22,7 @@ Response registerAlice(Server &server, const std::string &name) {
 Response completeAlice(Server &server, std::vector<unsigned char> secret,
                        const std::string &name) {
     CompleteRegistrationRequest crRequest(std::move(secret), name);
-    Request request{Request::Type::CREATE_COMPLETE, crRequest.serialize(), 2};
+    Request request{{Request::Type::CREATE_COMPLETE, 2, 0}, crRequest.serialize()};
     return server.handleUserRequest(request);
 }
 
@@ -35,23 +35,23 @@ TEST_CASE("Add new user") {
 
     SECTION("New user") {
         auto response = registerAlice(server, name);
-        CHECK(response.type == Response::Type::CHALLENGE_RESPONSE_NEEDED);
+        CHECK(response.header.type == Response::Type::CHALLENGE_RESPONSE_NEEDED);
 
         SECTION("Registration already started") {
-            CHECK(registerAlice(server, name).type == Response::Type::GENERIC_SERVER_ERROR);
+            CHECK(registerAlice(server, name).header.type == Response::Type::GENERIC_SERVER_ERROR);
         }
 
         SECTION("Challenge incorrectly solved") {
             CompleteRegistrationRequest crRequest(
                 std::vector<unsigned char>(256, 10), name);
-            Request request{Request::Type::CREATE_COMPLETE,
-                            crRequest.serialize(), 2};
+            Request request{{Request::Type::CREATE_COMPLETE,2, 0},
+                            crRequest.serialize()};
             response = server.handleUserRequest(request);
-            CHECK(response.type == Response::Type::GENERIC_SERVER_ERROR);
+            CHECK(response.header.type == Response::Type::GENERIC_SERVER_ERROR);
         }
 
         SECTION("Challenge correctly solved") {
-            CHECK(completeAlice(server, response.payload, name).type ==
+            CHECK(completeAlice(server, response.payload, name).header.type ==
                   Response::Type::OK);
         }
     }
@@ -68,35 +68,35 @@ TEST_CASE("User authentication") {
 
     SECTION("Existing user") {
         AuthenticateRequest authRequest("alice");
-        Request request{Request::Type::LOGIN, authRequest.serialize(), 10};
+        Request request{{Request::Type::LOGIN,10, 0} , authRequest.serialize()};
 
         auto response = server.handleUserRequest(request);
-        CHECK(response.type == Response::Type::CHALLENGE_RESPONSE_NEEDED);
+        CHECK(response.header.type == Response::Type::CHALLENGE_RESPONSE_NEEDED);
 
         SECTION("Challenge solved") {
             CompleteAuthenticationRequest caRequest(response.payload, name);
-            Request request{Request::Type::LOGIN_COMPLETE,
-                            caRequest.serialize(), 2};
+            Request request{{Request::Type::LOGIN_COMPLETE, 2, 0},
+                            caRequest.serialize()};
             response = server.handleUserRequest(request);
-            CHECK(response.type == Response::Type::GENERIC_SERVER_ERROR);
+            CHECK(response.header.type == Response::Type::GENERIC_SERVER_ERROR);
         }
 
         SECTION("Challenge not solved") {
             CompleteAuthenticationRequest caRequest(
                 std::vector<unsigned char>(128, 10), name);
-            Request request{Request::Type::LOGIN_COMPLETE,
-                            caRequest.serialize(), 2};
+            Request request{{Request::Type::LOGIN_COMPLETE, 2, 0},
+                            caRequest.serialize()};
             response = server.handleUserRequest(request);
-            CHECK(response.type == Response::Type::GENERIC_SERVER_ERROR);
+            CHECK(response.header.type == Response::Type::GENERIC_SERVER_ERROR);
         }
     }
 
     SECTION("Non-existing user") {
         AuthenticateRequest authRequest("bob");
-        Request request{Request::Type::LOGIN, authRequest.serialize(), 10};
+        Request request{{Request::Type::LOGIN, 10, 0}, authRequest.serialize()};
 
         auto response = server.handleUserRequest(request);
-        CHECK(response.type == Response::Type::GENERIC_SERVER_ERROR);
+        CHECK(response.header.type == Response::Type::GENERIC_SERVER_ERROR);
     }
 }
 
