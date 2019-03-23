@@ -29,6 +29,11 @@ std::string &to_upper(std::string &&lowercase) {
     return lowercase;
 }
 
+    std::string &to_lower(std::string &&uppercase) {
+        std::transform(uppercase.begin(), uppercase.end(), uppercase.begin(), ::tolower);
+        return uppercase;
+    }
+
 std::string to_hex(const std::string &buff) {
     return to_hex((const unsigned char *) buff.data(), buff.length());
 }

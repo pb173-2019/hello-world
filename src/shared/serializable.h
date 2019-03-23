@@ -77,20 +77,29 @@ struct Serializable {
      * Save container type value into output vector
      * the input value must be of a primitive type, or at least have static length
      * 
-     * !! this method works only for inner value types with sizeof(unsigned char)
+     * !! this method works only for scalar inner value types
+     * !! ignores endianity
      *
      * @tparam container container type supporting push_back() method, operator[] and size()
      * @param output output buffer
      * @param input input data container
      */
-    template <typename container>
+    template<typename container, typename value_type = typename container::value_type>
     static void addContainer(std::vector<unsigned char>& output, const container& input) {
+
+        union {
+            unsigned char bytes[sizeof(value_type)];
+            value_type value;
+        } data;
+
         addNumeric(output, input.size());
         for (uint64_t i = 0; i < input.size(); i++) {
-            output.push_back(input[i]);
+            data.value = input[i];
+            for (unsigned char c : data.bytes) {
+                output.push_back(c);
+            }
         }
     }
-
     /**
      * Inverse of addContainer
      *
@@ -100,13 +109,24 @@ struct Serializable {
      * @param output output container
      * @return num of values read in bytes
      */
-    template <typename container>
+    template<typename container, typename value_type = typename container::value_type>
     static uint64_t getContainer(const std::vector<unsigned char>& input, uint64_t from, container& output) {
+
+        union {
+            unsigned char bytes[sizeof(value_type)];
+            value_type value;
+        } data;
+
         uint64_t len = 0;
         uint64_t metadata = getNumeric(input, from, len);
+
         for (uint64_t i = 0; i < len; i++) {
-            output.push_back(input[from + i + metadata]);
+            for (uint64_t ii = 0; ii < sizeof(value_type); ii++) {
+                data.bytes[ii] = input[from + i * sizeof(value_type) + metadata + ii];
+            }
+            output.push_back(data.value);
         }
+
         return len + metadata;
     }
 

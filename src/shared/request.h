@@ -1,3 +1,4 @@
+
 /**
  * @file request.h
  * @author Ivan Mitruk (469063@mail.muni.cz)
@@ -13,14 +14,34 @@
 #define HELLOWORLD_REQUEST_H
 
 #include <cstdint>
-#include "hmac.h"
+#include <map>
+#include <set>
 #include <vector>
+#include "serializable.h"
+#include "random.h"
 
 namespace helloworld {
 
+    class MessageNumberGenerator {
+        struct MessageNumberData {
+            uint32_t lastSent;
+
+            MessageNumberData() : lastSent(Random{}.getBounded(0, UINT32_MAX)) {}
+        };
+
+        static std::map<uint32_t, MessageNumberData> messageNumbers;
+    public:
+        static uint32_t &getNextNumber(uint32_t userId) {
+            return messageNumbers[userId].lastSent;
+        }
+
+    };
+
+    std::map<uint32_t, MessageNumberGenerator::MessageNumberData> MessageNumberGenerator::messageNumbers{};
+
     struct Request {
         enum class Type {
-            LOGIN, LOGIN_COMPLETE, LOGOUT, CREATE, CREATE_COMPLETE, DELETE, SEND, RECEIVE, FIND_USER, GET_ONLINE
+            LOGIN, LOGOUT, CREATE, DELETE, SEND, RECEIVE, FIND
         };
 
         /**
@@ -29,49 +50,42 @@ namespace helloworld {
         * @param  type. which validity is being checked
         * @return bool true if type is valid, false otherwise
         */
-        static bool isValidType(Type type) { return Type::LOGIN <= type && type <= Type::GET_ONLINE; }
+        static bool isValidType(Type type) { return Type::LOGIN <= type && type <= Type::FIND; }
 
-        struct Header {
+        struct Header : Serializable<Request::Header> {
+            Type type;
             uint32_t messageNumber;
-            uint32_t payloadLength;
-            unsigned char type;
-            unsigned char hmac[HMAC::hmac_size];
+            uint32_t userId;
+
+            std::vector<unsigned char> serialize() const override {
+                std::vector<unsigned char> ret;
+                const_cast<Header *>(this)->messageNumber = MessageNumberGenerator::getNextNumber(userId)++;
+                addNumeric(ret, static_cast<uint32_t >(type));
+                addNumeric(ret, messageNumber);
+                addNumeric(ret, userId);
+                return ret;
+            }
+
+            static Request::Header deserialize(const std::vector<unsigned char> &data) {
+                Header ret;
+                uint64_t offset = 0;
+                uint32_t type;
+                offset += getNumeric(data, offset, type);
+                ret.type = static_cast<Type >(type);
+                offset += getNumeric(data, offset, ret.messageNumber);
+                getNumeric(data, offset, ret.userId);
+                return ret;
+            }
         };
 
-        Type type;
+        Header header;
         std::vector<unsigned char> payload;
-        uint32_t messageNumber;
+
     };
 
     struct Response {
-        /**
-         * number order in type: 1 | 2 | 3 | 4
-         * 1:   0 - ok
-         *      1 - error
-         *      2 - reponse needed
-         *      ...
-         * 2:   0 - generic event,
-         *      1 - database event
-         *      2 - security event
-         *      3 - channel event
-         *      ...
-         * 3 & 4 - further specification
-         */
         enum class Type {
-            OK = 0x0080,
-
-            DATABASE_NOT_FOUD = 0x0150,
-            USERNAME_NOT_VALID = 0x1150,
-
-            USER_REGISTERED = 0x0300,
-            USER_AUTHENTICATED = 0x0301,
-
-            GENERIC_SERVER_ERROR = 0x1000,
-            INVALID_AUTH = 0x1200,
-            INVALID_MAC = 0x1201,
-            INVALID_MSG_NUM = 0x1050,
-
-            CHALLENGE_RESPONSE_NEEDED = 0x2200,
+            OK = 128, NOT_FOUD, INVALID_AUTH, INVALID_MSG_NUM
         };
 
         /**
@@ -80,20 +94,39 @@ namespace helloworld {
         * @param type. which validity is being checked
         * @return bool true if type is valid, false otherwise
         */
-        static bool isValidType(Type type) { return Type::OK <= type && type <= Type::CHALLENGE_RESPONSE_NEEDED; }
+        static bool isValidType(Type type) { return Type::OK <= type && type <= Type::INVALID_MSG_NUM; }
 
-        struct Header {
+        struct Header : Serializable<Response::Header> {
+            Type type;
             uint32_t messageNumber;
-            uint32_t payloadLength;
-            unsigned char type;
-            unsigned char hmac[HMAC::hmac_size];
+            uint32_t userId;
+
+            std::vector<unsigned char> serialize() const override {
+                std::vector<unsigned char> ret;
+                addNumeric(ret, static_cast<uint32_t >(type));
+                addNumeric(ret, messageNumber);
+                addNumeric(ret, userId);
+                return ret;
+            }
+
+            static Response::Header deserialize(const std::vector<unsigned char> &data) {
+                Header ret;
+                uint64_t offset = 0;
+                uint32_t type;
+                offset += getNumeric(data, offset, type);
+                ret.type = static_cast<Type >(type);
+                offset += getNumeric(data, offset, ret.messageNumber);
+                getNumeric(data, offset, ret.userId);
+                return ret;
+            }
         };
 
-        Type type;
+        Header header;
         std::vector<unsigned char> payload;
-        uint32_t messageNumber;
+
     };
 
 
 }; // namespace helloworld
 #endif //HELLOWORLD_REQUEST_H
+
