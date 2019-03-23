@@ -93,7 +93,5 @@ namespace helloworld {
         std::vector<unsigned char> payload;
         uint32_t messageNumber;
     };
-
-
 }; // namespace helloworld
 #endif //HELLOWORLD_REQUEST_H

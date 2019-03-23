@@ -17,6 +17,7 @@
 #define HELLOWORLD_SHARED_CONNECTIONMANAGER_H_
 
 #include <sstream>
+#include <map>
 
 #include "rrmanip.h"
 #include "sha_512.h"
@@ -24,9 +25,21 @@
 
 namespace helloworld {
 
+/**
+ * body structure parsing in client-client communication
+ * will use other keys for encryption than server
+ */
+class ClientToClientManager {
+
+
+};
+
+/**
+ * Request / reponse header parsing & body structure parsing in client-server communication
+ */
 template <typename incoming, typename outgoing>
 class ConnectionManager {
-
+protected:
     bool _established = false;
     std::string _sessionKey;
     std::string _iv;
@@ -38,6 +51,7 @@ class ConnectionManager {
     RSA2048 _rsa_in{};
 
 public:
+
     /**
      * @brief Initialize with keys from files
      *
@@ -63,6 +77,8 @@ public:
         _rsa_out.setPublicKey(publicKeyData);
         _rsa_in.loadPrivateKey(privkeyFilename, getHexPwd(pwd), getHexIv(pwd));
     }
+
+    virtual ~ConnectionManager() = default;
 
     /**
      * @brief Initialize security channel pwds once the symmetric key is agreed on
@@ -94,9 +110,7 @@ public:
      * @param data
      * @return
      */
-    incoming parseIncoming(std::stringstream &&data) {
-        return {};
-    }
+    virtual incoming parseIncoming(std::stringstream &&data) = 0;
 
     /**
      * @brief Parse outgoing (request/response) type structure into byte array,
@@ -105,10 +119,7 @@ public:
      * @param data
      * @return
      */
-    std::stringstream parseOutgoing(const outgoing& data) {
-        std::stringstream result;
-        return result;
-    }
+    virtual std::stringstream parseOutgoing(const outgoing& data) = 0;
 
 private:
     std::string getHexPwd(const std::string& pwd) {
@@ -117,6 +128,42 @@ private:
 
     std::string getHexIv(const std::string& pwd) {
         return SHA512{}.getHex(Salt{pwd + "d9fz68g54cv1as"}.get() + pwd);
+    }
+};
+
+/**
+ * Client side implementation with connections to other clients as well
+ */
+class ClientToServerManager : public ConnectionManager<Response, Request> {
+
+    std::map<std::string, ClientToClientManager> _userManagers;
+
+public:
+    Response parseIncoming(std::stringstream &&data) override {
+        return {};
+    }
+
+    std::stringstream parseOutgoing(const Request &data) override {
+        return std::stringstream{};
+    }
+
+private:
+    //in future: will get connection from _userManagers and encrypts
+    // message body with different approach
+    /*std::vector<unsigned char> getUserInput()  = 0;*/
+};
+
+/**
+ * Server side implementation with connection to one client at time
+ */
+class ServerToClientManager : public ConnectionManager<Request, Response> {
+public:
+    Request parseIncoming(std::stringstream &&data) override {
+        return {};
+    }
+
+    std::stringstream parseOutgoing(const Response& data) override {
+        return std::stringstream{};
     }
 };
 
