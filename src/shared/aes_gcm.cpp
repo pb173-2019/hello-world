@@ -1,3 +1,14 @@
+/**
+ * @file request.h
+ * @author Ivan Mitruk (469063@mail.muni.cz)
+ * @brief request and response structures
+ * @version 0.1
+ * @date 2019-03-24
+ *
+ * @copyright Copyright (c) 2019
+ *
+ */
+
 #include "config.h"
 #include "aes_gcm.h"
 

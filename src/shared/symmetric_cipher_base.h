@@ -1,6 +1,13 @@
-//
-// Created by ivan on 23.3.19.
-//
+/**
+ * @file symmetric_cipher_base.h
+ * @author Ivan Mitruk (469063@mail.muni.cz)
+ * @brief request and response structures
+ * @version 0.1
+ * @date 2019-03-24
+ *
+ * @copyright Copyright (c) 2019
+ *
+ */
 
 #ifndef HELLOWORLD_SYMMETRIC_CIPHER_BASE_H
 #define HELLOWORLD_SYMMETRIC_CIPHER_BASE_H
@@ -21,6 +28,12 @@ namespace helloworld {
         NONE = MBEDTLS_PADDING_NONE,                   /**< Never pad (full blocks only).   */
     };
 
+    /**
+     * Super class for symetric cyphers from mbedetls requiring inicialization vector as well as key
+     * @tparam MODE
+     * @tparam KEY_SIZE
+     * @tparam IV_SIZE
+     */
     template<mbedtls_cipher_type_t MODE, unsigned KEY_SIZE = 16, unsigned IV_SIZE = 16>
     class SymmetricCipherBase : SymmetricCipher {
 
@@ -31,14 +44,25 @@ namespace helloworld {
         std::string _key{};
         std::string _iv{};
 
+        /**
+         * generates random key
+         * @return string converted key
+         */
         std::string _generateRandomKey() const {
             return to_hex(Random{}.get(key_size));
         }
 
+        /**
+         * generates random inicialization vector
+         * @return string converted inicialization vector
+         */
         std::string _generateRandomIv() const {
             return to_hex(Random{}.get(iv_size));
         }
 
+        /**
+         * resets cipher context (necessary if we want to reuse context)
+         */
         void _reset() {
             if (mbedtls_cipher_reset(&_context) != 0) {
                 throw Error("Failed to re-use the cipher.");
@@ -46,6 +70,10 @@ namespace helloworld {
             dirty = false;
         }
 
+        /**
+         * inicialization of encryption parameters
+         * @param willEncrypt boolean value whether encryption (or decryption) will take place
+         */
         void _init(bool willEncrypt) {
             if (_iv.empty()) {
                 if (willEncrypt) {
@@ -128,17 +156,31 @@ namespace helloworld {
             mbedtls_cipher_free(&_context);
         }
 
+        /**
+         * sets block cipher padding
+         * @param p padding to use
+         */
         void setPadding(Padding p) override {
             mbedtls_cipher_set_padding_mode(&_context, static_cast<mbedtls_cipher_padding_t>(p));
         }
 
-        bool setKey(const std::string &newKey) override {
+        /**
+        * sets encryption key
+        * @param newKey
+        * @return
+        */
+       bool setKey(const std::string &newKey) override {
             if (newKey.size() != key_size * 2)
                 return false;
             _key = newKey;
             return true;
         }
 
+        /**
+         * sets incialization vector
+         * @param newIv
+         * @return
+         */
         bool setIv(const std::string &newIv) override {
             if (newIv.size() != iv_size * 2)
                 return false;
@@ -146,10 +188,22 @@ namespace helloworld {
             return true;
         }
 
+        /**
+         * gets enctyprion key
+         * @return encryption key
+         */
         const std::string &getKey() const override { return _key; }
 
+        /**
+         * gets inicialization vector
+         * @return inicialization vector
+         */
         const std::string &getIv() const override { return _iv; }
 
+        /**
+         * generates random key
+         * @return random key string
+         */
         std::string generateKey() const override {
             return _generateRandomKey();
         }

@@ -1,6 +1,4 @@
-//
-// Created by ivan on 24.3.19.
-//
+
 #include "request.h"
 using namespace helloworld;
 std::map<uint32_t, MessageNumberGenerator::MessageNumberData> MessageNumberGenerator::messageNumbers{};
