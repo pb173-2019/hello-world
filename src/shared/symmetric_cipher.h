@@ -1,3 +1,4 @@
+
 /**
  * @file symmetric_cipher.h
  * @author Jiří Horák (469130@mail.muni.cz)
@@ -93,5 +94,4 @@ public:
 };
 
 }  // namespace helloworld
-
-#endif  // HELLOWORLD_SHARED_SYMMETRICCIPHER_H_
+#endif // HELLOWORLD_SHARED_SYMMETRICCIPHER_H_

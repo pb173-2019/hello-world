@@ -73,6 +73,7 @@ void write_n(std::ostream &out, const unsigned char *data, size_t length);
  */
 std::string &to_upper(std::string &&lowercase);
 
+    std::string &to_lower(std::string &&uppercase);
 std::string to_hex(const std::string &buff);
 
 std::string to_hex(const std::vector<unsigned char> &bytes);

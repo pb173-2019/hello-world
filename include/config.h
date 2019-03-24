@@ -23,6 +23,8 @@
 #define MBEDTLS_PKCS1_V21
 //aes
 #define MBEDTLS_AES_C
+//GCM
+#define MBEDTLS_GCM_C
 //random
 #define MBEDTLS_ENTROPY_C
 #define MBEDTLS_CTR_DRBG_C

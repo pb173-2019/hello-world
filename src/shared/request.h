@@ -1,3 +1,4 @@
+
 /**
  * @file request.h
  * @author Ivan Mitruk (469063@mail.muni.cz)
@@ -13,10 +14,26 @@
 #define HELLOWORLD_REQUEST_H
 
 #include <cstdint>
-#include "hmac.h"
+#include <map>
+#include <set>
 #include <vector>
+#include "serializable.h"
+#include "random.h"
 
 namespace helloworld {
+
+    class MessageNumberGenerator {
+        struct MessageNumberData {
+            uint32_t lastSent;
+            MessageNumberData() : lastSent(Random{}.getBounded(0, UINT32_MAX)) {}
+        };
+
+        static std::map<uint32_t, MessageNumberData> messageNumbers;
+    public:
+        static uint32_t &getNextNumber(uint32_t userId);
+    };
+
+
 
     struct Request {
         enum class Type {
@@ -31,16 +48,25 @@ namespace helloworld {
         */
         static bool isValidType(Type type) { return Type::LOGIN <= type && type <= Type::GET_ONLINE; }
 
-        struct Header {
-            uint32_t messageNumber;
-            uint32_t payloadLength;
-            unsigned char type;
-            unsigned char hmac[HMAC::hmac_size];
+        struct Header : Serializable<Request::Header> {
+            Type type{};
+            uint32_t messageNumber{};
+            uint32_t userId{};
+
+            Header() = default;
+            Header(Type type, uint32_t messageNumber, uint32_t userId)
+                : type(type)
+                , messageNumber(messageNumber)
+                , userId(userId) {}
+
+                std::vector<unsigned char> serialize() const override;
+
+            static Request::Header deserialize(const std::vector<unsigned char> &data);
         };
 
-        Type type;
+        Header header;
         std::vector<unsigned char> payload;
-        uint32_t messageNumber;
+
     };
 
     struct Response {
@@ -73,25 +99,33 @@ namespace helloworld {
 
             CHALLENGE_RESPONSE_NEEDED = 0x2200,
         };
-
         /**
         * @brief Checks whether type value is one of defined values
         *
         * @param type. which validity is being checked
         * @return bool true if type is valid, false otherwise
         */
-        static bool isValidType(Type type) { return Type::OK <= type && type <= Type::CHALLENGE_RESPONSE_NEEDED; }
+        static bool isValidType(Type type) { return Type::OK <= type && type <= Type::INVALID_MSG_NUM; }
 
-        struct Header {
-            uint32_t messageNumber;
-            uint32_t payloadLength;
-            unsigned char type;
-            unsigned char hmac[HMAC::hmac_size];
+        struct Header : Serializable<Response::Header> {
+            Type type{};
+            uint32_t messageNumber{};
+            uint32_t userId{};
+
+            Header() = default;
+            Header(Type type, uint32_t messageNumber, uint32_t userId)
+                : type(type)
+                , messageNumber(messageNumber)
+                , userId(userId) {}
+
+            std::vector<unsigned char> serialize() const override;
+            static Response::Header deserialize(const std::vector<unsigned char> &data);
         };
 
-        Type type;
+        Header header;
         std::vector<unsigned char> payload;
-        uint32_t messageNumber;
+
     };
 }; // namespace helloworld
 #endif //HELLOWORLD_REQUEST_H
+

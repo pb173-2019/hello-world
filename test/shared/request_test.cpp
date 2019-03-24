@@ -13,76 +13,61 @@
 #include "catch.hpp"
 #include <sstream>
 #include <string>
-#include "../../src/shared/rrmanip.h"
+#include "../../src/shared/request.h"
 #include "../../src/shared/utils.h"
 #include "cstdlib"
 
 using namespace helloworld;
 
-TEST_CASE("generate raw Request and then back") {
-    Request irequest;
+TEST_CASE("generate Serialize request header and deserialize") {
+    Request::Header header;
 
-    SECTION("Empty payload") {
-        irequest.type = Request::Type::CREATE;
+    SECTION("Simple test 1") {
+        header.type = Request::Type::CREATE;
+        header.userId = 0;
     }
-    SECTION("Small payload") {
-        irequest.type = Request::Type::CREATE;
-        std::string s = "short message";
-        irequest.payload.resize(s.size());
-        std::copy(s.begin(), s.end(), irequest.payload.data());
+    SECTION("Simple test 2") {
+        header.type = Request::Type::SEND;
+        header.userId = 5;
     }
 
-    SECTION("Large payload") {
-        irequest.type = Request::Type::CREATE;
-        std::string s(100000, 'a');
-        irequest.payload.resize(s.size());
-        std::copy(s.begin(), s.end(), irequest.payload.data());
+    SECTION("Simple test 3") {
+        header.type = Request::Type::LOGIN;
+        header.userId = 55;
     }
 
     // just for testing purposes
-    RequestBuilder builder(rand()); //NOLINT
-    std::stringstream ss;
-    builder.writeTo(irequest, ss);
-    RequestParser parser;
-    Request orequest = parser.parseRequest(ss);
+    Request::Header oheader = Serializable<Request::Header>::deserialize(header.serialize());
 
-    CHECK(irequest.type == orequest.type);
-    CHECK(irequest.messageNumber == orequest.messageNumber);
-    CHECK(irequest.payload == orequest.payload);
-
+    CHECK(header.type == oheader.type);
+    CHECK(header.messageNumber == oheader.messageNumber);
+    CHECK(header.userId == oheader.userId);
 
 }
 
-TEST_CASE("generate raw Response and then back") {
-    Response irequest;
+TEST_CASE("generate Serialize response header and deserialize") {
+    Response::Header header;
 
-    SECTION("Empty payload") {
-        irequest.type = Response::Type::OK;
+    SECTION("Simple test 1") {
+        header.type = Response::Type::OK;
+        header.userId = 0;
     }
-    SECTION("Small payload") {
-        irequest.type = Response::Type::OK;
-        std::string s = "short message";
-        irequest.payload.resize(s.size());
-        std::copy(s.begin(), s.end(), irequest.payload.data());
-    }
-
-    SECTION("Large payload") {
-        irequest.type = Response::Type::OK;
-        std::string s(100000, 'a');
-        irequest.payload.resize(s.size());
-        std::copy(s.begin(), s.end(), irequest.payload.data());
+    SECTION("Simple test 2") {
+        header.type = Response::Type::USER_AUTHENTICATED;
+        header.userId = 5;
     }
 
-    ResponseBuilder builder;
-    std::stringstream ss;
-    builder.writeTo(irequest, ss);
-    ResponseParser parser;
-    Response orequest = parser.parseResponse(ss);
+    SECTION("Simple test 3") {
+        header.type = Response::Type::INVALID_AUTH;
+        header.userId = 55;
+    }
 
-    CHECK(irequest.type == orequest.type);
-    CHECK(irequest.messageNumber == orequest.messageNumber);
-    CHECK(irequest.payload == orequest.payload);
+    // just for testing purposes
+    Response::Header oheader = Serializable<Response::Header>::deserialize(header.serialize());
+
+    CHECK(header.type == oheader.type);
+    CHECK(header.messageNumber == oheader.messageNumber);
+    CHECK(header.userId == oheader.userId);
 
 
 }
-
