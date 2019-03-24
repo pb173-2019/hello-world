@@ -10,8 +10,6 @@
 
 using namespace helloworld;
 
-
-
 Request registerUser(const std::string &name, const std::string& sessionKey, const std::string& pubKeyFilename) {
     std::ifstream input(pubKeyFilename);
     std::string publicKey((std::istreambuf_iterator<char>(input)),
