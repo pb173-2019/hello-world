@@ -19,58 +19,59 @@
 
 namespace helloworld {
 
-    class AESGCM : public SymmetricCipherBase<MBEDTLS_CIPHER_AES_128_GCM, 16, 12> {
-        /**
-         * processes additional data
-         * @param ad additional data stream to process
-         */
-        void _additional(std::istream &ad);
+class AESGCM : public SymmetricCipherBase<MBEDTLS_CIPHER_AES_128_GCM, 16, 12> {
+    /**
+     * @brief Processes additional data
+     *
+     * @param ad additional data stream to process
+     */
+    void _additional(std::istream &ad);
 
-    public:
-        AESGCM() = default;
+public:
+    AESGCM() = default;
 
-        AESGCM(const AESGCM &other) = delete;
+    AESGCM(const AESGCM &other) = delete;
 
-        AESGCM &operator=(const AESGCM &other) = delete;
+    AESGCM &operator=(const AESGCM &other) = delete;
 
-        ~AESGCM() = default;
+    ~AESGCM() override = default;
 
-        /**
-         * encrypts and authenticates data in input stream
-         * and writes authentification tag with encrypted data to output
-         * @param in input stream
-         * @param out output stream
-         */
-        void encrypt(std::istream &in, std::ostream &out) override;
+    /**
+     * @brief Encrypts and authenticates data in input stream
+     *        and writes authentication tag with encrypted data to output
+     *
+     * @param in input stream
+     * @param out output stream
+     */
+    void encrypt(std::istream &in, std::ostream &out) override;
 
-        /**
-         * encrypts and authentificates with additional data (additional data are not written into output)
-         * @param in input stream
-         * @param ad additional data stream
-         * @param out output stream
-         */
-        void encryptWithAd(std::istream &in, std::istream &ad, std::ostream &out);
+    /**
+     * @brief Encrypts and authenticates with additional data (additional data are not written into output)
+     *
+     * @param in input stream
+     * @param ad additional data stream
+     * @param out output stream
+     */
+    void encryptWithAd(std::istream &in, std::istream &ad, std::ostream &out);
 
-        /**
-         * decrypts and authentificates
-         * @param in input stream
-         * @param out output stream
-         */
-        void decrypt(std::istream &in, std::ostream &out) override;
+    /**
+     * @brief Decrypts and authenticates
+     *
+     * @param in input stream
+     * @param out output stream
+     */
+    void decrypt(std::istream &in, std::ostream &out) override;
 
-        /**
-         * decrypts and authentificates with additional data (additional data must be supplied separately)
-         * @param in input stream
-         * @param ad additional data stream
-         * @param out output stream
-         */
-        void decryptWithAd(std::istream &in, std::istream &ad, std::ostream &out);
-
-
-    };
-
+    /**
+     * @brief Decrypts and authenticates with additional data (additional data must be supplied separately)
+     *
+     * @param in input stream
+     * @param ad additional data stream
+     * @param out output stream
+     */
+    void decryptWithAd(std::istream &in, std::istream &ad, std::ostream &out);
+};
 
 } //namespace helloworld
-
 
 #endif //HELLOWORLD_AES_GCM_H

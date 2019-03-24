@@ -26,19 +26,17 @@
 
 namespace helloworld {
 
-//for testing purposes
-
-
-    class AES128 : public SymmetricCipherBase<MBEDTLS_CIPHER_AES_128_CBC> {
+class AES128 : public SymmetricCipherBase<MBEDTLS_CIPHER_AES_128_CBC> {
 
 public:
 
-        explicit AES128() = default;
+    explicit AES128() = default;
 
-    AES128(const AES128& other) = delete;
-    AES128&operator=(const AES128& other) = delete;
+    AES128(const AES128 &other) = delete;
 
-        ~AES128() = default;
+    AES128 &operator=(const AES128 &other) = delete;
+
+    ~AES128() override = default;
 
     void encrypt(std::istream &in, std::ostream &out) override;
 

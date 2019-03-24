@@ -30,7 +30,7 @@ void AESGCM::encrypt(std::istream &in, std::ostream &out) {
     if (mbedtls_cipher_write_tag(&_context, tag.data(), 16))
         throw Error("mbedTLS error while generating tag");
 
-    out.write(reinterpret_cast<char *>(tag.data()), tag.size());
+    write_n(out, tag.data(), tag.size());
     out << tmp.str();
 }
 
@@ -39,9 +39,7 @@ void AESGCM::encryptWithAd(std::istream &in, std::istream &ad, std::ostream &out
         _reset();
     }
     _init(true);
-
     _additional(ad);
-
     dirty = true;
 
     std::stringstream tmp;
@@ -61,16 +59,15 @@ void AESGCM::decrypt(std::istream &in, std::ostream &out) {
     }
 
     std::array<unsigned char, 16> tag{};
-    in.read(reinterpret_cast<char *>(tag.data()), tag.size());
-
+    if (read_n(in, tag.data(), tag.size()) != 16) {
+        throw Error("Could not read tag.");
+    }
     _init(false);
     dirty = true;
     _process(in, out);
 
     if (mbedtls_cipher_check_tag(&_context, tag.data(), tag.size()))
         throw Error("mbedTLS authetification error");
-
-
 }
 
 void AESGCM::decryptWithAd(std::istream &in, std::istream &ad, std::ostream &out) {
@@ -78,9 +75,10 @@ void AESGCM::decryptWithAd(std::istream &in, std::istream &ad, std::ostream &out
         _reset();
     }
 
-
     std::array<unsigned char, 16> tag{};
-    in.read(reinterpret_cast<char *>(tag.data()), tag.size());
+    if (read_n(in, tag.data(), tag.size()) != 16) {
+        throw Error("Could not read tag.");
+    }
 
     _init(false);
     _additional(ad);
@@ -89,8 +87,6 @@ void AESGCM::decryptWithAd(std::istream &in, std::istream &ad, std::ostream &out
 
     if (mbedtls_cipher_check_tag(&_context, tag.data(), tag.size()))
         throw Error("mbedTLS authetification error");
-
-
 }
 
 void AESGCM::_additional(std::istream &ad) {
@@ -101,10 +97,8 @@ void AESGCM::_additional(std::istream &ad) {
 
         size_t in_len = read_n(ad, input, 256);
 
-
         if (mbedtls_cipher_update_ad(&_context, input, in_len) != 0) {
             throw Error("Failed to update ad.");
         }
     }
-
 }

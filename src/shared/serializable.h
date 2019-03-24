@@ -75,7 +75,7 @@ struct Serializable {
 
     /**
      * Save container type value into output vector
-     * the input value must be of a primitive type, or at least have static length
+     * the input value must be of a primitive type
      * 
      * !! this method works only for scalar inner value types
      * !! ignores endianity
@@ -134,7 +134,8 @@ struct Serializable {
      * Save nested containers into buffer output, the inner container must be
      * applicable to getContainer() method
      * 
-     * !! this method works only for the most inner value types with sizeof(unsigned char)
+     * !! this method works only for container that
+     *    contains values serializable with addContainer() method
      *
      * @tparam container container type supporting push_back() method, operator[] and size()
      * @param output output buffer
