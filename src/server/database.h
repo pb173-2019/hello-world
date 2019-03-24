@@ -32,7 +32,7 @@ public:
      *
      * @param data data to insert
      */
-    virtual void insert(const UserData& data) = 0;
+    virtual void insert(const UserData& data, bool autoIncrement) = 0;
 
     /**
      * Select from database data by query
@@ -41,6 +41,14 @@ public:
      * @return std::vector<std::unique_ptr<UserData>>& data matching the query
      */
     virtual const std::vector<std::unique_ptr<UserData>>& select(const UserData& query) = 0;
+
+    /**
+     * Delete user from database
+     *
+     * @param data must contain either user name or id
+     * @return true if deletion succeeded
+     */
+    virtual bool remove(const UserData& data) = 0;
 
     /**
      * Delete the database

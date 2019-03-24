@@ -47,9 +47,11 @@ public:
 
     ~SQLite() override;
 
-    void insert(const UserData &data) override;
+    void insert(const UserData &data, bool autoIncrement) override;
 
     const std::vector<std::unique_ptr<UserData>>& select(const UserData &query) override;
+
+    bool remove(const UserData& data) override;
 
     void drop() override;
 
@@ -82,7 +84,6 @@ private:
     static std::string _getErrorMsgByReturnType(int ret);
 
     static std::string _sCheck(std::string query);
-
 };
 
 } //  namespace helloworld

@@ -14,7 +14,7 @@ TEST_CASE("SQLITE Database test") {
     SQLite db{ "sqlite_1.db" };
 
     UserData data{ 555, "Pepa", "", strToVec("My sercret key")};
-    db.insert(data);
+    db.insert(data, false);
 
     const auto& res = db.select(data);
 
@@ -43,12 +43,12 @@ TEST_CASE("SQLITE Database test multiple data") {
     UserData d4{ 34, "novere", "", strToVec(realPublicKey)};
     UserData d5{ 8752, "mybestnick", "", strToVec("My sercret key")};
     UserData d6{ 53, "user666", "", strToVec("My sercret key")};
-    db.insert(d1);
-    db.insert(d2);
-    db.insert(d3);
-    db.insert(d4);
-    db.insert(d5);
-    db.insert(d6);
+    db.insert(d1, false);
+    db.insert(d2, false);
+    db.insert(d3, false);
+    db.insert(d4, false);
+    db.insert(d5, false);
+    db.insert(d6, false);
 
     UserData query1{0, "user", "", {}};
     const auto& res1 = db.select(query1);
@@ -81,11 +81,29 @@ TEST_CASE("SQLITE Database no matching query") {
     UserData d1{ 245, "Penopa",  "", strToVec("asdfasdfasdfasdfafb")};
     UserData d2{ 2, "karel",  "", strToVec("adfbadfbasdfsdfbadgdsfcxx")};
     UserData d3{ 55535, "sunshine98",  "", strToVec("My sercret key")};
-    db.insert(d1);
-    db.insert(d2);
-    db.insert(d3);
+    db.insert(d1, false);
+    db.insert(d2, false);
+    db.insert(d3, false);
 
     UserData query1{0, "nowhere", "", {}};
     const auto& res1 = db.select(query1);
     CHECK(res1.empty());
+}
+
+TEST_CASE("SQLITE Database delete") {
+    SQLite db{ "sqlite_4.db" };
+
+    UserData d1{ 245, "Penopa",  "", strToVec("asdfasdfasdfasdfafb")};
+    UserData d2{ 2, "karel",  "", strToVec("adfbadfbasdfsdfbadgdsfcxx")};
+    UserData d3{ 55535, "sunshine98",  "", strToVec("My sercret key")};
+    db.insert(d1, false);
+    db.insert(d2, false);
+    db.insert(d3, false);
+
+    UserData query1{0, "Penopa", "", {}};
+    CHECK(db.remove(query1));
+    UserData query2{55535, "nowhere", "", {}};
+    CHECK(db.remove(query2));
+    UserData query3{22, "kkarel", "", {}};
+    CHECK(db.select(d2)[0]->name == "karel");
 }

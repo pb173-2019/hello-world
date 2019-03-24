@@ -18,6 +18,7 @@
 
 #include "connection.h"
 #include "secure_channel.h"
+#include "../shared/connection_manager.h"
 #include "transmission_file_client.h"
 #include "../shared/request.h"
 #include "../shared/user_data.h"
@@ -31,9 +32,7 @@ class Client : public Callable<void, std::stringstream &&> {
     //but physically is connected only to server
 
 
-
-
-    Connection _connection{""};
+    //Connection _connection{""};
 
 public:
     Client();
@@ -45,14 +44,8 @@ public:
     * @param data decoded data, ready to process (if "", use user private key to do challenge)
     */
     void callback(std::stringstream &&data) override {
-        Response reponse;
-
-        if (_isConnected) {
-            //todo parse challenge and set _isConnected as true
-        } else {
-            //todo parse response
-        }
-        // do something with response
+        Response reponse =_connection->parseIncoming(std::move(data));
+        //todo use me
     }
 
     /**
@@ -61,7 +54,11 @@ public:
      * @param username name of user
      * @param password password of user
      */
+     //todo hint delete me
+    //server response is always encrypted with session key, when registered/logged in, initialize
+    //the _transmission with generated session key
     void login(const std::string &username, const std::string &password);
+
 
     /**
      * @brief Log out the user from server.
@@ -71,13 +68,12 @@ public:
     /**
      * @brief Send request to the server to register new user
      *
-     * 1) generate rsa key
-     * 2) generate 16 bytes of random chars,  and save into file named username_salt.txt
-     * 3)
-     *
      * @param username  name of user
      * @param password password of user
      */
+    //todo hint delete me
+    //server response is always encrypted with session key, when registered/logged in, initialize
+    //the _transmission with generated session key
     void createAccount(const std::string &username, const std::string &password);
 
     /**
@@ -104,10 +100,9 @@ public:
     };
 
 private:
-    bool _isConnected = false;
     std::unique_ptr<UserTransmissionManager> _transmission;
+    std::unique_ptr<ClientToServerManager> _connection = nullptr;
     std::string _username;
-
 };
 
 }  // namespace helloworld

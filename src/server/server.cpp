@@ -2,14 +2,14 @@
 
 #include "server.h"
 #include "../shared/serializable_error.h"
-#include "file_database.h"
+#include "sqlite_database.h"
 #include "requests.h"
 #include "responses.h"
 
 namespace helloworld {
 
-Server::Server() : _database(std::make_unique<FileDatabase>("test_db1.db")),
-                   _transmission(std::make_unique<FileManager>(this)),
+Server::Server() : _database(std::make_unique<SQLite>("test_db1.db")),
+                   _transmission(std::make_unique<ServerFiles>(this)),
                    _genericManager("server_priv.pem",
                                    "323994cfb9da285a5d9642e1759b224a",
                                    "2b7e151628aed2a6abf7158809cf4f3c") {}
@@ -27,10 +27,16 @@ Response Server::handleUserRequest(const Request &request) {
                 return completeUserAuthentication(request);
             case Request::Type::GET_ONLINE:
                 return getOnline(request);
+            case Request::Type::REMOVE:
+                return deleteAccount(request);
+            case Request::Type::LOGOUT:
+                return logOut(request);
             default:
                 throw Error("Invalid operation.");
         }
     } catch (Error &ex) {
+        //todo dont be so generic, try to be more specific (e.g. in function called above, dont
+        //todo throw but return error code
         std::cerr << ex.what() << std::endl;
         return {{Response::Type::GENERIC_SERVER_ERROR, request.header.messageNumber, request.header.userId},
                 ex.serialize()};
@@ -73,8 +79,8 @@ Response Server::registerUser(const Request &request) {
 }
 
 Response Server::completeUserRegistration(const Request &request) {
-    CompleteRegistrationRequest curRequest =
-            CompleteRegistrationRequest::deserialize(request.payload);
+    CompleteAuthRequest curRequest =
+            CompleteAuthRequest::deserialize(request.payload);
 
     auto registration = _requestsToConnect.find(curRequest.name);
     if (registration == _requestsToConnect.end()) {
@@ -85,7 +91,7 @@ Response Server::completeUserRegistration(const Request &request) {
         throw Error("Cannot verify public key owner.");
     }
 
-    _database->insert(registration->second->userData);
+    _database->insert(registration->second->userData, true);
     _connections.emplace(curRequest.name, std::move(registration->second->manager));
     _requestsToConnect.erase(curRequest.name);
 
@@ -126,8 +132,8 @@ Response Server::authenticateUser(const Request &request) {
 }
 
 Response Server::completeUserAuthentication(const Request &request) {
-    CompleteRegistrationRequest curRequest =
-            CompleteRegistrationRequest::deserialize(request.payload);
+    CompleteAuthRequest curRequest =
+            CompleteAuthRequest::deserialize(request.payload);
 
     auto authentication = _requestsToConnect.find(curRequest.name);
     if (authentication == _requestsToConnect.end()) {
@@ -147,6 +153,35 @@ Response Server::getOnline(const Request &request) {
     const std::set<std::string> &users = _transmission->getOpenConnections();
     return {{Response::Type::OK, request.header.messageNumber, request.header.userId},
             OnlineUsersResponse{{users.begin(), users.end()}}.serialize()};
+}
+
+
+Response Server::deleteAccount(const Request &request) {
+    NameIdNeededRequest curRequest =
+            NameIdNeededRequest::deserialize(request.payload);
+    UserData data;
+    data.name = curRequest.name;
+    data.id = curRequest.id;
+    if (!_database->remove({curRequest.id, curRequest.name, "", {}})) {
+        return {{Response::Type::FAILED_TO_DELETE_USER, 0, 0}, {}};
+    }
+    return logout(curRequest.name);
+}
+
+Response Server::logOut(const Request &request) {
+    NameIdNeededRequest curRequest =
+            NameIdNeededRequest::deserialize(request.payload);
+    return logout(curRequest.name);
+}
+
+Response Server::logout(const std::string& name) {
+    size_t deleted = _connections.erase(name);
+    if (deleted != 1) {
+        return { {Response::Type::FAILED_TO_CLOSE_CONNECTION, 0, 0},
+                from_string("Attempt to close connection: connections closed: " + std::to_string(deleted)) };
+    }
+    _transmission->removeConnection(name);
+    return {{Response::Type::OK, 0, 0}, {}};
 }
 
 void Server::dropDatabase() { _database->drop(); }

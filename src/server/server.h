@@ -60,8 +60,9 @@ struct Challenge {
 //                    "2b7e151628aed2a6abf7158809cf4f3c") {}
 //};
 
-class Server : public Callable<void, const std::string &, std::stringstream &&> {
-    static const size_t CHALLENGE_SECRET_LENGTH = 256;
+class Server : public Callable<void, bool, const std::string &, std::stringstream &&> {
+    //rsa maximum encryption length of 126 bytes
+    static const size_t CHALLENGE_SECRET_LENGTH = 126;
 
 public:
     Server();
@@ -73,23 +74,38 @@ public:
      * @param username username of incoming connection, 0 if not opened (e.g. authentication needed)
      * @param data decoded data, ready to process (if 0, use server key to encrypt)
      */
-    void callback(const std::string &username, std::stringstream &&data) override {
+    void callback(bool hasSessionKey, const std::string &username, std::stringstream &&data) override {
         Request request;
-        if (username.empty()) {
-            request = _genericManager.parseIncoming(std::move(data));
-        } else {
-            auto existing = _connections.find(username);
-            if (existing == _connections.end()) {
-                auto pending = _requestsToConnect.find(username);
-                if (pending == _requestsToConnect.end())
-                    throw Error("No such connection available.");
-
-                request = pending->second->manager->parseIncoming(std::move(data));
+        Response response;
+        bool authenticated = false;
+        try {
+            if (!hasSessionKey) {
+                request = _genericManager.parseIncoming(std::move(data));
             } else {
-                request = existing->second->parseIncoming(std::move(data));
+                auto existing = _connections.find(username);
+                if (existing == _connections.end()) {
+                    auto pending = _requestsToConnect.find(username);
+                    if (pending == _requestsToConnect.end())
+                        throw Error("No such connection available.");
+
+                    request = pending->second->manager->parseIncoming(std::move(data));
+                } else {
+                    request = existing->second->parseIncoming(std::move(data));
+                    authenticated = true;
+                }
             }
+
+            response = handleUserRequest(request);
+        } catch (std::exception& generic) {
+            std::cerr << generic.what() << std::endl;
+            response = Response{ {Response::Type::GENERIC_SERVER_ERROR, request.header.messageNumber,
+                                  request.header.userId}, from_string(generic.what()) };
         }
-        handleUserRequest(request);
+
+        std::stringstream result = (authenticated) ?
+                _connections.find(username)->second->parseOutgoing(response) :
+                _requestsToConnect.find(username)->second->manager->parseOutgoing(response);
+        _transmission->send(username, result);
     }
 
     /**
@@ -131,6 +147,10 @@ public:
     void getRequest() {
         _transmission->receive();
     };
+    //when testing, the user is registered & then needs to disconnect to try to log in
+    void closeTransmission(const std::string& name) {
+        _transmission->removeConnection(name);
+    }
 
 private:
     Random _random;
@@ -186,6 +206,29 @@ private:
      * @return response containing list of online users
      */
     Response getOnline(const Request &request);
+
+    /**
+     * @brief Delete account from server
+     *
+     * @param request request from the client
+     * @return Response OK response if user was deleted
+     */
+    Response deleteAccount(const Request &request);
+
+    /**
+     * @brief Logout user
+     *
+     * @param request request from the client
+     * @return Response OK response if user was logged out
+     */
+    Response logOut(const Request &request);
+
+    /**
+     * @brief Logout implementation, reused in deleting account.
+     *
+     * @param name name of user to log out
+     */
+    Response logout(const std::string& name);
 };
 
 }    // namespace helloworld

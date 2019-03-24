@@ -28,12 +28,17 @@ SQLite::~SQLite() {
     }
 }
 
-void SQLite::insert(const UserData &data) {
-    if (int res = _execute("INSERT INTO users VALUES (" +
-                          std::to_string(data.id) + ", '" +
-                          _sCheck(data.name) + "', '" +
-                          std::string(data.publicKey.begin(), data.publicKey.end()) + "');",
-                          nullptr, nullptr) != SQLITE_OK) {
+void SQLite::insert(const UserData &data, bool autoIncrement) {
+    std::string query = "INSERT INTO users ";
+    if (autoIncrement) {
+        query += "(username, pubkey) VALUES ('";
+    } else {
+        query += "VALUES (" + std::to_string(data.id) + ", '";
+    }
+    query += _sCheck(data.name) + "', '" +
+            std::string(data.publicKey.begin(), data.publicKey.end()) + "');";
+
+    if (int res = _execute(std::move(query), nullptr, nullptr) != SQLITE_OK) {
         throw Error("Insert command failed: " + _getErrorMsgByReturnType(res));
     }
 }
@@ -45,13 +50,20 @@ const std::vector<std::unique_ptr<UserData>> &SQLite::select(const UserData &que
         res = _execute("SELECT * FROM users;", _fillData, &_cache);
     } else if (query.id == 0) {
         res = _execute("SELECT * FROM users WHERE username LIKE '%" + _sCheck(query.name) + "%' ORDER BY id DESC;",
-                _fillData, &_cache);
+                       _fillData, &_cache);
     } else {
         res = _execute("SELECT * FROM users WHERE id=" + std::to_string(query.id) + ";", _fillData, &_cache);
     }
     if (res != SQLITE_OK)
         throw Error("Select command failed: " + _getErrorMsgByReturnType(res));
     return _cache;
+}
+
+bool SQLite::remove(const UserData &data) {
+    return _execute("DELETE FROM users WHERE username "
+                    "LIKE '" + _sCheck(data.name) +
+                    "' OR id=" + std::to_string(data.id) + ";",
+            nullptr, nullptr) == SQLITE_OK;
 }
 
 void SQLite::drop() {
@@ -72,16 +84,16 @@ int SQLite::_execute(std::string &&command, int (*callback)(void *, int, char **
 
 void SQLite::_createTableIfNExists() {
     if (int res = _execute("CREATE TABLE IF NOT EXISTS users ("
-                          "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                          "username TEXT, "
-                          "pubkey TEXT);",
-                          nullptr, nullptr) != SQLITE_OK) {
+                           "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                           "username TEXT, "
+                           "pubkey TEXT);",
+                           nullptr, nullptr) != SQLITE_OK) {
         throw Error("Could not create database: " + _getErrorMsgByReturnType(res));
     }
 }
 
 std::string SQLite::_sCheck(std::string query) {
-    std::transform(query.begin(), query.end(), query.begin(), [](char c){
+    std::transform(query.begin(), query.end(), query.begin(), [](char c) {
         return specialCharacters.find(c) == std::string::npos ? c : ' ';
     });
     return query;

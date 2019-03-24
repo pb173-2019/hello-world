@@ -28,20 +28,20 @@ namespace helloworld {
 /**
 * TCP version will handle id generating
 */
-class FileManager : public UserTransmissionManager {
+class ClientFiles : public UserTransmissionManager {
 
     Base64 _base64;
 
 public:
-    explicit FileManager(Callable<void, std::stringstream &&> *callback,
+    explicit ClientFiles(Callable<void, std::stringstream &&> *callback,
                          std::string username) : UserTransmissionManager(callback, std::move(username)) {};
 
     // Copying is not available
-    FileManager(const FileManager &other) = delete;
+    ClientFiles(const ClientFiles &other) = delete;
 
-    FileManager &operator=(const FileManager &other) = delete;
+    ClientFiles &operator=(const ClientFiles &other) = delete;
 
-    ~FileManager() override = default;
+    ~ClientFiles() override = default;
 
     void send(std::iostream &data) override {
         data.seekg(0, std::ios::beg);
@@ -54,8 +54,9 @@ public:
         while (data.good()) {
             unsigned char buffer[256];
             size_t read = read_n(data, buffer, 256);
-            std::vector<unsigned char> encoded = _base64.encode(std::vector<unsigned char>(buffer, buffer + read));
-            write_n(send, encoded);
+            //std::vector<unsigned char> encoded = _base64.encode(std::vector<unsigned char>(buffer, buffer + read));
+            //write_n(send, encoded);
+            write_n(send, buffer, read);
         }
     }
 

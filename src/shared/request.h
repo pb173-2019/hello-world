@@ -38,7 +38,7 @@ public:
 
 struct Request {
     enum class Type {
-        LOGIN, LOGIN_COMPLETE, LOGOUT, CREATE, CREATE_COMPLETE, DELETE, SEND, RECEIVE, FIND_USER, GET_ONLINE
+        LOGIN, LOGIN_COMPLETE, LOGOUT, CREATE, CREATE_COMPLETE, REMOVE, SEND, RECEIVE, FIND_USER, GET_ONLINE
     };
 
     struct Header : Serializable<Request::Header> {
@@ -80,6 +80,8 @@ struct Response {
 
         DATABASE_NOT_FOUD = 0x0150,
         USERNAME_NOT_VALID = 0x1150,
+        FAILED_TO_DELETE_USER = 0x1151,
+
 
         USER_REGISTERED = 0x0300,
         USER_AUTHENTICATED = 0x0301,
@@ -89,6 +91,7 @@ struct Response {
         INVALID_MAC = 0x1201,
         INVALID_MSG_NUM = 0x1050,
 
+        FAILED_TO_CLOSE_CONNECTION = 0x1350,
         CHALLENGE_RESPONSE_NEEDED = 0x2200,
     };
 

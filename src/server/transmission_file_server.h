@@ -37,21 +37,21 @@ namespace helloworld {
 /**
 * TCP version will handle id generating
 */
-class FileManager : public ServerTransmissionManager {
+class ServerFiles : public ServerTransmissionManager {
 
     Base64 _base64;
     std::set<std::string> _files;
 
 public:
-    explicit FileManager(Callable<void, const std::string&, std::stringstream&&>* callback) :
+    explicit ServerFiles(Callable<void, bool, const std::string&, std::stringstream&&>* callback) :
                          ServerTransmissionManager(callback) {};
 
     // Copying is not available
-    FileManager(const FileManager &other) = delete;
+    ServerFiles(const ServerFiles &other) = delete;
 
-    FileManager &operator=(const FileManager &other) = delete;
+    ServerFiles &operator=(const ServerFiles &other) = delete;
 
-    ~FileManager() override = default;
+    ~ServerFiles() override = default;
 
     void send(const std::string& usrname, std::iostream &data) override {
         data.seekg(0, std::ios::beg);
@@ -80,12 +80,14 @@ public:
         while (receive.good()) {
             unsigned char buffer[256];
             size_t read = read_n(receive, buffer, 256);
-            std::vector<unsigned char> decoded = _base64.decode(std::vector<unsigned char>(buffer, buffer + read));
-            write_n(result, decoded);
+//            std::vector<unsigned char> decoded = _base64.decode(std::vector<unsigned char>(buffer, buffer + read));
+//            write_n(result, decoded);
+            write_n(result, buffer, read);
         }
 
         result.seekg(0, std::ios::beg);
-        Callable<void, const std::string&, std::stringstream&&>::call(callback, exists(incoming), std::move(result));
+        Callable<void, bool, const std::string&, std::stringstream&&>::call(callback, exists(incoming),
+                incoming.substr(0, incoming.size() - 4), std::move(result));
         incoming.push_back('\0'); //sichr
         if (remove(incoming.c_str()) != 0) {
             throw Error("Could not finish transmission.\n");
@@ -118,13 +120,13 @@ public:
      * @param filename name to check
      * @return 0 if no connection found, otherwise >0
      */
-    std::string exists(const std::string& filename) {
+    bool exists(const std::string& filename) {
         for (auto& item : _files) {
             if (item == filename) {
-                return item;
+                return true;
             }
         }
-        return "";
+        return false;
     }
 
     const std::set<std::string>& getOpenConnections() override {

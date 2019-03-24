@@ -173,7 +173,7 @@ std::vector<unsigned char> RSA2048::decrypt(const std::vector<unsigned char> &da
                                        random.getEngine(), MBEDTLS_RSA_PRIVATE, nullptr, 0, &olen, data.data(),
                                        buf.data(), MBEDTLS_MPI_MAX_SIZE) != 0) {
 
-        throw Error("Failed to encrypt data.");
+        throw Error("Failed to decrypt data.");
     }
     buf.resize(olen);
     return buf;

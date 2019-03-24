@@ -29,11 +29,11 @@ protected:
     /**
      * Function that can handle receive() output
      */
-    Callable<void, const std::string &, std::stringstream &&> *callback;
+    Callable<void, bool, const std::string &, std::stringstream &&> *callback;
 
 public:
-    explicit ServerTransmissionManager(Callable<void, const std::string &, std::stringstream &&> *callback) : callback(
-            callback) {
+    explicit ServerTransmissionManager(Callable<void, bool,
+            const std::string &, std::stringstream &&> *callback) : callback(callback) {
         if (callback == nullptr)
             throw Error("Null not allowed.");
     };
