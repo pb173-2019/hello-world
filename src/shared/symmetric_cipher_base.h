@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef HELLOWORLD_SYMMETRIC_CIPHER_BASE_H
-#define HELLOWORLD_SYMMETRIC_CIPHER_BASE_H
+#ifndef HELLOWORLD_SHARED_SYMMETRIC_CIPHER_BASE_H_
+#define HELLOWORLD_SHARED_SYMMETRIC_CIPHER_BASE_H_
 
 #include "random.h"
 #include "mbedtls/cipher.h"
@@ -219,4 +219,4 @@ public:
 };
 
 } // namespace helloworld
-#endif //HELLOWORLD_SYMMETRIC_CIPHER_BASE_H
+#endif //HELLOWORLD_SHARED_SYMMETRIC_CIPHER_BASE_H_

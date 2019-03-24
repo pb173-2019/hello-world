@@ -6,6 +6,10 @@
 
 using namespace helloworld;
 
+std::vector<unsigned char> toBytes(const std::string &msg) {
+    return std::vector<unsigned char>(msg.begin(), msg.end());
+}
+
 TEST_CASE("Rsa keygen & key loading") {
     std::string key{"2b7e151628aed2a6abf7158809cf4f3c"};
     std::string iv{"323994cfb9da285a5d9642e1759b224a"};
@@ -18,7 +22,8 @@ TEST_CASE("Rsa keygen & key loading") {
         keyGen.savePublicKey("pub.pem");
         keyGen.savePrivateKey("priv.pem", "", "");
         rsa.loadPublicKey("pub.pem");
-        data = rsa.encrypt("My best message");
+
+        data = rsa.encrypt(toBytes("My best message"));
         rsa2.loadPrivateKey("priv.pem", "", "");
     }
 
@@ -26,29 +31,29 @@ TEST_CASE("Rsa keygen & key loading") {
         keyGen.savePublicKey("pub.pem");
         keyGen.savePrivateKey("priv.pem", key, iv);
         rsa.loadPublicKey("pub.pem");
-        data = rsa.encrypt("My best message");
+        data = rsa.encrypt(toBytes("My best message"));
         rsa2.loadPrivateKey("priv.pem", key, iv);
     }
 
-    std::string res = rsa2.decrypt(data);
-    CHECK(res == "My best message");
+    std::vector<unsigned char> res = rsa2.decrypt(data);
+    CHECK(res == toBytes("My best message"));
 }
 
 TEST_CASE("Public key get & set") {
     std::string key{"323994cfb9da285a5d9642e1759b224a"};
     std::string iv{"2b7e151628aed2a6abf7158809cf4f3c"};
     RSAKeyGen keyGen;
-    
+
     keyGen.savePrivateKey("priv.pem", key, iv);
     RSA2048 rsa2;
     rsa2.loadPrivateKey("priv.pem", key, iv);
-    
+
     std::vector<unsigned char> publicKey = keyGen.getPublicKey();
     RSA2048 rsa;
     rsa.setPublicKey(publicKey);
-    
-    std::vector<unsigned char> data = rsa.encrypt("-");
-    CHECK(rsa2.decrypt(data) == "-");
+
+    std::vector<unsigned char> data = rsa.encrypt(toBytes("-"));
+    CHECK(rsa2.decrypt(data) == toBytes("-"));
 }
 
 TEST_CASE("Rsa encryption & decryption") {
@@ -67,20 +72,20 @@ TEST_CASE("Rsa encryption & decryption") {
     rsa2.loadPrivateKey("priv.pem", key, iv);
 
     SECTION("Empty string") {
-        std::vector<unsigned char> data = rsa.encrypt("");
-        CHECK(rsa2.decrypt(data) == "");
+        std::vector<unsigned char> data = rsa.encrypt(toBytes(""));
+        CHECK(rsa2.decrypt(data) == toBytes(""));
     }
 
     SECTION("Normal string") {
-        std::vector<unsigned char> data = rsa.encrypt("Normal string with some message in it.");
-        CHECK(rsa2.decrypt(data) == "Normal string with some message in it.");
+        std::vector<unsigned char> data = rsa.encrypt(toBytes("Normal string with some message in it."));
+        CHECK(rsa2.decrypt(data) == toBytes("Normal string with some message in it."));
     }
 
     SECTION("AES key") {
         std::vector<unsigned char> rand = Random{}.get(16);
         std::string hex = to_hex(rand);
-        std::vector<unsigned char> data = rsa.encrypt(hex);
-        CHECK(rsa2.decrypt(data) == hex);
+        std::vector<unsigned char> data = rsa.encrypt(toBytes(hex));
+        CHECK(rsa2.decrypt(data) == toBytes(hex));
     }
 }
 
@@ -115,14 +120,14 @@ TEST_CASE("Invalid use") {
     std::vector<unsigned char> byte(256, 2);
 
     SECTION("Invalid length") {
-        CHECK_THROWS(pubkey.encrypt("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                                    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                                    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+        CHECK_THROWS(pubkey.encrypt(toBytes("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                                            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                                            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")));
         CHECK_THROWS(privkey.decrypt(std::vector<unsigned char>(258, 2)));
     }
 
     SECTION("Invalid operation on private key") {
-        CHECK_THROWS(privkey.encrypt(str));
+        CHECK_THROWS(privkey.encrypt(toBytes(str)));
         CHECK_THROWS(privkey.verify(byte, str));
     }
 
@@ -141,10 +146,10 @@ TEST_CASE("Invalid use") {
         RSA2048 other_privkey;
         other_privkey.loadPrivateKey("priv2.pem", "", "");
 
-        std::vector<unsigned char> data = other_pubkey.encrypt("Ahoj");
+        std::vector<unsigned char> data = other_pubkey.encrypt(toBytes("Ahoj"));
         CHECK_THROWS(privkey.decrypt(std::vector<unsigned char>(258, 2)));
 
-        data = pubkey.encrypt("Ahoj");
+        data = pubkey.encrypt(toBytes("Ahoj"));
         CHECK_THROWS(other_privkey.decrypt(std::vector<unsigned char>(258, 2)));
     }
 }

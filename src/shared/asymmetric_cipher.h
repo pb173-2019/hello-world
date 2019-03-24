@@ -20,9 +20,12 @@ namespace helloworld {
 class AsymmetricKeyGen {
 public:
     AsymmetricKeyGen() = default;
+
     // Copying is not available
     AsymmetricKeyGen(const AsymmetricKeyGen &other) = delete;
+
     AsymmetricKeyGen &operator=(const AsymmetricKeyGen &other) = delete;
+
     virtual ~AsymmetricKeyGen() = default;
 
     /**
@@ -33,7 +36,16 @@ public:
      * @param iv iv for aes
      * @return bool true if succesfully saved
      */
-    virtual bool savePrivateKey(const std::string& filename, const std::string& key, const std::string& iv) = 0;
+    virtual bool savePrivateKey(const std::string &filename, const std::string &key, const std::string &iv) = 0;
+
+    /**
+    * @brief Save private key into file
+    *
+    * @param filename file to save the key
+    * @param pwd password to protect the key
+    * @return bool true if succesfully saved
+    */
+    virtual bool savePrivateKeyPassword(const std::string &filename, const std::string &pwd) = 0;
 
     /**
      * @brief Save public key into file
@@ -41,7 +53,7 @@ public:
      * @param filename file to save the key
      * @return bool true if succesfully saved
      */
-    virtual bool savePublicKey(const std::string& filename) const = 0;
+    virtual bool savePublicKey(const std::string &filename) const = 0;
 
     /**
      * Direct getter for public key
@@ -49,76 +61,80 @@ public:
      * @return std::vector<unsigned char> public key
      */
     virtual std::vector<unsigned char> getPublicKey() const = 0;
+
+
 };
 
 class AsymmetricCipher {
- friend AsymmetricKeyGen;
+    friend AsymmetricKeyGen;
 
- public:
-  AsymmetricCipher() = default;
-  // Copying is not available
-  AsymmetricCipher(const AsymmetricCipher &other) = delete;
-  AsymmetricCipher &operator=(const AsymmetricCipher &other) = delete;
-  virtual ~AsymmetricCipher() = default;
+public:
+    AsymmetricCipher() = default;
 
-  /**
-   * Direct setter for public key
-   *
-   * @param key public key in pem format
-   */
-  virtual void setPublicKey(std::vector<unsigned char>& key) = 0;
+    // Copying is not available
+    AsymmetricCipher(const AsymmetricCipher &other) = delete;
 
-  /**
-   * @brief Set required key for operation
-   *
-   * @param keyFile key filename to load
-   */
-  virtual void loadPublicKey(const std::string &keyFile) = 0;
+    AsymmetricCipher &operator=(const AsymmetricCipher &other) = delete;
 
-  /**
-   * @brief Set required key for operation
-   *
-   * @param keyFile key filename to load
-   * @param key key to decrypt private key or empty string
-   * @param iv iv for encryption or empty string if not encrypted
-  */
-  virtual void loadPrivateKey(const std::string &keyFile, const std::string &key, const std::string& iv) = 0;
+    virtual ~AsymmetricCipher() = default;
 
-  /**
-   * @brief Encrypt given message with key given
-   *
-   * @param msg message to encrypt
-   * @return std::vector<unsigned char> encrypted message
-   */
-  virtual std::vector<unsigned char> encrypt(const std::string &msg) = 0;
+    /**
+     * Direct setter for public key
+     *
+     * @param key public key in pem format
+     */
+    virtual void setPublicKey(std::vector<unsigned char> &key) = 0;
 
-  /**
-   * @brief Decrypt data with key given
-   *
-   * @param data data data to decrypt
-   * @return std::string original message
-   */
-  virtual std::string decrypt(const std::vector<unsigned char> &data) = 0;
+    /**
+     * @brief Set required key for operation
+     *
+     * @param keyFile key filename to load
+     */
+    virtual void loadPublicKey(const std::string &keyFile) = 0;
 
-  /**
-   * @brief Sign given message with hash imprint of data
-   *
-   * @param hash
-   * @return std::vector<unsigned char> signed hash of data
-   */
-  virtual std::vector<unsigned char> sign(const std::string &hash) = 0;
+    /**
+     * @brief Set required key for operation
+     *
+     * @param keyFile key filename to load
+     * @param key key to decrypt private key or empty string
+     * @param iv iv for encryption or empty string if not encrypted
+    */
+    virtual void loadPrivateKey(const std::string &keyFile, const std::string &key, const std::string &iv) = 0;
 
-  /**
-   * @brief Verify the signature
-   *
-   * @param signedData signature to verify
-   * @param hash value to compare
-   * @return true if signature was verified correctly
-   * @return false if signature was not verified correctly
-   */
-  virtual bool verify(const std::vector<unsigned char> &signedData, const std::string &hash) = 0;
+    /**
+     * @brief Encrypt given message with key given
+     *
+     * @param data data to encrypt
+     * @return std::vector<unsigned char> encrypted message
+     */
+    virtual std::vector<unsigned char> encrypt(const std::vector<unsigned char> &data) = 0;
+
+    /**
+     * @brief Decrypt data with key given
+     *
+     * @param data data data to decrypt
+     * @return std::string original message
+     */
+    virtual std::vector<unsigned char> decrypt(const std::vector<unsigned char> &data) = 0;
+
+    /**
+     * @brief Sign given message with hash imprint of data
+     *
+     * @param hash
+     * @return std::vector<unsigned char> signed hash of data
+     */
+    virtual std::vector<unsigned char> sign(const std::string &hash) = 0;
+
+    /**
+     * @brief Verify the signature
+     *
+     * @param signedData signature to verify
+     * @param hash value to compare
+     * @return true if signature was verified correctly
+     * @return false if signature was not verified correctly
+     */
+    virtual bool verify(const std::vector<unsigned char> &signedData, const std::string &hash) = 0;
 };
-
 
 }  // namespace helloworld
 

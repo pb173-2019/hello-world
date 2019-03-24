@@ -28,7 +28,9 @@ class AESGCM : public SymmetricCipherBase<MBEDTLS_CIPHER_AES_128_GCM, 16, 12> {
     void _additional(std::istream &ad);
 
 public:
-    AESGCM() = default;
+    AESGCM() {
+        setPadding(Padding::PKCS7);
+    };
 
     AESGCM(const AESGCM &other) = delete;
 

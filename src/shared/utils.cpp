@@ -7,11 +7,11 @@
 
 namespace helloworld {
 
-size_t getSize(std::istream &file) {
-    auto original = file.tellg();
-    file.seekg(0, std::ios::end);
-    auto delta = static_cast<size_t >(file.tellg() - original);
-    file.seekg(original);
+size_t getSize(std::istream &input) {
+    auto original = input.tellg();
+    input.seekg(0, std::ios::end);
+    auto delta = static_cast<size_t >(input.tellg() - original);
+    input.seekg(original);
     return delta;
 }
 
@@ -22,6 +22,14 @@ size_t read_n(std::istream &in, unsigned char *data, size_t length) {
 
 void write_n(std::ostream &out, const unsigned char *data, size_t length) {
     out.write((char *) data, length);
+}
+
+void write_n(std::ostream &out, const std::string& data) {
+    write_n(out, reinterpret_cast<const unsigned char*>(data.data()), data.size());
+}
+
+void write_n(std::ostream &out, const std::vector<unsigned char>& data) {
+    write_n(out, data.data(), data.size());
 }
 
 std::string &to_upper(std::string &&lowercase) {

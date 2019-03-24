@@ -20,35 +20,38 @@
 #include "utils.h"
 
 namespace helloworld {
-    class HMAC {
-        std::vector<unsigned char> key_;
-    public:
-        static constexpr mbedtls_md_type_t hmac_type = MBEDTLS_MD_SHA512;
-        static constexpr size_t hmac_size = 64;
 
-        explicit HMAC() = default;
+class HMAC {
+    std::vector<unsigned char> key_;
+public:
+    static constexpr mbedtls_md_type_t hmac_type = MBEDTLS_MD_SHA512;
+    static constexpr size_t hmac_size = 64;
 
-        // Copying is not availible
-        HMAC(const HMAC &) = delete;
+    explicit HMAC() = default;
 
-        HMAC &operator=(const HMAC &) = delete;
+    // Copying is not available
+    HMAC(const HMAC &) = delete;
 
-        ~HMAC() = default;
+    HMAC &operator=(const HMAC &) = delete;
 
-        /**
-         *  @brief set key used to generate hmac
-         *
-         *  @param newKey key, which will be set as new authentification key
-         */
-        void setKey(std::vector<unsigned char> newKey);
+    ~HMAC() = default;
 
-        /**
-         * @brief generates HMAC for a message
-         *
-         * @param message input stream from which, hmac will be generated
-         * @return std::string generated HMAC
-         */
-        std::array<unsigned char, hmac_size> generate(const std::vector<unsigned char> &message) const;
-    };
+    /**
+     *  @brief set key used to generate hmac
+     *
+     *  @param newKey key, which will be set as new authentication key
+     */
+    void setKey(std::vector<unsigned char> newKey);
+
+    /**
+     * @brief generates HMAC for a message
+     *
+     * @param message input stream from which, hmac will be generated
+     * @return std::string generated HMAC
+     */
+    std::array<unsigned char, hmac_size> generate(const std::vector<unsigned char> &message) const;
+};
+
 } // helloworld
+
 #endif //HELLOWORLD_HMAC_H

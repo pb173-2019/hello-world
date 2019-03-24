@@ -65,7 +65,7 @@ public:
             unsigned char buffer[256];
             size_t read = read_n(data, buffer, 256);
             std::vector<unsigned char> encoded = _base64.encode(std::vector<unsigned char>(buffer, buffer + read));
-            write_n(send, encoded.data(), encoded.size());
+            write_n(send, encoded);
         }
     }
 
@@ -81,7 +81,7 @@ public:
             unsigned char buffer[256];
             size_t read = read_n(receive, buffer, 256);
             std::vector<unsigned char> decoded = _base64.decode(std::vector<unsigned char>(buffer, buffer + read));
-            write_n(result, decoded.data(), decoded.size());
+            write_n(result, decoded);
         }
 
         result.seekg(0, std::ios::beg);

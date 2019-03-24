@@ -44,10 +44,10 @@ struct Callable {
 /**
  * @brief Compute file size
  *
- * @param file file to measure
+ * @param input input to measure
  * @return file size
  */
-size_t getSize(std::istream &file);
+size_t getSize(std::istream &input);
 
 /**
  * @brief read from input to unsigned char buffer
@@ -67,6 +67,10 @@ size_t read_n(std::istream &in, unsigned char *data, size_t length);
  * @param length length of data
  */
 void write_n(std::ostream &out, const unsigned char *data, size_t length);
+
+void write_n(std::ostream &out, const std::string& data);
+
+void write_n(std::ostream &out, const std::vector<unsigned char>& data);
 
 /**
  * Hex conversion bundle

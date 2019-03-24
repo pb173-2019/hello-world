@@ -19,6 +19,7 @@
 
 #include "mbedtls/pk.h"
 #include "mbedtls/rsa.h"
+#include "sha_512.h"
 
 #define MBEDTLS_PK_PARSE_C
 
@@ -42,10 +43,20 @@ public:
 
     bool savePrivateKey(const std::string &filename, const std::string &key, const std::string& iv) override;
 
+    bool savePrivateKeyPassword(const std::string &filename, const std::string &pwd) override;
+
     bool savePublicKey(const std::string &filename) const override;
 
     std::vector<unsigned char> getPublicKey() const override {
         return std::vector<unsigned char>(_buffer_public, _buffer_public + _pub_olen);
+    }
+
+    static std::string getHexPwd(const std::string& pwd) {
+        return SHA512{}.getHex(/*Salt{"alsk5eutgahlsnd" + pwd}.get() +*/ pwd).substr(0, 32);
+    }
+
+    static std::string getHexIv(const std::string& pwd) {
+        return SHA512{}.getHex(/*Salt{pwd + "d9fz68g54cv1as"}.get() +*/ pwd).substr(0, 32);
     }
 
 private:
@@ -67,6 +78,7 @@ class RSA2048 : public AsymmetricCipher {
 public:
     const static int KEY_SIZE = 2048;
     const static int EXPONENT = 65537;
+    const static int BLOCK_SIZE_OAEP = 256;
 
     explicit RSA2048();
 
@@ -86,9 +98,9 @@ public:
      */
     void loadPrivateKey(const std::string &keyFile, const std::string &key, const std::string& iv) override;
 
-    std::vector<unsigned char> encrypt(const std::string &msg) override;
+    std::vector<unsigned char> encrypt(const std::vector<unsigned char> &msg) override;
 
-    std::string decrypt(const std::vector<unsigned char> &data) override;
+    std::vector<unsigned char> decrypt(const std::vector<unsigned char> &data) override;
 
     std::vector<unsigned char> sign(const std::string &hash) override;
 

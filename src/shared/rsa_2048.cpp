@@ -59,6 +59,10 @@ bool RSAKeyGen::savePrivateKey(const std::string &filename, const std::string &k
     return true;
 }
 
+bool RSAKeyGen::savePrivateKeyPassword(const std::string &filename, const std::string &pwd) {
+    return savePrivateKey(filename, getHexPwd(pwd), getHexIv(pwd));
+}
+
 bool RSAKeyGen::savePublicKey(const std::string &filename) const {
     std::ofstream out_pub{filename, std::ios::out | std::ios::binary};
     if (!out_pub)
@@ -134,38 +138,40 @@ void RSA2048::loadPrivateKey(const std::string &keyFile, const std::string &key,
     _setup(KeyType::PRIVATE_KEY);
 }
 
-std::vector<unsigned char> RSA2048::encrypt(const std::string &msg) {
+std::vector<unsigned char> RSA2048::encrypt(const std::vector<unsigned char>& data) {
     if (!_valid(KeyType::PUBLIC_KEY))
         throw Error("RSA not initialized properly.");
 
     Random random{};
-    unsigned char buf[MBEDTLS_MPI_MAX_SIZE];
+    std::vector<unsigned char> buf(MBEDTLS_MPI_MAX_SIZE);
 
     //label ignored
     if (mbedtls_rsa_rsaes_oaep_encrypt(_basic_context, mbedtls_ctr_drbg_random,
-                                       random.getEngine(), MBEDTLS_RSA_PUBLIC, nullptr, 0, msg.size(),
-                                       reinterpret_cast<const unsigned char *>(msg.c_str()), buf) != 0) {
+                                       random.getEngine(), MBEDTLS_RSA_PUBLIC, nullptr, 0, data.size(),
+                                       data.data(), buf.data()) != 0) {
 
         throw Error("Failed to encrypt data.");
     }
-    return std::vector<unsigned char>(buf, buf + _basic_context->len);
+    buf.resize(_basic_context->len);
+    return buf;
 }
 
-std::string RSA2048::decrypt(const std::vector<unsigned char> &data) {
+std::vector<unsigned char> RSA2048::decrypt(const std::vector<unsigned char> &data) {
     if (!_valid(KeyType::PRIVATE_KEY))
         throw Error("RSA not initialized properly.");
 
     Random random{};
-    unsigned char buf[MBEDTLS_MPI_MAX_SIZE];
+    std::vector<unsigned char> buf(MBEDTLS_MPI_MAX_SIZE);
     size_t olen = 0;
 
     if (mbedtls_rsa_rsaes_oaep_decrypt(_basic_context, mbedtls_ctr_drbg_random,
-                                       random.getEngine(), MBEDTLS_RSA_PRIVATE, nullptr, 0, &olen, data.data(), buf,
-                                       MBEDTLS_MPI_MAX_SIZE) != 0) {
+                                       random.getEngine(), MBEDTLS_RSA_PRIVATE, nullptr, 0, &olen, data.data(),
+                                       buf.data(), MBEDTLS_MPI_MAX_SIZE) != 0) {
 
         throw Error("Failed to encrypt data.");
     }
-    return std::string(reinterpret_cast<char *>(buf), reinterpret_cast<char *>(buf) + olen);
+    buf.resize(olen);
+    return buf;
 }
 
 std::vector<unsigned char> RSA2048::sign(const std::string &hash) {

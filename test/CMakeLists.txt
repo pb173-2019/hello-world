@@ -1,3 +1,6 @@
+#copy keys from keys folder to bin test folder
+configure_file(${CMAKE_SOURCE_DIR}/src/keys/server_priv.pem ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/src/keys/server_pub.pem ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 
 file(GLOB client_test_src "./client/*.h" "./client/*.cpp")
 add_executable(client_test test_main.cpp ${client_test_src})

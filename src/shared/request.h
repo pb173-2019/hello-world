@@ -27,6 +27,8 @@ class MessageNumberGenerator {
         uint32_t lastSent;
 
         MessageNumberData() : lastSent(static_cast<uint32_t>(Random{}.getBounded(0, 256))) {}
+
+        explicit MessageNumberData(uint32_t first) : lastSent(first) {}
     };
 
     static std::map<uint32_t, MessageNumberData> messageNumbers;
@@ -56,7 +58,6 @@ struct Request {
 
     Header header;
     std::vector<unsigned char> payload;
-
 };
 
 struct Response {
@@ -65,6 +66,7 @@ struct Response {
      * 1:   0 - ok
      *      1 - error
      *      2 - response needed
+     *      3 - communication to other user
      *      ...
      * 2:   0 - generic event
      *      1 - database event

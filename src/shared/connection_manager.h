@@ -19,9 +19,11 @@
 #include <sstream>
 #include <map>
 
-#include "rrmanip.h"
+#include "request.h"
 #include "sha_512.h"
 #include "rsa_2048.h"
+#include "aes_gcm.h"
+#include "hmac.h"
 
 namespace helloworld {
 
@@ -30,7 +32,6 @@ namespace helloworld {
  * will use other keys for encryption than server
  */
 class ClientToClientManager {
-
 
 };
 
@@ -42,16 +43,20 @@ class ConnectionManager {
 protected:
     bool _established = false;
     std::string _sessionKey;
-    std::string _iv;
-    std::string _macKey;
 
     //outgoing RSA initialized with server / user public key
     RSA2048 _rsa_out{};
     //incoming RSA initialized with server / user private key
     RSA2048 _rsa_in{};
 
-public:
+    AESGCM _gcm{};
+    Random _random;
 
+    //counter with random beginning, to accept only newer data
+    MessageNumberGenerator _counter;
+
+    static constexpr int HEADER_ENCRYPTED_SIZE = 28;
+public:
     /**
      * @brief Initialize with keys from files
      *
@@ -62,7 +67,7 @@ public:
     ConnectionManager(const std::string& pubkeyFilename,
             const std::string& privkeyFilename, const std::string& pwd) {
         _rsa_out.loadPublicKey(pubkeyFilename);
-        _rsa_in.loadPrivateKey(privkeyFilename, getHexPwd(pwd), getHexIv(pwd));
+        _rsa_in.loadPrivateKey(privkeyFilename, RSAKeyGen::getHexPwd(pwd), RSAKeyGen::getHexIv(pwd));
     }
 
     /**
@@ -75,32 +80,20 @@ public:
     ConnectionManager(std::vector<unsigned char>& publicKeyData,
             const std::string& privkeyFilename, const std::string& pwd) {
         _rsa_out.setPublicKey(publicKeyData);
-        _rsa_in.loadPrivateKey(privkeyFilename, getHexPwd(pwd), getHexIv(pwd));
+        _rsa_in.loadPrivateKey(privkeyFilename, RSAKeyGen::getHexPwd(pwd), RSAKeyGen::getHexIv(pwd));
     }
 
     virtual ~ConnectionManager() = default;
 
     /**
-     * @brief Initialize security channel pwds once the symmetric key is agreed on
+     * @brief Initialize security channel once the symmetric key is agreed on
      *
      * @param key symmetric key used by both sides to encrypt the first message
-     * @param iv initialization vector used
-     * @param macKey mac key used by both sides to verify the first message
      */
-    void initializeSecurity(std::string key, std::string iv, std::string macKey) {
+    void openSecureChannel(std::string key) {
+        _gcm.setKey(key);
         _sessionKey = std::move(key);
-        _iv = std::move(iv);
-        _macKey = std::move(macKey);
         _established = true;
-    }
-
-    /**
-     * Iv is updated every time
-     *
-     * @param iv
-     */
-    void updateIv(std::string iv) {
-        _iv = std::move(iv);
     }
 
     /**
@@ -121,13 +114,16 @@ public:
      */
     virtual std::stringstream parseOutgoing(const outgoing& data) = 0;
 
-private:
-    std::string getHexPwd(const std::string& pwd) {
-        return SHA512{}.getHex(Salt{"alsk5eutgahlsnd" + pwd}.get() + pwd);
-    }
 
-    std::string getHexIv(const std::string& pwd) {
-        return SHA512{}.getHex(Salt{pwd + "d9fz68g54cv1as"}.get() + pwd);
+protected:
+    //pretty ugly, but C++ does not simply allows to move n bytes
+    std::stringstream nBytesFromStream(std::istream& input, size_t n) {
+        std::stringstream result;
+        std::vector<unsigned char> buff(n);
+        size_t size = read_n(input, buff.data(), buff.size());
+        write_n(result, buff.data(), size);
+        clear<unsigned char>(buff.data(), buff.size());
+        return result;
     }
 };
 
@@ -136,21 +132,103 @@ private:
  */
 class ClientToServerManager : public ConnectionManager<Response, Request> {
 
+    //future c-c managers
     std::map<std::string, ClientToClientManager> _userManagers;
 
 public:
+    ClientToServerManager(const std::string& pubkeyFilename,
+            const std::string& privkeyFilename, const std::string& pwd) :
+            ConnectionManager (pubkeyFilename, privkeyFilename, pwd) {}
+
+    ClientToServerManager(std::vector<unsigned char>& publicKeyData,
+            const std::string& privkeyFilename, const std::string& pwd) :
+            ConnectionManager(publicKeyData, privkeyFilename, pwd) {}
+
     Response parseIncoming(std::stringstream &&data) override {
-        return {};
+        Response response;
+        //data.header.messageNumber = _counter.
+        if (_established) {
+            //1) process head
+            std::stringstream headIvStream = nBytesFromStream(data, AESGCM::iv_size * 2); //in hex string - 2x length
+            std::stringstream headStream = nBytesFromStream(data, HEADER_ENCRYPTED_SIZE);
+            std::stringstream headDecrypted;
+            _gcm.setIv(headIvStream.str());
+            headIvStream.seekg(0, std::ios::beg);
+            _gcm.decryptWithAd(headStream, headIvStream, headDecrypted);
+
+            //2) process body (future: will do only if head contains data for server)
+            std::stringstream bodyIvStream = nBytesFromStream(data, AESGCM::iv_size * 2);
+            std::stringstream bodyStream = nBytesFromStream(data, getSize(data));
+            std::stringstream bodyDecrypted;
+            _gcm.setIv(bodyIvStream.str());
+            bodyIvStream.seekg(0, std::ios::beg);
+            _gcm.decryptWithAd(bodyStream, bodyIvStream, bodyDecrypted);
+
+            //3) build request
+            std::vector<unsigned char> head(sizeof(Request::Header));
+            read_n(headDecrypted, head.data(), head.size());
+            response.header = Response::Header::deserialize(head);
+            //will pass only encrypted payload if not for server to read
+            response.payload.resize(getSize(bodyDecrypted));
+            read_n(bodyDecrypted, response.payload.data(), response.payload.size());
+        } else {
+            //does not ensure integrity, results in connection failure as we're sending session key
+            std::vector<unsigned char> header = std::vector<unsigned char>(RSA2048::BLOCK_SIZE_OAEP);
+            std::vector<unsigned char> body = std::vector<unsigned char>(RSA2048::BLOCK_SIZE_OAEP);
+            read_n(data, header.data(), header.size());
+            read_n(data, body.data(), body.size());
+
+            header = _rsa_in.decrypt(header);
+            body = _rsa_in.decrypt(body);
+
+            response.header = std::move(Response::Header::deserialize(header));
+            response.payload = std::move(body);
+        }
+        return response;
     }
 
     std::stringstream parseOutgoing(const Request &data) override {
-        return std::stringstream{};
+        std::stringstream result{};
+        //data.header.messageNumber = _counter.
+        if (_established) {
+            std::stringstream body;
+            write_n(body, data.payload);
+
+            std::vector<unsigned char> head_data = data.header.serialize();
+            std::stringstream head;
+            write_n(head, head_data);
+
+            //1) encrypt head
+            std::string headIv = to_hex(_random.get(AESGCM::iv_size));
+            std::istringstream headIvStream{headIv};
+            std::stringstream headEncrypted;
+            _gcm.setIv(headIv);
+            write_n(result, headIv);
+            _gcm.encryptWithAd(head, headIvStream, result);
+
+            //2) encrypt body
+            std::string bodyIv = to_hex(_random.get(AESGCM::iv_size));
+            std::istringstream bodyIvStream{bodyIv};
+            std::stringstream bodyEncrypted;
+            _gcm.setIv(bodyIv);
+            write_n(result, bodyIv);
+            _gcm.encryptWithAd(body, bodyIvStream, result);
+            bodyEncrypted.seekg(0, std::ios::beg);
+            bodyIvStream.seekg(0, std::ios::beg);
+        } else {
+            //does not ensure integrity, results in connection failure as we're sending session key
+            write_n(result, _rsa_out.encrypt(data.header.serialize()));
+            write_n(result, _rsa_out.encrypt(data.payload));
+        }
+        result.seekg(0, std::ios::beg);
+        return result;
     }
 
 private:
     //in future: will get connection from _userManagers and encrypts
     // message body with different approach
     /*std::vector<unsigned char> getUserInput()  = 0;*/
+
 };
 
 /**
@@ -158,12 +236,93 @@ private:
  */
 class ServerToClientManager : public ConnectionManager<Request, Response> {
 public:
+    ServerToClientManager(const std::string& pubkeyFilename,
+            const std::string& privkeyFilename, const std::string& pwd) :
+            ConnectionManager (pubkeyFilename, privkeyFilename, pwd) {}
+
+    ServerToClientManager(std::vector<unsigned char>& publicKeyData,
+            const std::string& privkeyFilename, const std::string& pwd) :
+            ConnectionManager(publicKeyData, privkeyFilename, pwd) {}
+
+
     Request parseIncoming(std::stringstream &&data) override {
-        return {};
+        Request request;
+        //data.header.messageNumber = _counter.
+        if (_established) {
+            //1) process head
+            std::stringstream headIvStream = nBytesFromStream(data, AESGCM::iv_size * 2); //in hex string - 2x length
+            std::stringstream headStream = nBytesFromStream(data, HEADER_ENCRYPTED_SIZE);
+            std::stringstream headDecrypted;
+            _gcm.setIv(headIvStream.str());
+            headIvStream.seekg(0, std::ios::beg);
+            _gcm.decryptWithAd(headStream, headIvStream, headDecrypted);
+
+            //2) process body (future: will do only if head contains data for server)
+            std::stringstream bodyIvStream = nBytesFromStream(data, AESGCM::iv_size * 2);
+            std::stringstream bodyStream = nBytesFromStream(data, getSize(data));
+            std::stringstream bodyDecrypted;
+            _gcm.setIv(bodyIvStream.str());
+            bodyIvStream.seekg(0, std::ios::beg);
+            _gcm.decryptWithAd(bodyStream, bodyIvStream, bodyDecrypted);
+
+            //3) build request
+            std::vector<unsigned char> head(sizeof(Request::Header));
+            read_n(headDecrypted, head.data(), head.size());
+            request.header = Request::Header::deserialize(head);
+            //will pass only encrypted payload if not for server to read
+            request.payload.resize(getSize(bodyDecrypted));
+            read_n(bodyDecrypted, request.payload.data(), request.payload.size());
+        } else {
+            //does not ensure integrity, results in connection failure as we're sending session key
+            std::vector<unsigned char> header = std::vector<unsigned char>(RSA2048::BLOCK_SIZE_OAEP);
+            std::vector<unsigned char> body = std::vector<unsigned char>(RSA2048::BLOCK_SIZE_OAEP);
+            read_n(data, header.data(), header.size());
+            read_n(data, body.data(), body.size());
+
+            header = _rsa_in.decrypt(header);
+            body = _rsa_in.decrypt(body);
+
+            request.header = std::move(Request::Header::deserialize(header));
+            request.payload = std::move(body);
+        }
+        return request;
     }
 
     std::stringstream parseOutgoing(const Response& data) override {
-        return std::stringstream{};
+        std::stringstream result{};
+        //data.header.messageNumber = _counter.
+        if (_established) {
+            std::stringstream body;
+            write_n(body, data.payload);
+
+            std::vector<unsigned char> head_data = data.header.serialize();
+            std::stringstream head;
+            write_n(head, head_data);
+
+            //1) encrypt head
+            std::string headIv = to_hex(_random.get(AESGCM::iv_size));
+            std::istringstream headIvStream{headIv};
+            std::stringstream headEncrypted;
+            _gcm.setIv(headIv);
+            write_n(result, headIv);
+            _gcm.encryptWithAd(head, headIvStream, result);
+
+            //2) encrypt body
+            std::string bodyIv = to_hex(_random.get(AESGCM::iv_size));
+            std::istringstream bodyIvStream{bodyIv};
+            std::stringstream bodyEncrypted;
+            _gcm.setIv(bodyIv);
+            write_n(result, bodyIv);
+            _gcm.encryptWithAd(body, bodyIvStream, result);
+            bodyEncrypted.seekg(0, std::ios::beg);
+            bodyIvStream.seekg(0, std::ios::beg);
+        } else {
+            //does not ensure integrity, results in connection failure as we're sending session key
+            write_n(result, _rsa_out.encrypt(data.header.serialize()));
+            write_n(result, _rsa_out.encrypt(data.payload));
+        }
+        result.seekg(0, std::ios::beg);
+        return result;
     }
 };
 
