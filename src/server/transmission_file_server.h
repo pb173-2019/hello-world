@@ -80,6 +80,7 @@ public:
         while (receive.good()) {
             unsigned char buffer[256];
             size_t read = read_n(receive, buffer, 256);
+            //todo bad character?
 //            std::vector<unsigned char> decoded = _base64.decode(std::vector<unsigned char>(buffer, buffer + read));
 //            write_n(result, decoded);
             write_n(result, buffer, read);

@@ -54,6 +54,7 @@ public:
         while (data.good()) {
             unsigned char buffer[256];
             size_t read = read_n(data, buffer, 256);
+            //todo bad character?
             //std::vector<unsigned char> encoded = _base64.encode(std::vector<unsigned char>(buffer, buffer + read));
             //write_n(send, encoded);
             write_n(send, buffer, read);
