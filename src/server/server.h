@@ -19,33 +19,48 @@
 #include "../shared/random.h"
 #include "../shared/request.h"
 #include "../shared/rsa_2048.h"
+#include "../shared/connection_manager.h"
 #include "transmission_file_server.h"
 #include "database.h"
 
 namespace helloworld {
 
 /**
- * @brief Stores information about newly registered user and
- * his key verification challenge.
+ * @brief Stores information about newly registered user,
+ * creates -to be- connection manager and stores
+ * his key verification challenge. When succesfull,
+ * the manager is moved into _connections
  */
 struct Challenge {
     UserData userData;
+    std::unique_ptr<ServerToClientManager> manager;
     std::vector<unsigned char> secret;
 
-    Challenge(UserData userData, std::vector<unsigned char> secret)
-            : userData(std::move(userData)), secret(std::move(secret)) {}
+    Challenge(UserData userData, std::vector<unsigned char> secret, const std::string &sessionKey)
+            : userData(std::move(userData)), secret(std::move(secret)),
+              manager(std::make_unique<ServerToClientManager>(sessionKey)) {}
 };
 
-/**
- * @brief Mapping between socket connections and user info.
- *
- */
-struct SocketInfo {
-    std::vector<unsigned char> sessionKey;
-    std::string username;
-};
 
-class Server : public Callable<void, const std::string&, std::stringstream &&> {
+// not needed for now
+
+///**
+// * @brief Mapping between socket connections and user info.
+// *
+// */
+//struct SocketInfo {
+//    std::string username;
+//    ServerToClientManager manager;
+//
+//    SocketInfo(std::string username, const std::vector<unsigned char>& clientPublicKeyData,
+//            const std::string& serverPrivKey) :
+//            username(std::move(username)),
+//            manager(clientPublicKeyData, serverPrivKey,
+//                    "323994cfb9da285a5d9642e1759b224a",
+//                    "2b7e151628aed2a6abf7158809cf4f3c") {}
+//};
+
+class Server : public Callable<void, const std::string &, std::stringstream &&> {
     static const size_t CHALLENGE_SECRET_LENGTH = 256;
 
 public:
@@ -55,15 +70,24 @@ public:
      * @brief This function is called when transmission manager discovers new
      *        incoming request
      *
-     * @param id id of incoming connection, 0 if not opened (e.g. authentication needed)
+     * @param username username of incoming connection, 0 if not opened (e.g. authentication needed)
      * @param data decoded data, ready to process (if 0, use server key to encrypt)
      */
-    void callback(const std::string& username, std::stringstream &&data) override {
+    void callback(const std::string &username, std::stringstream &&data) override {
         Request request;
         if (username.empty()) {
-            //todo parse data using private key of the server
+            request = _genericManager.parseIncoming(std::move(data));
         } else {
-            //todo parse data using session manager
+            auto existing = _connections.find(username);
+            if (existing == _connections.end()) {
+                auto pending = _requestsToConnect.find(username);
+                if (pending == _requestsToConnect.end())
+                    throw Error("No such connection available.");
+
+                request = pending->second->manager->parseIncoming(std::move(data));
+            } else {
+                request = existing->second->parseIncoming(std::move(data));
+            }
         }
         handleUserRequest(request);
     }
@@ -91,13 +115,6 @@ public:
      */
     void terminateConnection(uint32_t cid);
 
-    /**
-     * @brief Set session key for a specific connection.
-     *
-     * @param connectionId username
-     * @param sessionKey symmetric cryptography key
-     */
-    void setSessionKey(const std::string& name, std::vector<unsigned char> sessionKey);
 
     //
     //TESTING PURPOSE METHODS SECTION
@@ -105,8 +122,10 @@ public:
 
     //clear database to start from new
     void dropDatabase();
+
     //check users present in db
     std::vector<std::string> getUsers();
+
     //check for request, in future: either will run in thread later as listening
     //or gets notified by TCP
     void getRequest() {
@@ -115,12 +134,11 @@ public:
 
 private:
     Random _random;
-    std::map<std::string, SocketInfo> _connections;
-    std::map<std::string, Challenge> _authentications;
-    std::map<std::string, Challenge> _registrations;
+    GenericServerManager _genericManager;
+    std::map<std::string, std::unique_ptr<ServerToClientManager>> _connections;
+    std::map<std::string, std::unique_ptr<Challenge>> _requestsToConnect;
     std::unique_ptr<Database> _database;
     std::unique_ptr<ServerTransmissionManager> _transmission;
-    RSA2048 _rsa;
 
     /**
      * @brief Register new user and respond with public key verification

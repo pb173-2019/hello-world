@@ -83,7 +83,7 @@ public:
      *
      * @param key public key in pem format
      */
-    virtual void setPublicKey(std::vector<unsigned char> &key) = 0;
+    virtual void setPublicKey(const std::vector<unsigned char> &key) = 0;
 
     /**
      * @brief Set required key for operation
@@ -100,6 +100,14 @@ public:
      * @param iv iv for encryption or empty string if not encrypted
     */
     virtual void loadPrivateKey(const std::string &keyFile, const std::string &key, const std::string &iv) = 0;
+
+    /**
+     * @brief Set required key for operation
+     *
+     * @param keyFile key filename to load
+     * @param pwd password to decrypt key
+    */
+    virtual void loadPrivateKey(const std::string &keyFile, const std::string &pwd) = 0;
 
     /**
      * @brief Encrypt given message with key given

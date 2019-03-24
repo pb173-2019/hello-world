@@ -8,19 +8,14 @@ using namespace helloworld;
 
 TEST_CASE("Serialization and deserialization simple class") {
 
-    UserData data;
-    data.id = 6513246;
-    data.name = "Honza";
-    data.publicKey = "--- BEGIN PUBLIC KEY ---\n"
-                     "DJhgfvjadBVads65dG3adsaa\n"
-                     "SV56D1ASD3VEB5GASD353dga\n"
-                     "--- END PUBLIC KEY ---\n";
+    UserData data { 6513246, "Honza", "2b7e151628aed2a6abf7158809cf4f3c", std::vector<unsigned char>(59, 65) };
 
     std::vector<unsigned char> ser = data.serialize();
 
     UserData result = UserData::deserialize(ser);
     CHECK(data.id == result.id);
     CHECK(data.name == result.name);
+    CHECK(data.sessionKey == result.sessionKey);
     CHECK(data.publicKey == result.publicKey);
 }
 

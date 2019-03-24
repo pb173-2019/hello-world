@@ -32,7 +32,8 @@ void SQLite::insert(const UserData &data) {
     if (int res = _execute("INSERT INTO users VALUES (" +
                           std::to_string(data.id) + ", '" +
                           _sCheck(data.name) + "', '" +
-                          data.publicKey + "');", nullptr, nullptr) != SQLITE_OK) {
+                          std::string(data.publicKey.begin(), data.publicKey.end()) + "');",
+                          nullptr, nullptr) != SQLITE_OK) {
         throw Error("Insert command failed: " + _getErrorMsgByReturnType(res));
     }
 }

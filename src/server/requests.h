@@ -18,17 +18,19 @@ namespace helloworld {
 
 struct RegisterRequest : public Serializable<RegisterRequest> {
     std::string name;
-    std::string publicKey;
+    std::string sessionKey;
+    std::vector<unsigned char> publicKey;
 
     RegisterRequest() = default;
 
-    RegisterRequest(std::string name, std::string publicKey)
-        : name(std::move(name)), publicKey(std::move(publicKey)) {}
+    RegisterRequest(std::string name, std::string sessionKey, std::vector<unsigned char> publicKey)
+            : name(std::move(name)), sessionKey(std::move(sessionKey)), publicKey(std::move(publicKey)) {}
 
     std::vector<unsigned char> serialize() const override {
         std::vector<unsigned char> result;
         Serializable::addContainer<std::string>(result, name);
-        Serializable::addContainer<std::string>(result, publicKey);
+        Serializable::addContainer<std::string>(result, sessionKey);
+        Serializable::addContainer<std::vector<unsigned char>>(result, publicKey);
 
         return result;
     }
@@ -38,15 +40,16 @@ struct RegisterRequest : public Serializable<RegisterRequest> {
         uint64_t position = 0;
         position += Serializable::getContainer<std::string>(data, position,
                                                             result.name);
-        Serializable::getContainer<std::string>(data, position,
-                                                result.publicKey);
-
+        position += Serializable::getContainer<std::string>(data, position,
+                                                            result.sessionKey);
+        Serializable::getContainer<std::vector<unsigned char>>(data, position,
+                                                               result.publicKey);
         return result;
     }
 };
 
 struct CompleteRegistrationRequest
-    : public Serializable<CompleteRegistrationRequest> {
+        : public Serializable<CompleteRegistrationRequest> {
     std::vector<unsigned char> secret;
     std::string name;
 
@@ -54,7 +57,7 @@ struct CompleteRegistrationRequest
 
     CompleteRegistrationRequest(std::vector<unsigned char> secret,
                                 std::string name)
-        : secret(std::move(secret)), name(std::move(name)) {}
+            : secret(std::move(secret)), name(std::move(name)) {}
 
     std::vector<unsigned char> serialize() const override {
         std::vector<unsigned char> result;
@@ -65,11 +68,11 @@ struct CompleteRegistrationRequest
     }
 
     static CompleteRegistrationRequest deserialize(
-        const std::vector<unsigned char> &data) {
+            const std::vector<unsigned char> &data) {
         CompleteRegistrationRequest result;
         uint64_t position = 0;
         position += Serializable::getContainer<std::vector<unsigned char>>(
-            data, position, result.secret);
+                data, position, result.secret);
         position += Serializable::getContainer<std::string>(data, position,
                                                             result.name);
 
@@ -79,40 +82,42 @@ struct CompleteRegistrationRequest
 
 struct AuthenticateRequest : public Serializable<AuthenticateRequest> {
     std::string name;
+    std::string sessionKey;
 
     AuthenticateRequest() = default;
 
-    AuthenticateRequest(std::string name)
-        : name(std::move(name)) {}
+    AuthenticateRequest(std::string name, std::string sessionKey)
+            : name(std::move(name)), sessionKey(std::move(sessionKey)) {}
 
     std::vector<unsigned char> serialize() const override {
         std::vector<unsigned char> result;
         Serializable::addContainer<std::string>(result, name);
-
+        Serializable::addContainer<std::string>(result, sessionKey);
         return result;
     }
 
     static AuthenticateRequest deserialize(
-        const std::vector<unsigned char> &data) {
+            const std::vector<unsigned char> &data) {
         AuthenticateRequest result;
         uint64_t position = 0;
         position += Serializable::getContainer<std::string>(data, position,
                                                             result.name);
-
+        position += Serializable::getContainer<std::string>(data, position,
+                                                            result.sessionKey);
         return result;
     }
 };
 
 struct CompleteAuthenticationRequest
-    : public Serializable<CompleteAuthenticationRequest> {
+        : public Serializable<CompleteAuthenticationRequest> {
     std::vector<unsigned char> secret;
     std::string name;
 
     CompleteAuthenticationRequest() = default;
 
     CompleteAuthenticationRequest(std::vector<unsigned char> secret,
-                                std::string name)
-        : secret(std::move(secret)), name(std::move(name)) {}
+                                  std::string name)
+            : secret(std::move(secret)), name(std::move(name)) {}
 
     std::vector<unsigned char> serialize() const override {
         std::vector<unsigned char> result;
@@ -123,11 +128,11 @@ struct CompleteAuthenticationRequest
     }
 
     static CompleteAuthenticationRequest deserialize(
-        const std::vector<unsigned char> &data) {
+            const std::vector<unsigned char> &data) {
         CompleteAuthenticationRequest result;
         uint64_t position = 0;
         position += Serializable::getContainer<std::vector<unsigned char>>(
-            data, position, result.secret);
+                data, position, result.secret);
         position += Serializable::getContainer<std::string>(data, position,
                                                             result.name);
 

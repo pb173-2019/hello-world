@@ -72,7 +72,9 @@ private:
 
         auto* cache = static_cast<std::vector<std::unique_ptr<UserData>> *>(data);
         auto id = static_cast<uint32_t>(std::stol(argv[0]));
-        UserData temp{id, argv[1], argv[2]};
+        std::string pubkey(argv[2]);
+        std::vector<unsigned char> publicKey(pubkey.begin(), pubkey.end());
+        UserData temp{id, argv[1], "", publicKey};
         cache->push_back(std::make_unique<UserData>(temp));
         return 0;
     }

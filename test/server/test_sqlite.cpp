@@ -4,11 +4,16 @@
 
 using namespace helloworld;
 
+std::vector<unsigned char> strToVec(const std::string& data) {
+    return std::vector<unsigned char>(data.begin(), data.end());
+}
+
+
 TEST_CASE("SQLITE Database test") {
 
     SQLite db{ "sqlite_1.db" };
 
-    UserData data{ 555, "Pepa", "My sercret key"};
+    UserData data{ 555, "Pepa", "", strToVec("My sercret key")};
     db.insert(data);
 
     const auto& res = db.select(data);
@@ -31,13 +36,13 @@ TEST_CASE("SQLITE Database test multiple data") {
 
     SQLite db{ "sqlite_2.db" };
 
-    UserData d1{ 245, "Penopa", "asdfasdfasdfasdfafb"};
-    UserData d2{ 2, "karel", "adfbadfbasdfsdfbadgdsfcxx"};
-    UserData d3{ 55535, "sunshine98", "My sercret key"};
+    UserData d1{ 245, "Penopa", "", strToVec("asdfasdfasdfasdfafb")};
+    UserData d2{ 2, "karel", "", strToVec("adfbadfbasdfsdfbadgdsfcxx")};
+    UserData d3{ 55535, "sunshine98", "", strToVec("My sercret key")};
     //real public key
-    UserData d4{ 34, "novere", realPublicKey};
-    UserData d5{ 8752, "mybestnick", "My sercret key"};
-    UserData d6{ 53, "user666", "My sercret key"};
+    UserData d4{ 34, "novere", "", strToVec(realPublicKey)};
+    UserData d5{ 8752, "mybestnick", "", strToVec("My sercret key")};
+    UserData d6{ 53, "user666", "", strToVec("My sercret key")};
     db.insert(d1);
     db.insert(d2);
     db.insert(d3);
@@ -45,42 +50,42 @@ TEST_CASE("SQLITE Database test multiple data") {
     db.insert(d5);
     db.insert(d6);
 
-    UserData query1{0, "user", ""};
+    UserData query1{0, "user", "", {}};
     const auto& res1 = db.select(query1);
     CHECK(res1[0]->name == "user666");
     CHECK(res1[0]->id == 53);
 
-    UserData query2{0, "no", ""};
+    UserData query2{0, "no", "", {}};
     const auto& res2 = db.select(query2);
     REQUIRE(res2.size() == 2);
     CHECK(res2[0]->name == "Penopa");
     CHECK(res2[0]->id == 245);
     CHECK(res2[1]->name == "novere");
     CHECK(res2[1]->id == 34);
-    CHECK(res2[1]->publicKey == realPublicKey);
+    CHECK(res2[1]->publicKey == strToVec(realPublicKey));
 
-    UserData query3{8752, "", ""};
+    UserData query3{8752, "", "", {}};
     const auto& res3 = db.select(query3);
     CHECK(res3[0]->name == "mybestnick");
 }
 
 TEST_CASE("SQLITE Database no data") {
     SQLite db{ "sqlite_3.db" };
-    UserData query1{0, "user", ""};
+    UserData query1{0, "user", "", {}};
     CHECK(db.select(query1).empty());
 }
 
 TEST_CASE("SQLITE Database no matching query") {
     SQLite db{ "sqlite_4.db" };
 
-    UserData d1{ 245, "Penopa", "asdfasdfasdfasdfafb"};
-    UserData d2{ 2, "karel", "adfbadfbasdfsdfbadgdsfcxx"};
-    UserData d3{ 55535, "sunshine98", "My sercret key"};
+    UserData d1{ 245, "Penopa",  "", strToVec("asdfasdfasdfasdfafb")};
+    UserData d2{ 2, "karel",  "", strToVec("adfbadfbasdfsdfbadgdsfcxx")};
+    UserData d3{ 55535, "sunshine98",  "", strToVec("My sercret key")};
     db.insert(d1);
     db.insert(d2);
     db.insert(d3);
 
-    UserData query1{0, "nowhere", ""};
+    UserData query1{0, "nowhere", "", {}};
     const auto& res1 = db.select(query1);
     CHECK(res1.empty());
 }

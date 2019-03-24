@@ -22,20 +22,23 @@ namespace helloworld {
 struct UserData : public Serializable<UserData> {
     uint32_t id = 0;
     std::string name;
-    std::string publicKey;
+    std::string sessionKey;
+    std::vector<unsigned char> publicKey;
 
     UserData() = default;
 
-    UserData(uint32_t id, std::string name, std::string pubKey) :
+    UserData(uint32_t id, std::string name, std::string sessionKey, std::vector<unsigned char> publicKey) :
              id(id),
              name(std::move(name)),
-             publicKey(std::move(pubKey)) {}
+             sessionKey(std::move(sessionKey)),
+             publicKey(std::move(publicKey)) {}
 
     std::vector<unsigned char> serialize() const override {
         std::vector<unsigned char> result;
         Serializable::addNumeric<uint32_t>(result, id);
         Serializable::addContainer<std::string>(result, name);
-        Serializable::addContainer<std::string>(result, publicKey);
+        Serializable::addContainer<std::string>(result, sessionKey);
+        Serializable::addContainer<std::vector<unsigned char>>(result, publicKey);
         return result;
     }
 
@@ -44,7 +47,8 @@ struct UserData : public Serializable<UserData> {
         uint64_t position = 0;
         position += Serializable::getNumeric<uint32_t>(data, 0, userData.id);
         position += Serializable::getContainer<std::string>(data, position, userData.name);
-        Serializable::getContainer<std::string>(data, position, userData.publicKey);
+        position += Serializable::getContainer<std::string>(data, position, userData.sessionKey);
+        Serializable::getContainer<std::vector<unsigned char>>(data, position, userData.publicKey);
         return userData;
     }
 };

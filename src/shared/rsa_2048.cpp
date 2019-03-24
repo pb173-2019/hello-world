@@ -109,9 +109,10 @@ void RSA2048::loadPublicKey(const std::string &keyFile) {
     _setup(KeyType::PUBLIC_KEY);
 }
 
-void RSA2048::setPublicKey(std::vector<unsigned char> &key) {
-    key.push_back(static_cast<unsigned char>('\0')); //mbedtls expecting null terminator
-    if (mbedtls_pk_parse_public_key(&_context, key.data(), key.size()) != 0) {
+void RSA2048::setPublicKey(const std::vector<unsigned char> &key) {
+    std::vector<unsigned char> temp = key;
+    temp.push_back(static_cast<unsigned char>('\0')); //mbedtls expecting null terminator
+    if (mbedtls_pk_parse_public_key(&_context, temp.data(), temp.size()) != 0) {
         throw Error("Could not load public key from vector.");
     }
     _setup(KeyType::PUBLIC_KEY);
@@ -136,6 +137,10 @@ void RSA2048::loadPrivateKey(const std::string &keyFile, const std::string &key,
         _loadKeyFromStream(input);
     }
     _setup(KeyType::PRIVATE_KEY);
+}
+
+void RSA2048::loadPrivateKey(const std::string &keyFile, const std::string &pwd) {
+    loadPrivateKey(keyFile, RSAKeyGen::getHexPwd(pwd), RSAKeyGen::getHexIv(pwd));
 }
 
 std::vector<unsigned char> RSA2048::encrypt(const std::vector<unsigned char>& data) {

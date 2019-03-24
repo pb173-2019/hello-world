@@ -86,17 +86,19 @@ public:
         mbedtls_pk_free(&_context);
     }
 
-    void setPublicKey(std::vector<unsigned char>& key) override;
+    void setPublicKey(const std::vector<unsigned char>& key) override;
 
     void loadPublicKey(const std::string &keyFile) override;
 
     /**
-     * Expects private key exaclty 32 chars in hex (e.g. 16 bytes) long
+     * Expects key & iv exactly 32 chars in hex (e.g. 16 bytes) long
      * @param keyFile file to load
      * @param key key for aes to decrypt
      * @param iv iv for aes to decrypt
      */
     void loadPrivateKey(const std::string &keyFile, const std::string &key, const std::string& iv) override;
+
+    void loadPrivateKey(const std::string &keyFile, const std::string &pwd) override;
 
     std::vector<unsigned char> encrypt(const std::vector<unsigned char> &msg) override;
 
