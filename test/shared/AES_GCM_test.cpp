@@ -27,7 +27,6 @@ TEST_CASE("Test vectors") {
         key = "FEFFE9928665731C6D6A8F9467308308";
         iv = "CAFEBABEFACEDBADDECAF888";
 
-
         tag = "3247184B3C4F69A44DBCD22887BBB418";
         cipher = "";
     }
@@ -105,8 +104,8 @@ TEST_CASE("Test vectors") {
     additionalData.clear();
     additionalData.seekg(std::ios::beg);
 
-    std::stringstream unencrypted;
-    REQUIRE_NOTHROW(aes.decryptWithAd(output, additionalData, unencrypted));
-    CHECK(to_hex(plaintext.str()) == to_hex(unencrypted.str()));
+    std::stringstream decrypted;
+    REQUIRE_NOTHROW(aes.decryptWithAd(output, additionalData, decrypted));
+    CHECK(to_hex(plaintext.str()) == to_hex(decrypted.str()));
 }
 

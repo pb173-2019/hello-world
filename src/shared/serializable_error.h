@@ -1,5 +1,5 @@
 /**
- * @file server_error.h
+ * @file serializable_error.h
  * @author Adam Ivora (xivora@fi.muni.cz)
  * @brief Custom exception for errors returned by server
  * @version 0.1

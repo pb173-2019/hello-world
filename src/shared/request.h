@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef HELLOWORLD_REQUEST_H
-#define HELLOWORLD_REQUEST_H
+#ifndef HELLOWORLD_SHARED_REQUEST_H_
+#define HELLOWORLD_SHARED_REQUEST_H_
 
 #include <cstdint>
 #include <map>
@@ -107,9 +107,8 @@ struct Response {
 
     Header header;
     std::vector<unsigned char> payload;
-
 };
 
 } // namespace helloworld
-#endif //HELLOWORLD_REQUEST_H
+#endif //HELLOWORLD_SHARED_REQUEST_H_
 
