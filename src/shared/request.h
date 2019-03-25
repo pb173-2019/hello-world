@@ -77,8 +77,9 @@ struct Response {
      */
     enum class Type {
         OK = 0x0080,
+        DATABASE_ONLINE_SEND = 0x0150,
 
-        DATABASE_NOT_FOUD = 0x0150,
+        DATABASE_NOT_FOUD = 0x0151,
         USERNAME_NOT_VALID = 0x1150,
         FAILED_TO_DELETE_USER = 0x1151,
 

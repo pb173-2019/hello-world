@@ -68,6 +68,7 @@ Response Server::registerUser(const Request &request) {
     bool inserted = _requestsToConnect.emplace(userData.name,
             std::make_unique<Challenge>(userData, challengeBytes, registerRequest.sessionKey)).second;
     if (!inserted) {
+        _errors.insert(registerRequest.name, registerRequest.sessionKey);
         throw Error("User " + userData.name + " is already in the process of verification.");
     }
 
@@ -88,6 +89,8 @@ Response Server::completeUserRegistration(const Request &request) {
     }
 
     if (curRequest.secret != registration->second->secret) {
+        _requestsToConnect.erase(curRequest.name);
+        _errors.insert(curRequest.name, registration->second->userData.sessionKey);
         throw Error("Cannot verify public key owner.");
     }
 
@@ -151,10 +154,9 @@ Response Server::completeUserAuthentication(const Request &request) {
 
 Response Server::getOnline(const Request &request) {
     const std::set<std::string> &users = _transmission->getOpenConnections();
-    return {{Response::Type::OK, request.header.messageNumber, request.header.userId},
+    return {{Response::Type::DATABASE_ONLINE_SEND, request.header.messageNumber, request.header.userId},
             OnlineUsersResponse{{users.begin(), users.end()}}.serialize()};
 }
-
 
 Response Server::deleteAccount(const Request &request) {
     NameIdNeededRequest curRequest =
@@ -165,13 +167,13 @@ Response Server::deleteAccount(const Request &request) {
     if (!_database->remove({curRequest.id, curRequest.name, "", {}})) {
         return {{Response::Type::FAILED_TO_DELETE_USER, 0, 0}, {}};
     }
-    return logout(curRequest.name);
+    return {{Response::Type::OK, 0, 0}, {}};
 }
 
 Response Server::logOut(const Request &request) {
     NameIdNeededRequest curRequest =
             NameIdNeededRequest::deserialize(request.payload);
-    return logout(curRequest.name);
+    return {{Response::Type::OK, 0, 0}, {}};
 }
 
 Response Server::logout(const std::string& name) {

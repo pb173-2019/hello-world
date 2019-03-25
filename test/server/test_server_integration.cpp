@@ -1,9 +1,12 @@
 #include <utility>
 
+#include <utility>
+
 #include <fstream>
 #include "catch.hpp"
 
 #include "../../src/server/requests.h"
+#include "../../src/server/responses.h"
 #include "../../src/server/server.h"
 #include "../../src/client/transmission_file_client.h"
 #include "../../src/shared/connection_manager.h"
@@ -53,23 +56,36 @@ Request deleteUser(const std::string& username) {
 class ClientMock : public Callable<void, std::stringstream &&> {
 
 public:
-    ClientMock() {
+    explicit ClientMock(std::string name) : _username(std::move(name)) {
         _transmission = std::make_unique<ClientFiles>(this, _username);
     }
 
     void callback(std::stringstream &&data) override {
         Response response = _connection->parseIncoming(std::move(data));
         switch (response.header.type) {
-            case Response::Type::OK:
+            case Response::Type::OK: {
+                CHECK(true);
                 return;
-            case Response::Type::CHALLENGE_RESPONSE_NEEDED:
+            }
+            case Response::Type::DATABASE_ONLINE_SEND: {
+                OnlineUsersResponse data = OnlineUsersResponse::deserialize(response.payload);
+                CHECK(data.online.size() == 3);
+                std::string names{"alicebobcyril"};
+                CHECK(names.find(data.online[1]) != std::string::npos);
+                return;
+            }
+
+            case Response::Type::CHALLENGE_RESPONSE_NEEDED: {
                 Request complete = completeAuth(response.payload, _username,
-                        "alice_priv.pem", "the most secure pwd ever", Request::Type::CREATE_COMPLETE);
+                                                "alice_priv.pem", "the most secure pwd ever", Request::Type::CREATE_COMPLETE);
                 std::stringstream buffer = _connection->parseOutgoing(complete);
                 _transmission->send(buffer);
                 return;
+            }
+            default: {
+                throw std::runtime_error("Test failed: should not return such reponse.");
+            }
         }
-        throw std::runtime_error("test failed");
     }
 
     std::string _username = "alice";
@@ -87,11 +103,15 @@ TEST_CASE("Scenario 1: create, logout, login, delete.") {
 
     Server server;
 
-    ClientMock client;
+    ClientMock client{"alice"};
     client._connection = std::make_unique<ClientToServerManager>("server_pub.pem");
+
 
     std::stringstream registration = client._connection->parseOutgoing(
             registerUser("alice", "2b7e151628aed2a6abf7158809cf4f3c", "alice_pub.pem"));
+    //!! now when parsed, can set secure channel
+    client._connection->openSecureChannel("2b7e151628aed2a6abf7158809cf4f3c");
+
     client._transmission->send(registration);
     //server receives request
     server.getRequest();
@@ -102,6 +122,7 @@ TEST_CASE("Scenario 1: create, logout, login, delete.") {
     //client obtains the final OK response
     client._transmission->receive();
 
+    //reset connection
     std::stringstream loggingout = client._connection->parseOutgoing(logoutUser("alice"));
     client._transmission->send(loggingout);
     //server receives request
@@ -109,8 +130,14 @@ TEST_CASE("Scenario 1: create, logout, login, delete.") {
     //client obtains the final OK response
     client._transmission->receive();
 
+    client._connection = std::make_unique<ClientToServerManager>("server_pub.pem");
     std::stringstream loggingin = client._connection->parseOutgoing(
             loginUser("alice", "2b7e151628aed2a6abf7158809cf4f3c"));
+    client._connection->openSecureChannel("2b7e151628aed2a6abf7158809cf4f3c");
+
+
+    //!! now when parsed, can set secure channel
+    client._connection->openSecureChannel("2b7e151628aed2a6abf7158809cf4f3c");
     client._transmission->send(loggingin);
     //server receives request
     server.getRequest();
@@ -128,4 +155,80 @@ TEST_CASE("Scenario 1: create, logout, login, delete.") {
     //client obtains the final OK response
     client._transmission->receive();
 
+}
+
+void registerUserRoutine(Server& server, ClientMock& client) {
+    client._connection = std::make_unique<ClientToServerManager>("server_pub.pem");
+    std::stringstream registration = client._connection->parseOutgoing(
+            registerUser(client._username, "2b7e151628aed2a6abf7158809cf4f3c", "alice_pub.pem"));
+    //!! now when parsed, can set secure channel
+    client._connection->openSecureChannel("2b7e151628aed2a6abf7158809cf4f3c");
+    client._transmission->send(registration);
+    //server receives request
+    server.getRequest();
+    //client receives challenge
+    client._transmission->receive();
+    //server verifies challenge
+    server.getRequest();
+    //client obtains the final OK response
+    client._transmission->receive();
+}
+
+TEST_CASE("Scenario 2: get online users.") {
+
+    Server server;
+
+    ClientMock client1{"alice"};
+    ClientMock client2{"bob"};
+    ClientMock client3{"cyril"};
+
+    registerUserRoutine(server, client1);
+    registerUserRoutine(server, client2);
+    registerUserRoutine(server, client3);
+
+    std::stringstream getOnline = client2._connection->parseOutgoing(
+            {{Request::Type::GET_ONLINE, 0, 0}, {}});
+    client2._transmission->send(getOnline);
+    //server receives request
+    server.getRequest();
+    //client obtains the final OK response
+    client2._transmission->receive();
+}
+
+TEST_CASE("Attempt to register as existing.") {
+
+    Server server;
+
+    ClientMock client1{"alice"};
+    ClientMock client2{"alice"};
+
+    registerUserRoutine(server, client1);
+
+    client2._connection = std::make_unique<ClientToServerManager>("server_pub.pem");
+    std::stringstream registration = client2._connection->parseOutgoing(
+            registerUser("alice", "2b7e151628aed2a6abf7158809cf4f3c", "alice_pub.pem"));
+    server.closeTransmission("alice"); //force the transmission to think the next file alice is different connection
+    client2._connection->openSecureChannel("2b7e151628aed2a6abf7158809cf4f3c");
+    client2._transmission->send(registration);
+    //server receives request
+    server.getRequest();
+    //client receives challenge
+    CHECK_THROWS(client2._transmission->receive());
+}
+
+TEST_CASE("Attempt to login as nonexisting.") {
+
+    Server server;
+
+    ClientMock client{"alice"};
+    client._connection = std::make_unique<ClientToServerManager>("server_pub.pem");
+    client._connection = std::make_unique<ClientToServerManager>("server_pub.pem");
+
+    std::stringstream loggingin = client._connection->parseOutgoing(
+            loginUser("alice", "2b7e151628aed2a6abf7158809cf4f3c"));
+    client._transmission->send(loggingin);
+    //server receives request
+    server.getRequest();
+    //client receives challenge
+    CHECK_THROWS(client._transmission->receive());
 }

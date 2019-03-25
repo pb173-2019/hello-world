@@ -42,24 +42,6 @@ struct Challenge {
 };
 
 
-// not needed for now
-
-///**
-// * @brief Mapping between socket connections and user info.
-// *
-// */
-//struct SocketInfo {
-//    std::string username;
-//    ServerToClientManager manager;
-//
-//    SocketInfo(std::string username, const std::vector<unsigned char>& clientPublicKeyData,
-//            const std::string& serverPrivKey) :
-//            username(std::move(username)),
-//            manager(clientPublicKeyData, serverPrivKey,
-//                    "323994cfb9da285a5d9642e1759b224a",
-//                    "2b7e151628aed2a6abf7158809cf4f3c") {}
-//};
-
 class Server : public Callable<void, bool, const std::string &, std::stringstream &&> {
     //rsa maximum encryption length of 126 bytes
     static const size_t CHALLENGE_SECRET_LENGTH = 126;
@@ -101,10 +83,31 @@ public:
             response = Response{ {Response::Type::GENERIC_SERVER_ERROR, request.header.messageNumber,
                                   request.header.userId}, from_string(generic.what()) };
         }
+        Request::Type type = request.header.type;
+
+        if ((type == Request::Type::LOGIN || type == Request::Type::CREATE)
+                && response.header.type != Response::Type::CHALLENGE_RESPONSE_NEEDED) {
+            _transmission->send(username, result);
+            return;
+        }
+
+        //todo try to solve differently - when the user is moved from _requests to _connections
+        if ((type == Request::Type::CREATE_COMPLETE || type == Request::Type::LOGIN_COMPLETE)
+        && response.header.type == Response::Type::OK) {
+            authenticated = true;
+        }
 
         std::stringstream result = (authenticated) ?
                 _connections.find(username)->second->parseOutgoing(response) :
                 _requestsToConnect.find(username)->second->manager->parseOutgoing(response);
+
+        //todo try to solve differently - delete after parsing the response
+        if ((request.header.type == Request::Type::REMOVE ||
+             request.header.type == Request::Type::LOGOUT) && response.header.type == Response::Type::OK) {
+            logout(username);
+        }
+
+
         _transmission->send(username, result);
     }
 
@@ -157,6 +160,7 @@ private:
     GenericServerManager _genericManager;
     std::map<std::string, std::unique_ptr<ServerToClientManager>> _connections;
     std::map<std::string, std::unique_ptr<Challenge>> _requestsToConnect;
+    std::map<std::string, std::string> _errors;
     std::unique_ptr<Database> _database;
     std::unique_ptr<ServerTransmissionManager> _transmission;
 

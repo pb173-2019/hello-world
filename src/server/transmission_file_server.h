@@ -56,7 +56,7 @@ public:
     void send(const std::string& usrname, std::iostream &data) override {
         data.seekg(0, std::ios::beg);
 
-        std::ofstream send{usrname + ".tcp", std::ios::binary | std::ios::out};
+        std::ofstream send{usrname + "-response.tcp", std::ios::binary | std::ios::out};
         if (!send) {
             throw Error("Transmission failed.\n");
         }
@@ -73,10 +73,11 @@ public:
 
         std::stringstream result{};
         _base64.toStream(received, result);
+        std::string name = incoming.substr(0, incoming.size() - 4);
 
         result.seekg(0, std::ios::beg);
-        Callable<void, bool, const std::string&, std::stringstream&&>::call(callback, exists(incoming),
-                incoming.substr(0, incoming.size() - 4), std::move(result));
+        Callable<void, bool, const std::string&, std::stringstream&&>::call(callback, exists(name),
+                name, std::move(result));
         incoming.push_back('\0'); //sichr
         if (remove(incoming.c_str()) != 0) {
             throw Error("Could not finish transmission.\n");

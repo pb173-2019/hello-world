@@ -61,7 +61,6 @@ public:
      * @param key symmetric key used by both sides to encrypt the first message
      */
     void openSecureChannel(std::string key) {
-        _gcm.setKey(key);
         _sessionKey = std::move(key);
         _established = true;
     }
@@ -137,17 +136,22 @@ public:
 
         //1) process head
         std::stringstream headIvStream = nBytesFromStream(data, AESGCM::iv_size * 2); //in hex string - 2x length
+        std::cout << headIvStream.str() << "\n";
         std::stringstream headStream = nBytesFromStream(data, HEADER_ENCRYPTED_SIZE);
         std::stringstream headDecrypted;
-        _gcm.setIv(headIvStream.str());
+        if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(headIvStream.str())) {
+            throw Error("Could not initialize GCM.");
+        }
         headIvStream.seekg(0, std::ios::beg);
-        _gcm.decryptWithAd(headStream, headIvStream, headDecrypted);
+       _gcm.decryptWithAd(headStream, headIvStream, headDecrypted);
 
         //2) process body (future: will do only if head contains data for server)
         std::stringstream bodyIvStream = nBytesFromStream(data, AESGCM::iv_size * 2);
         std::stringstream bodyStream = nBytesFromStream(data, getSize(data));
         std::stringstream bodyDecrypted;
-        _gcm.setIv(bodyIvStream.str());
+        if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(bodyIvStream.str())) {
+            throw Error("Could not initialize GCM.");
+        }
         bodyIvStream.seekg(0, std::ios::beg);
         _gcm.decryptWithAd(bodyStream, bodyIvStream, bodyDecrypted);
 
@@ -178,7 +182,9 @@ public:
             std::string headIv = to_hex(_random.get(AESGCM::iv_size));
             std::istringstream headIvStream{headIv};
             std::stringstream headEncrypted;
-            _gcm.setIv(headIv);
+            if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(headIv)) {
+                throw Error("Could not initialize GCM.");
+            }
             write_n(result, headIv);
             _gcm.encryptWithAd(head, headIvStream, result);
 
@@ -186,7 +192,9 @@ public:
             std::string bodyIv = to_hex(_random.get(AESGCM::iv_size));
             std::istringstream bodyIvStream{bodyIv};
             std::stringstream bodyEncrypted;
-            _gcm.setIv(bodyIv);
+            if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(bodyIv)) {
+                throw Error("Could not initialize GCM.");
+            }
             write_n(result, bodyIv);
             _gcm.encryptWithAd(body, bodyIvStream, result);
             bodyEncrypted.seekg(0, std::ios::beg);
@@ -251,6 +259,47 @@ public:
 
         return request;
     }
+
+    std::stringstream parseError(const Response& data, const std::string& key) {
+        Random random{};
+        AESGCM gcm;
+
+        std::stringstream result{};
+        //data.header.messageNumber = _counter.
+
+        std::stringstream body;
+        write_n(body, data.payload);
+
+        std::vector<unsigned char> head_data = data.header.serialize();
+        std::stringstream head;
+        write_n(head, head_data);
+
+        //1) encrypt head
+        std::string headIv = to_hex(random.get(AESGCM::iv_size));
+        std::istringstream headIvStream{headIv};
+        std::stringstream headEncrypted;
+        if (!gcm.setKey(key) || !gcm.setIv(headIv)) {
+            throw Error("Could not initialize GCM.");
+        }
+        write_n(result, headIv);
+        gcm.encryptWithAd(head, headIvStream, result);
+
+        //2) encrypt body
+        std::string bodyIv = to_hex(random.get(AESGCM::iv_size));
+        std::istringstream bodyIvStream{bodyIv};
+        std::stringstream bodyEncrypted;
+        if (!gcm.setKey(key) || !gcm.setIv(bodyIv)) {
+            throw Error("Could not initialize GCM.");
+        }
+        write_n(result, bodyIv);
+        gcm.encryptWithAd(body, bodyIvStream, result);
+        bodyEncrypted.seekg(0, std::ios::beg);
+        bodyIvStream.seekg(0, std::ios::beg);
+
+        result.seekg(0, std::ios::beg);
+        return result;
+    }
+
 };
 
 /**
@@ -272,7 +321,9 @@ public:
         std::stringstream headIvStream = nBytesFromStream(data, AESGCM::iv_size * 2); //in hex string - 2x length
         std::stringstream headStream = nBytesFromStream(data, HEADER_ENCRYPTED_SIZE);
         std::stringstream headDecrypted;
-        _gcm.setIv(headIvStream.str());
+        if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(headIvStream.str())) {
+            throw Error("Could not initialize GCM.");
+        }
         headIvStream.seekg(0, std::ios::beg);
         _gcm.decryptWithAd(headStream, headIvStream, headDecrypted);
 
@@ -280,7 +331,9 @@ public:
         std::stringstream bodyIvStream = nBytesFromStream(data, AESGCM::iv_size * 2);
         std::stringstream bodyStream = nBytesFromStream(data, getSize(data));
         std::stringstream bodyDecrypted;
-        _gcm.setIv(bodyIvStream.str());
+        if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(bodyIvStream.str())) {
+            throw Error("Could not initialize GCM.");
+        }
         bodyIvStream.seekg(0, std::ios::beg);
         _gcm.decryptWithAd(bodyStream, bodyIvStream, bodyDecrypted);
 
@@ -311,7 +364,9 @@ public:
         std::string headIv = to_hex(_random.get(AESGCM::iv_size));
         std::istringstream headIvStream{headIv};
         std::stringstream headEncrypted;
-        _gcm.setIv(headIv);
+        if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(headIv)) {
+            throw Error("Could not initialize GCM.");
+        }
         write_n(result, headIv);
         _gcm.encryptWithAd(head, headIvStream, result);
 
@@ -319,7 +374,9 @@ public:
         std::string bodyIv = to_hex(_random.get(AESGCM::iv_size));
         std::istringstream bodyIvStream{bodyIv};
         std::stringstream bodyEncrypted;
-        _gcm.setIv(bodyIv);
+        if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(bodyIv)) {
+            throw Error("Could not initialize GCM.");
+        }
         write_n(result, bodyIv);
         _gcm.encryptWithAd(body, bodyIvStream, result);
         bodyEncrypted.seekg(0, std::ios::beg);

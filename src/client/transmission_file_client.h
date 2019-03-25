@@ -55,7 +55,7 @@ public:
     }
 
     void receive() override {
-        std::ifstream received{username + ".tcp", std::ios::binary | std::ios::in};
+        std::ifstream received{username + "-response.tcp", std::ios::binary | std::ios::in};
         if (!received) {
             return;
         }
@@ -65,7 +65,7 @@ public:
 
         result.seekg(0, std::ios::beg);
         Callable<void, std::stringstream &&>::call(callback, std::move(result));
-        if (remove((username + ".tcp").c_str()) != 0) {
+        if (remove((username + "-response.tcp").c_str()) != 0) {
             throw Error("Could not finish transmission.\n");
         }
     }
