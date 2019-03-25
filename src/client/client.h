@@ -50,10 +50,6 @@ class Client : public Callable<void, std::stringstream &&> {
      * @param username name of user
      * @param password password of user
      */
-    // todo hint delete me
-    // server response is always encrypted with session key, when
-    // registered/logged in, initialize the _transmission with generated session
-    // key
     void login();
 
     /**
@@ -67,10 +63,6 @@ class Client : public Callable<void, std::stringstream &&> {
      * @param username  name of user
      * @param password password of user
      */
-    // todo hint delete me
-    // server response is always encrypted with session key, when
-    // registered/logged in, initialize the _transmission with generated session
-    // key
     void createAccount(const std::string& pubKeyFilename);
 
     /**

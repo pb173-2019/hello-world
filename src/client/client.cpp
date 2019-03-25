@@ -18,8 +18,8 @@ void Client::callback(std::stringstream &&data) {
         case Response::Type::OK:
             return;
         case Response::Type::CHALLENGE_RESPONSE_NEEDED:
-            sendRequest(
-                completeAuth(response.payload, Request::Type::CREATE_COMPLETE));
+            _connection.openSecureChannel(_sessionKey);
+            sendRequest(completeAuth(response.payload, Request::Type::CREATE_COMPLETE));
             return;
         default:
             throw Error("Unknown response type.");
