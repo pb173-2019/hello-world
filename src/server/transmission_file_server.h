@@ -61,30 +61,18 @@ public:
             throw Error("Transmission failed.\n");
         }
 
-        while (data.good()) {
-            unsigned char buffer[256];
-            size_t read = read_n(data, buffer, 256);
-            std::vector<unsigned char> encoded = _base64.encode(std::vector<unsigned char>(buffer, buffer + read));
-            write_n(send, encoded);
-        }
+        _base64.fromStream(data, send);
     }
 
     void receive() override {
         std::string incoming = getIncoming();
-        std::ifstream receive{incoming, std::ios::binary | std::ios::in};
-        if (!receive) {
+        std::ifstream received{incoming, std::ios::binary | std::ios::in};
+        if (!received) {
             return;
         }
 
         std::stringstream result{};
-        while (receive.good()) {
-            unsigned char buffer[256];
-            size_t read = read_n(receive, buffer, 256);
-            //todo bad character?
-//            std::vector<unsigned char> decoded = _base64.decode(std::vector<unsigned char>(buffer, buffer + read));
-//            write_n(result, decoded);
-            write_n(result, buffer, read);
-        }
+        _base64.toStream(received, result);
 
         result.seekg(0, std::ios::beg);
         Callable<void, bool, const std::string&, std::stringstream&&>::call(callback, exists(incoming),

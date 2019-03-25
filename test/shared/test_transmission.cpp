@@ -12,14 +12,12 @@ struct Test : public Callable<void, bool, const std::string&, std::stringstream&
     explicit Test(std::string expected) : result(std::move(expected)) {}
 
     void callback(bool /*unused*/, const std::string& username, std::stringstream&& data) override {
-        //todo commented functionality
-//        if (data.str() != result) {
-//            throw Error("test failed: " + data.str() + " != " + result);
-//        };
+        if (data.str() != result) {
+            throw Error("test failed: " + data.str() + " != " + result);
+        };
     }
 
 };
-
 
 TEST_CASE("Check the basic functionality") {
     std::stringstream data{"Some simple message"};

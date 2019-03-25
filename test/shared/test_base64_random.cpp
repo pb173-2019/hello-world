@@ -62,9 +62,9 @@ TEST_CASE("Salt generator - pseudo random") {
     std::string s3 = salt3.get();
     std::string s4 = salt4.get();
 
-//     CHECK(s1 == s2);
-//     CHECK(s2 == s3);
-//     CHECK(s3 == s4);
+     CHECK(s1 == s2);
+     CHECK(s2 == s3);
+     CHECK(s3 == s4);
 
     //too short seed
     CHECK_THROWS(Salt{""});

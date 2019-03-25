@@ -29,6 +29,10 @@ public:
     std::vector<unsigned char> encode(const std::vector<unsigned char>& message) override;
 
     std::vector<unsigned char> decode(const std::vector<unsigned char>& data) override;
+
+    void toStream(std::istream &toDecode, std::ostream &out) override;
+
+    void fromStream(std::istream &toEncode, std::ostream &out) override;
 };
 
 } // namespace helloworld

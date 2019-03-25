@@ -40,6 +40,24 @@ class Encode {
    * @return raw decoded message
    */
   virtual raw decode(const encoded& data) = 0;
+
+  /**
+   * @brief Encode input stream into base64 & write to output stream
+   *        base64 has delimiters -> encode 256 blocks by lines
+   *
+   * @param toEncode stream to encode
+   * @param out encoded stream
+   */
+  virtual void fromStream(std::istream &toEncode, std::ostream &out) = 0;
+
+    /**
+     * @brief Decode input stream into original form
+     *        base64 has delimiters -> get file by lines and encode as single blocks
+     *
+     * @param toDecode stream to decode
+     * @param out original stream
+     */
+  virtual void toStream(std::istream &toDecode, std::ostream &out) = 0;
 };
 
 }  // namespace helloworld
