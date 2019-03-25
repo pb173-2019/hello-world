@@ -2,7 +2,8 @@
 configure_file(${CMAKE_SOURCE_DIR}/src/keys/server_priv.pem ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 configure_file(${CMAKE_SOURCE_DIR}/src/keys/server_pub.pem ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 
-file(GLOB client_test_src "./client/*.h" "./client/*.cpp")
+file(GLOB client_test_src "./client/*.h" "./client/*.cpp"
+        ../src/client/client.cpp)
 add_executable(client_test test_main.cpp ${client_test_src})
 target_link_libraries(client_test shared)
 add_test(client_test_execute client_test)
