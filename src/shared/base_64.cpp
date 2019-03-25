@@ -46,11 +46,11 @@ void Base64::fromStream(std::istream &toEncode, std::ostream &out) {
         mbedtls_base64_encode(nullptr, 0, &requiredSize, buffer, read);
 
         size_t actualLength;
-        unsigned char encoded[requiredSize];
-        if (mbedtls_base64_encode(encoded, requiredSize, &actualLength, buffer, read) != 0) {
+        std::vector<unsigned char> encoded(requiredSize);
+        if (mbedtls_base64_encode(encoded.data(), requiredSize, &actualLength, buffer, read) != 0) {
             throw Error("The buffer size provided for Base64 encoder is too small.");
         }
-        write_n(out, encoded, actualLength);
+        write_n(out, encoded.data(), actualLength);
         out << '\n';
     }
 }
@@ -63,8 +63,8 @@ void Base64::toStream(std::istream &toDecode, std::ostream &out) {
                               reinterpret_cast<const unsigned char*>(chunk.data()), chunk.size());
 
         size_t actualLength;
-        unsigned char decoded[requiredSize];
-        switch (mbedtls_base64_decode(decoded, requiredSize, &actualLength,
+        std::vector<unsigned char> decoded(requiredSize);
+        switch (mbedtls_base64_decode(decoded.data(), requiredSize, &actualLength,
                 reinterpret_cast<const unsigned char*>(chunk.data()), chunk.size())) {
             case MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL:
                 throw Error("The buffer size provided for Base64 encoder is insufficient.");
@@ -73,7 +73,7 @@ void Base64::toStream(std::istream &toDecode, std::ostream &out) {
             default:
                 break;
         }
-        write_n(out, decoded, actualLength);
+        write_n(out, decoded.data(), actualLength);
     }
 }
 
