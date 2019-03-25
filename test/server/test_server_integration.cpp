@@ -19,9 +19,7 @@ Request registerUser(const std::string &name, const std::string& sessionKey, con
     return {{Request::Type::CREATE, 1, 0}, registerRequest.serialize()};
 }
 
-Request loginUser(Server &server,
-                      const std::string &name,
-                      const std::string& sessionKey) {
+Request loginUser(const std::string &name, const std::string& sessionKey) {
 
     AuthenticateRequest auth(name, sessionKey);
     return {{Request::Type::LOGIN, 1, 0}, auth.serialize()};
@@ -38,6 +36,18 @@ Request completeAuth(const std::vector<unsigned char>& secret,
 
     CompleteAuthRequest crRequest(std::move(rsa.decrypt(secret)), name);
     return {{type, 2, 0}, crRequest.serialize()};
+}
+
+Request logoutUser(const std::string& username) {
+    //id ignored for now, we run on names to simplify
+    NameIdNeededRequest logout{0, username};
+    return {{Request::Type::LOGOUT, 0, 0}, logout.serialize()};
+}
+
+Request deleteUser(const std::string& username) {
+    //id ignored for now, we run on names to simplify
+    NameIdNeededRequest logout{0, username};
+    return {{Request::Type::REMOVE, 0, 0}, logout.serialize()};
 }
 
 class ClientMock : public Callable<void, std::stringstream &&> {
@@ -73,22 +83,49 @@ TEST_CASE("Create key for alice") {
     keygen.savePublicKey("alice_pub.pem");
 }
 
-TEST_CASE("Scenario 1: use channel to reach server and try to create account.") {
+TEST_CASE("Scenario 1: create, logout, login, delete.") {
 
     Server server;
 
     ClientMock client;
     client._connection = std::make_unique<ClientToServerManager>("server_pub.pem");
 
-    std::stringstream buffer = client._connection->parseOutgoing(
+    std::stringstream registration = client._connection->parseOutgoing(
             registerUser("alice", "2b7e151628aed2a6abf7158809cf4f3c", "alice_pub.pem"));
-    client._transmission->send(buffer);
-
+    client._transmission->send(registration);
+    //server receives request
     server.getRequest();
-
+    //client receives challenge
+    client._transmission->receive();
+    //server verifies challenge
+    server.getRequest();
+    //client obtains the final OK response
     client._transmission->receive();
 
+    std::stringstream loggingout = client._connection->parseOutgoing(logoutUser("alice"));
+    client._transmission->send(loggingout);
+    //server receives request
     server.getRequest();
-
+    //client obtains the final OK response
     client._transmission->receive();
+
+    std::stringstream loggingin = client._connection->parseOutgoing(
+            loginUser("alice", "2b7e151628aed2a6abf7158809cf4f3c"));
+    client._transmission->send(loggingin);
+    //server receives request
+    server.getRequest();
+    //client receives challenge
+    client._transmission->receive();
+    //server verifies challenge
+    server.getRequest();
+    //client obtains the final OK response
+    client._transmission->receive();
+
+    std::stringstream deleteuser = client._connection->parseOutgoing(deleteUser("alice"));
+    client._transmission->send(deleteuser);
+    //server receives request
+    server.getRequest();
+    //client obtains the final OK response
+    client._transmission->receive();
+
 }
