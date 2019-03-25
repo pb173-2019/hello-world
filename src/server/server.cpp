@@ -68,7 +68,6 @@ Response Server::registerUser(const Request &request) {
     bool inserted = _requestsToConnect.emplace(userData.name,
             std::make_unique<Challenge>(userData, challengeBytes, registerRequest.sessionKey)).second;
     if (!inserted) {
-        _errors.insert(registerRequest.name, registerRequest.sessionKey);
         throw Error("User " + userData.name + " is already in the process of verification.");
     }
 
@@ -90,7 +89,6 @@ Response Server::completeUserRegistration(const Request &request) {
 
     if (curRequest.secret != registration->second->secret) {
         _requestsToConnect.erase(curRequest.name);
-        _errors.insert(curRequest.name, registration->second->userData.sessionKey);
         throw Error("Cannot verify public key owner.");
     }
 

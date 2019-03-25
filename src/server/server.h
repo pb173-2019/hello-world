@@ -85,12 +85,6 @@ public:
         }
         Request::Type type = request.header.type;
 
-        if ((type == Request::Type::LOGIN || type == Request::Type::CREATE)
-                && response.header.type != Response::Type::CHALLENGE_RESPONSE_NEEDED) {
-            _transmission->send(username, result);
-            return;
-        }
-
         //todo try to solve differently - when the user is moved from _requests to _connections
         if ((type == Request::Type::CREATE_COMPLETE || type == Request::Type::LOGIN_COMPLETE)
         && response.header.type == Response::Type::OK) {
@@ -155,12 +149,19 @@ public:
         _transmission->removeConnection(name);
     }
 
+    /**
+     * @brief Logout implementation, reused in deleting account.
+     *        public because of testing
+     *
+     * @param name name of user to log out
+     */
+    Response logout(const std::string& name);
+
 private:
     Random _random;
     GenericServerManager _genericManager;
     std::map<std::string, std::unique_ptr<ServerToClientManager>> _connections;
     std::map<std::string, std::unique_ptr<Challenge>> _requestsToConnect;
-    std::map<std::string, std::string> _errors;
     std::unique_ptr<Database> _database;
     std::unique_ptr<ServerTransmissionManager> _transmission;
 
@@ -226,13 +227,6 @@ private:
      * @return Response OK response if user was logged out
      */
     Response logOut(const Request &request);
-
-    /**
-     * @brief Logout implementation, reused in deleting account.
-     *
-     * @param name name of user to log out
-     */
-    Response logout(const std::string& name);
 };
 
 }    // namespace helloworld

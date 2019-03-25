@@ -91,7 +91,7 @@ struct Response {
         INVALID_AUTH = 0x1200,
         INVALID_MAC = 0x1201,
         INVALID_MSG_NUM = 0x1050,
-
+        AUTH_FAILED = 0x1250,
         FAILED_TO_CLOSE_CONNECTION = 0x1350,
         CHALLENGE_RESPONSE_NEEDED = 0x2200,
     };

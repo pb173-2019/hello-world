@@ -30,6 +30,9 @@ Response completeAlice(Server &server, const std::vector<unsigned char>& secret,
 
     CompleteAuthRequest crRequest(std::move(rsa.decrypt(secret)), name);
     Request request{{type, 2, 0}, crRequest.serialize()};
+//    std::cout << static_cast<int>(request.header.type) <<"\n";
+//    std::cout << static_cast<int>(request.header.userId) <<"\n";
+
     return server.handleUserRequest(request);
 }
 
@@ -126,6 +129,9 @@ TEST_CASE("Delete & logout") {
     Request logoutRequest{{Request::Type::LOGOUT, 0, 0}, nameId.serialize()};
     auto logoutReponse = server.handleUserRequest(logoutRequest);
     CHECK(logoutReponse.header.type == Response::Type::OK);
+    //server does not log out users in handleUserRequest() mothod, the logging out is
+    //performed after sending the reponse, so here just logout force
+    server.logout("alice");
     //login
     AuthenticateRequest authRequest("alice", "2b7e151628aed2a6abf7158809cf4f3c");
     Request login{{Request::Type::LOGIN, 10, 0}, authRequest.serialize()};
