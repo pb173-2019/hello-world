@@ -3,9 +3,17 @@ configure_file(${CMAKE_SOURCE_DIR}/src/keys/server_priv.pem ${CMAKE_CURRENT_BINA
 configure_file(${CMAKE_SOURCE_DIR}/src/keys/server_pub.pem ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 
 file(GLOB client_test_src "./client/*.h" "./client/*.cpp"
-        ../src/client/client.cpp)
+        ../src/client/client.cpp
+        ../src/server/database.h
+        ../src/server/file_database.cpp
+        ../src/server/file_database.h
+        ../src/server/server.cpp
+        ../src/server/server.h
+        ../src/server/sqlite_database.cpp
+        ../src/server/sqlite_database.h
+        )
 add_executable(client_test test_main.cpp ${client_test_src})
-target_link_libraries(client_test shared)
+target_link_libraries(client_test shared sqlite3)
 add_test(client_test_execute client_test)
 
 file(GLOB server_test_src "./server/*.h" "./server/*.cpp"

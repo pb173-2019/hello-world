@@ -91,7 +91,9 @@ class Client : public Callable<void, std::stringstream &&> {
     const std::string _clientPubKeyFilename;
     const std::string _sessionKey;
     std::unique_ptr<UserTransmissionManager> _transmission;
-    ClientToServerManager _connection;
+    std::unique_ptr<ClientToServerManager> _connection = nullptr;
+    const std::string _serverPubKey;
+
     RSA2048 _rsa;
 
     Request completeAuth(const std::vector<unsigned char> &secret,
