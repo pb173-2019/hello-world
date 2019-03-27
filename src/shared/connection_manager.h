@@ -2,7 +2,7 @@
  * @file ConnectionManager.h
  * @author Jiří Horák (469130@mail.muni.cz)
  * @brief Connection manager takes care of
- *         - parsing the requests and responses using rrmanip.h
+ *         - parsing the requests and responses
  *         - encryption & decryption using asymmetric cipher if no symmetric keys set (before channel establishment)
  *         - encryption & decryption using symmetric cipher if keys set (when is channel running)
  *         - key derivation, e.g. double ratchet process to derive new keys each message
@@ -18,12 +18,11 @@
 
 #include <sstream>
 #include <map>
+#include <iterator>
 
 #include "request.h"
-#include "sha_512.h"
 #include "rsa_2048.h"
 #include "aes_gcm.h"
-#include "hmac.h"
 
 namespace helloworld {
 /**
@@ -43,8 +42,7 @@ protected:
 
     std::string _sessionKey;
 
-    bool _established = false;
-
+    //GCM used to encrypt session messages
     AESGCM _gcm{};
     Random _random;
 
@@ -59,10 +57,10 @@ public:
      * @brief Initialize security channel once the symmetric key is agreed on
      *
      * @param key symmetric key used by both sides to encrypt the first message
+     *        use empty string to close channel
      */
     void openSecureChannel(std::string key) {
         _sessionKey = std::move(key);
-        _established = true;
     }
 
     /**
@@ -86,13 +84,70 @@ public:
 
 protected:
     //pretty ugly, but C++ does not simply allows to move n bytes
-    std::stringstream nBytesFromStream(std::istream &input, size_t n) {
+    std::stringstream _nBytesFromStream(std::istream &input, size_t n) {
         std::stringstream result;
         std::vector<unsigned char> buff(n);
         size_t size = read_n(input, buff.data(), buff.size());
         write_n(result, buff.data(), size);
         clear<unsigned char>(buff.data(), buff.size());
         return result;
+    }
+
+    template <typename Bundle>
+    void _GCMencryptBody(std::ostream& out, const Bundle &data) {
+        std::stringstream body;
+        write_n(body, data.payload);
+        std::string bodyIv = to_hex(_random.get(AESGCM::iv_size));
+        std::istringstream bodyIvStream{bodyIv};
+        std::stringstream bodyEncrypted;
+        if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(bodyIv)) {
+            throw Error("Could not initialize GCM.");
+        }
+        write_n(out, bodyIv);
+        _gcm.encryptWithAd(body, bodyIvStream, out);
+    }
+
+    template <typename Bundle>
+    void _GCMencryptHead(std::ostream& out, const Bundle &data) {
+        std::vector<unsigned char> head_data = data.header.serialize();
+        std::stringstream head;
+        write_n(head, head_data);
+
+        //1) encrypt head
+        std::string headIv = to_hex(_random.get(AESGCM::iv_size));
+        std::istringstream headIvStream{headIv};
+        std::stringstream headEncrypted;
+        if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(headIv)) {
+            throw Error("Could not initialize GCM.");
+        }
+        write_n(out, headIv);
+        _gcm.encryptWithAd(head, headIvStream, out);
+    }
+
+    std::stringstream _GCMdecryptHead(std::istream &in) {
+        //in hex string - 2x length
+        std::stringstream headIvStream = _nBytesFromStream(in, AESGCM::iv_size * 2);
+        std::cout << headIvStream.str() << "\n";
+        std::stringstream headStream = _nBytesFromStream(in, HEADER_ENCRYPTED_SIZE);
+        std::stringstream headDecrypted;
+        if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(headIvStream.str())) {
+            throw Error("Could not initialize GCM.");
+        }
+        headIvStream.seekg(0, std::ios::beg);
+        _gcm.decryptWithAd(headStream, headIvStream, headDecrypted);
+        return headDecrypted;
+    }
+
+    std::stringstream _GCMdecryptBody(std::istream& in) {
+        std::stringstream bodyIvStream = _nBytesFromStream(in, AESGCM::iv_size * 2);
+        std::stringstream bodyStream = _nBytesFromStream(in, getSize(in));
+        std::stringstream bodyDecrypted;
+        if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(bodyIvStream.str())) {
+            throw Error("Could not initialize GCM.");
+        }
+        bodyIvStream.seekg(0, std::ios::beg);
+        _gcm.decryptWithAd(bodyStream, bodyIvStream, bodyDecrypted);
+        return bodyDecrypted;
     }
 };
 
@@ -115,9 +170,7 @@ public:
      * @param privkeyFilename rsa private key of the owner filename path
      * @param pwd password to decrypt private key
      */
-    explicit ClientToServerManager(const std::string &pubkeyFilename) {
-        _rsa_out.loadPublicKey(pubkeyFilename);
-    }
+    explicit ClientToServerManager(const std::string &pubkeyFilename);
 
     /**
      * @brief Initialize with public key from buffer
@@ -126,98 +179,11 @@ public:
      * @param privkeyFilename rsa private key of the owner filename path
      * @param pwd password to decrypt private key
      */
-    explicit ClientToServerManager(const std::vector<unsigned char> &publicKeyData) {
-        _rsa_out.setPublicKey(publicKeyData);
-    }
+    explicit ClientToServerManager(const std::vector<unsigned char> &publicKeyData);
 
-    //todo separate to methods
-    Response parseIncoming(std::stringstream &&data) override {
-        Response response;
+    Response parseIncoming(std::stringstream &&data) override;
 
-        //1) process head
-        std::stringstream headIvStream = nBytesFromStream(data, AESGCM::iv_size * 2); //in hex string - 2x length
-        std::cout << headIvStream.str() << "\n";
-        std::stringstream headStream = nBytesFromStream(data, HEADER_ENCRYPTED_SIZE);
-        std::stringstream headDecrypted;
-        if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(headIvStream.str())) {
-            throw Error("Could not initialize GCM.");
-        }
-        headIvStream.seekg(0, std::ios::beg);
-       _gcm.decryptWithAd(headStream, headIvStream, headDecrypted);
-
-        //2) process body (future: will do only if head contains data for server)
-        std::stringstream bodyIvStream = nBytesFromStream(data, AESGCM::iv_size * 2);
-        std::stringstream bodyStream = nBytesFromStream(data, getSize(data));
-        std::stringstream bodyDecrypted;
-        if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(bodyIvStream.str())) {
-            throw Error("Could not initialize GCM.");
-        }
-        bodyIvStream.seekg(0, std::ios::beg);
-        _gcm.decryptWithAd(bodyStream, bodyIvStream, bodyDecrypted);
-
-        //3) build request
-        std::vector<unsigned char> head(sizeof(Request::Header));
-        read_n(headDecrypted, head.data(), head.size());
-        response.header = Response::Header::deserialize(head);
-        //will pass only encrypted payload if not for server to read
-        response.payload.resize(getSize(bodyDecrypted));
-        read_n(bodyDecrypted, response.payload.data(), response.payload.size());
-
-        return response;
-    }
-
-    //todo separate to methods
-    std::stringstream parseOutgoing(const Request &data) override {
-        std::stringstream result{};
-        //data.header.messageNumber = _counter.
-        if (_established) {
-            std::stringstream body;
-            write_n(body, data.payload);
-
-            std::vector<unsigned char> head_data = data.header.serialize();
-            std::stringstream head;
-            write_n(head, head_data);
-
-            //1) encrypt head
-            std::string headIv = to_hex(_random.get(AESGCM::iv_size));
-            std::istringstream headIvStream{headIv};
-            std::stringstream headEncrypted;
-            if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(headIv)) {
-                throw Error("Could not initialize GCM.");
-            }
-            write_n(result, headIv);
-            _gcm.encryptWithAd(head, headIvStream, result);
-
-            //2) encrypt body
-            std::string bodyIv = to_hex(_random.get(AESGCM::iv_size));
-            std::istringstream bodyIvStream{bodyIv};
-            std::stringstream bodyEncrypted;
-            if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(bodyIv)) {
-                throw Error("Could not initialize GCM.");
-            }
-            write_n(result, bodyIv);
-            _gcm.encryptWithAd(body, bodyIvStream, result);
-            bodyEncrypted.seekg(0, std::ios::beg);
-            bodyIvStream.seekg(0, std::ios::beg);
-        } else {
-            //when connection starts (registration / login)
-            //does not ensure integrity, results in connection failure as we're sending session key
-
-            write_n(result, _rsa_out.encrypt(data.header.serialize()));
-            int limit = 126;
-            int processed = 0;
-            while (processed < data.payload.size()) {
-                size_t length = data.payload.size() - processed;
-                if (length > limit) length = static_cast<size_t>(limit);
-                std::vector<unsigned char> toEncrypt(data.payload.data() + processed,
-                        data.payload.data() + processed + length);
-                write_n(result, _rsa_out.encrypt(toEncrypt));
-                processed += limit;
-            }
-        }
-        result.seekg(0, std::ios::beg);
-        return result;
-    }
+    std::stringstream parseOutgoing(const Request &data) override;
 
 private:
     //in future: will get connection from _userManagers and encrypts
@@ -232,73 +198,39 @@ private:
  */
 class GenericServerManager {
     RSA2048 _rsa_in{};
+    static constexpr int HEADER_ENCRYPTED_SIZE = 28;
 
 public:
-    GenericServerManager(const std::string &privkeyFilename, const std::string &key, const std::string &iv) {
-        _rsa_in.loadPrivateKey(privkeyFilename, key, iv);
-    }
+    /**
+     * Server manager that takes care of generic events, such as when the session
+     * is not established
+     *
+     * @param privkeyFilename server private key file name
+     * @param key aes key to read private key
+     * @param iv aes iv to read private key
+     */
+    GenericServerManager(const std::string &privkeyFilename, const std::string &key, const std::string &iv);
 
-    Request parseIncoming(std::stringstream &&data) {
-        Request request;
-        std::vector<unsigned char> header = std::vector<unsigned char>(RSA2048::BLOCK_SIZE_OAEP);
-        read_n(data, header.data(), header.size());
+    /**
+     * Parse incomming request with server private key
+     * @param data data to parse
+     * @return Request from new user
+     */
+    Request parseIncoming(std::stringstream &&data);
 
-        header = _rsa_in.decrypt(header);
+    /**
+     * Return reponse bytes of 0s that satisfies the parsed reponse length
+     * @return stream of 0s
+     */
+    std::stringstream returnErrorGeneric();
 
-        std::vector<unsigned char> body = std::vector<unsigned char>(RSA2048::BLOCK_SIZE_OAEP);
-        std::vector<unsigned char> result;
-        while (true) {
-            size_t read = read_n(data, body.data(), body.size());
-            if (read <= 0)
-                break;
-            std::vector<unsigned char> decrypted = _rsa_in.decrypt(body);
-            result.insert(result.end(), decrypted.begin(), decrypted.end());
-        }
-        request.header = std::move(Request::Header::deserialize(header));
-        request.payload = std::move(result);
-
-        return request;
-    }
-
-    std::stringstream parseError(const Response& data, const std::string& key) {
-        Random random{};
-        AESGCM gcm;
-
-        std::stringstream result{};
-        //data.header.messageNumber = _counter.
-
-        std::stringstream body;
-        write_n(body, data.payload);
-
-        std::vector<unsigned char> head_data = data.header.serialize();
-        std::stringstream head;
-        write_n(head, head_data);
-
-        //1) encrypt head
-        std::string headIv = to_hex(random.get(AESGCM::iv_size));
-        std::istringstream headIvStream{headIv};
-        std::stringstream headEncrypted;
-        if (!gcm.setKey(key) || !gcm.setIv(headIv)) {
-            throw Error("Could not initialize GCM.");
-        }
-        write_n(result, headIv);
-        gcm.encryptWithAd(head, headIvStream, result);
-
-        //2) encrypt body
-        std::string bodyIv = to_hex(random.get(AESGCM::iv_size));
-        std::istringstream bodyIvStream{bodyIv};
-        std::stringstream bodyEncrypted;
-        if (!gcm.setKey(key) || !gcm.setIv(bodyIv)) {
-            throw Error("Could not initialize GCM.");
-        }
-        write_n(result, bodyIv);
-        gcm.encryptWithAd(body, bodyIvStream, result);
-        bodyEncrypted.seekg(0, std::ios::beg);
-        bodyIvStream.seekg(0, std::ios::beg);
-
-        result.seekg(0, std::ios::beg);
-        return result;
-    }
+    /**
+     * Parse reponse with GCM with aes key given. One-time operation
+     * @param data data to parse & encrypt
+     * @param key GCM key to encrypt
+     * @return stream
+     */
+    std::stringstream parseErrorGCM(const Response& data, const std::string& key);
 
 };
 
@@ -308,83 +240,11 @@ public:
  */
 class ServerToClientManager : public ConnectionManager<Request, Response> {
 public:
-    explicit ServerToClientManager(const std::string &sessionKey) {
-        openSecureChannel(sessionKey);
-    }
+    explicit ServerToClientManager(const std::string &sessionKey);
 
-    //todo separate to methods
-    Request parseIncoming(std::stringstream &&data) override {
-        Request request;
-        //data.header.messageNumber = _counter.
+    Request parseIncoming(std::stringstream &&data) override;
 
-        //1) process head
-        std::stringstream headIvStream = nBytesFromStream(data, AESGCM::iv_size * 2); //in hex string - 2x length
-        std::stringstream headStream = nBytesFromStream(data, HEADER_ENCRYPTED_SIZE);
-        std::stringstream headDecrypted;
-        if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(headIvStream.str())) {
-            throw Error("Could not initialize GCM.");
-        }
-        headIvStream.seekg(0, std::ios::beg);
-        _gcm.decryptWithAd(headStream, headIvStream, headDecrypted);
-
-        //2) process body (future: will do only if head contains data for server)
-        std::stringstream bodyIvStream = nBytesFromStream(data, AESGCM::iv_size * 2);
-        std::stringstream bodyStream = nBytesFromStream(data, getSize(data));
-        std::stringstream bodyDecrypted;
-        if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(bodyIvStream.str())) {
-            throw Error("Could not initialize GCM.");
-        }
-        bodyIvStream.seekg(0, std::ios::beg);
-        _gcm.decryptWithAd(bodyStream, bodyIvStream, bodyDecrypted);
-
-        //3) build request
-        std::vector<unsigned char> head(sizeof(Request::Header));
-        read_n(headDecrypted, head.data(), head.size());
-        request.header = Request::Header::deserialize(head);
-        //will pass only encrypted payload if not for server to read
-        request.payload.resize(getSize(bodyDecrypted));
-        read_n(bodyDecrypted, request.payload.data(), request.payload.size());
-
-        return request;
-    }
-
-    //todo separate to methods
-    std::stringstream parseOutgoing(const Response &data) override {
-        std::stringstream result{};
-        //data.header.messageNumber = _counter.
-
-        std::stringstream body;
-        write_n(body, data.payload);
-
-        std::vector<unsigned char> head_data = data.header.serialize();
-        std::stringstream head;
-        write_n(head, head_data);
-
-        //1) encrypt head
-        std::string headIv = to_hex(_random.get(AESGCM::iv_size));
-        std::istringstream headIvStream{headIv};
-        std::stringstream headEncrypted;
-        if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(headIv)) {
-            throw Error("Could not initialize GCM.");
-        }
-        write_n(result, headIv);
-        _gcm.encryptWithAd(head, headIvStream, result);
-
-        //2) encrypt body
-        std::string bodyIv = to_hex(_random.get(AESGCM::iv_size));
-        std::istringstream bodyIvStream{bodyIv};
-        std::stringstream bodyEncrypted;
-        if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(bodyIv)) {
-            throw Error("Could not initialize GCM.");
-        }
-        write_n(result, bodyIv);
-        _gcm.encryptWithAd(body, bodyIvStream, result);
-        bodyEncrypted.seekg(0, std::ios::beg);
-        bodyIvStream.seekg(0, std::ios::beg);
-
-        result.seekg(0, std::ios::beg);
-        return result;
-    }
+    std::stringstream parseOutgoing(const Response &data) override;
 };
 
 }
