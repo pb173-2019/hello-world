@@ -44,6 +44,14 @@ public:
     virtual const std::vector<std::unique_ptr<UserData>>& selectUsers(const UserData& query) = 0;
 
     /**
+     * Select from database data by query
+     *
+     * @param query search request
+     * @return std::vector<std::unique_ptr<UserData>>& data matching the query
+     */
+    virtual const std::vector<std::unique_ptr<UserData>>& selectUsersLike(const UserData& query) = 0;
+
+    /**
      * Delete user from database
      *
      * @param data must contain either user name or id

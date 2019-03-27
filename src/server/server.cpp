@@ -172,7 +172,7 @@ void Server::logout(const std::string &name) {
 void Server::dropDatabase() { _database->drop(); }
 
 std::vector<std::string> Server::getUsers(const std::string& query) {
-    const auto &users = _database->selectUsers({0, query, "", {}});
+    const auto &users = _database->selectUsersLike({0, query, "", {}});
     std::vector<std::string> names;
     for (const auto &user : users) {
         names.push_back(user->name);

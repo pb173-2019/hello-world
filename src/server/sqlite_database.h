@@ -20,7 +20,7 @@
 
 namespace helloworld {
 
-const std::string specialCharacters = ":?\"";
+const std::string specialCharacters = ":?\"%'";
 
 class ServerSQLite : public ServerDatabase {
     std::vector<std::unique_ptr<UserData>> _cache;
@@ -52,6 +52,8 @@ public:
     void insert(const UserData &data, bool autoIncrement) override;
 
     const std::vector<std::unique_ptr<UserData>>& selectUsers(const UserData &query) override;
+
+    const std::vector<std::unique_ptr<UserData>>& selectUsersLike(const UserData &query) override;
 
     bool removeUser(const UserData& data) override;
 

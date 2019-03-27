@@ -49,11 +49,20 @@ const std::vector<std::unique_ptr<UserData>> &ServerSQLite::selectUsers(const Us
     if (query.id == 0 && query.name.empty()) {
         res = _execute("SELECT * FROM users;", _fillData, &_cache);
     } else if (query.id == 0) {
-        res = _execute("SELECT * FROM users WHERE username LIKE '%" + _sCheck(query.name) + "%' ORDER BY id DESC;",
+        res = _execute("SELECT * FROM users WHERE username='" + _sCheck(query.name) + "' ORDER BY id DESC;",
                        _fillData, &_cache);
     } else {
         res = _execute("SELECT * FROM users WHERE id=" + std::to_string(query.id) + ";", _fillData, &_cache);
     }
+    if (res != SQLITE_OK)
+        throw Error("Select command failed: " + _getErrorMsgByReturnType(res));
+    return _cache;
+}
+
+const std::vector<std::unique_ptr<UserData>> &ServerSQLite::selectUsersLike(const UserData &query) {
+    _cache.clear();
+    int res = _execute("SELECT * FROM users WHERE username LIKE '%" + _sCheck(query.name) + "%' ORDER BY id DESC;",
+                _fillData, &_cache);
     if (res != SQLITE_OK)
         throw Error("Select command failed: " + _getErrorMsgByReturnType(res));
     return _cache;

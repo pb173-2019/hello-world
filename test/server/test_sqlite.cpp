@@ -51,12 +51,12 @@ TEST_CASE("SQLITE Database test multiple data") {
     db.insert(d6, false);
 
     UserData query1{0, "user", "", {}};
-    const auto& res1 = db.selectUsers(query1);
+    const auto& res1 = db.selectUsersLike(query1);
     CHECK(res1[0]->name == "user666");
     CHECK(res1[0]->id == 53);
 
     UserData query2{0, "no", "", {}};
-    const auto& res2 = db.selectUsers(query2);
+    const auto& res2 = db.selectUsersLike(query2);
     REQUIRE(res2.size() == 2);
     CHECK(res2[0]->name == "Penopa");
     CHECK(res2[0]->id == 245);
@@ -72,7 +72,9 @@ TEST_CASE("SQLITE Database test multiple data") {
 TEST_CASE("SQLITE Database no data") {
     ServerSQLite db{};
     UserData query1{0, "user", "", {}};
-    CHECK(db.selectUsers(query1).empty());
+    CHECK(db.selectUsersLike(query1).empty());
+    UserData query2{0, "", "", {}};
+    CHECK(db.selectUsersLike(query2).empty());
 }
 
 TEST_CASE("SQLITE Database no matching query") {
