@@ -104,8 +104,10 @@ public:
 
     std::vector<unsigned char> decrypt(const std::vector<unsigned char> &data) override;
 
+    std::vector<unsigned char> sign(const std::vector<unsigned char> &hash) override;
     std::vector<unsigned char> sign(const std::string &hash) override;
 
+    bool verify(const std::vector<unsigned char> &signedData, const std::vector<unsigned char> &hash) override;
     bool verify(const std::vector<unsigned char> &signedData, const std::string &hash) override;
 
 private:

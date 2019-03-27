@@ -37,7 +37,7 @@ Request completeAuth(const std::vector<unsigned char>& secret,
     RSA2048 rsa;
     rsa.loadPrivateKey(privKeyFilename, pwd);
 
-    CompleteAuthRequest crRequest(std::move(rsa.decrypt(secret)), name);
+    CompleteAuthRequest crRequest(std::move(rsa.sign(secret)), name);
     return {{type, 2, 0}, crRequest.serialize()};
 }
 
@@ -65,6 +65,7 @@ public:
         switch (response.header.type) {
             case Response::Type::OK: {
                 CHECK(true);
+                registered = true;
                 return;
             }
             case Response::Type::DATABASE_ONLINE_SEND: {
@@ -77,7 +78,8 @@ public:
 
             case Response::Type::CHALLENGE_RESPONSE_NEEDED: {
                 Request complete = completeAuth(response.payload, _username,
-                                                "alice_priv.pem", "the most secure pwd ever", Request::Type::CREATE_COMPLETE);
+                        "alice_priv.pem", "the most secure pwd ever",
+                        (registered) ?  Request::Type::LOGIN_COMPLETE : Request::Type::CREATE_COMPLETE);
                 std::stringstream buffer = _connection->parseOutgoing(complete);
                 _transmission->send(buffer);
                 return;
@@ -91,6 +93,7 @@ public:
     std::string _username = "alice";
     std::unique_ptr<UserTransmissionManager> _transmission;
     std::unique_ptr<ClientToServerManager> _connection = nullptr;
+    bool registered = false;
 };
 
 TEST_CASE("Create keys") {
@@ -154,7 +157,7 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
     server.getRequest();
     //client obtains the final OK response
     client._transmission->receive();
-
+    server.dropDatabase();
 }
 
 void registerUserRoutine(Server& server, ClientMock& client) {
@@ -187,10 +190,11 @@ TEST_CASE("Scenario 2: get online users.") {
     registerUserRoutine(server, client3);
 
     std::stringstream getOnline = client2._connection->parseOutgoing(
-            {{Request::Type::GET_ONLINE, 0, 0}, {}});
+            {{Request::Type::GET_ONLINE, 0, 0}, NameIdNeededRequest{0, "bob"}.serialize()});
     client2._transmission->send(getOnline);
     //server receives request
     server.getRequest();
     //client obtains the final OK response
     client2._transmission->receive();
+    server.dropDatabase();
 }

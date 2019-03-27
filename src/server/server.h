@@ -20,8 +20,9 @@
 #include "../shared/request.h"
 #include "../shared/rsa_2048.h"
 #include "../shared/connection_manager.h"
+#include "requests.h"
 #include "transmission_file_server.h"
-#include "database.h"
+#include "database_server.h"
 
 namespace helloworld {
 
@@ -59,7 +60,6 @@ public:
     void callback(bool hasSessionKey, const std::string &username, std::stringstream &&data) override {
         Request request;
         Response response;
-        bool authenticated = false;
         try {
             if (!hasSessionKey) {
                 request = _genericManager.parseIncoming(std::move(data));
@@ -73,60 +73,32 @@ public:
                     request = pending->second->manager->parseIncoming(std::move(data));
                 } else {
                     request = existing->second->parseIncoming(std::move(data));
-                    authenticated = true;
                 }
             }
 
-            response = handleUserRequest(request);
+            handleUserRequest(request);
+        } catch (Error &ex) {
+            std::cerr << ex.what() << std::endl;
+            sendReponse(username,
+                    {{Response::Type::GENERIC_SERVER_ERROR, request.header.messageNumber, request.header.userId},
+                    ex.serialize()},
+                    getManagerPtr(username, true));
         } catch (std::exception& generic) {
             std::cerr << generic.what() << std::endl;
-            response = Response{ {Response::Type::GENERIC_SERVER_ERROR, request.header.messageNumber,
-                                  request.header.userId}, from_string(generic.what()) };
+            sendReponse(username,
+                        {{Response::Type::GENERIC_SERVER_ERROR, request.header.messageNumber,
+                          request.header.userId}, from_string(generic.what()) },
+                        getManagerPtr(username, true));
         }
-        Request::Type type = request.header.type;
-
-        //todo try to solve differently - when the user is moved from _requests to _connections
-        if ((type == Request::Type::CREATE_COMPLETE || type == Request::Type::LOGIN_COMPLETE)
-        && response.header.type == Response::Type::OK) {
-            authenticated = true;
-        }
-
-        std::stringstream result = (authenticated) ?
-                _connections.find(username)->second->parseOutgoing(response) :
-                _requestsToConnect.find(username)->second->manager->parseOutgoing(response);
-
-        //todo try to solve differently - delete after parsing the response
-        if ((request.header.type == Request::Type::REMOVE ||
-             request.header.type == Request::Type::LOGOUT) && response.header.type == Response::Type::OK) {
-            logout(username);
-        }
-
-
-        _transmission->send(username, result);
     }
 
     /**
      * @brief Handle incoming request
      *
      * @param request request from not connected user
-     * @return Response response data
+     * @return Response response data (testing purposes)
      */
     Response handleUserRequest(const Request &request);
-
-
-    /**
-     * @brief Handle incoming request for system on system port
-     *
-     * @return uint32_t connection id
-     */
-    uint32_t establishConnection();
-
-    /**
-     * @brief Terminate connection
-     *
-     * @param cid connection id
-     */
-    void terminateConnection(uint32_t cid);
 
 
     //
@@ -149,20 +121,13 @@ public:
         _transmission->removeConnection(name);
     }
 
-    /**
-     * @brief Logout implementation, reused in deleting account.
-     *        public because of testing
-     *
-     * @param name name of user to log out
-     */
-    Response logout(const std::string& name);
 
 private:
     Random _random;
     GenericServerManager _genericManager;
     std::map<std::string, std::unique_ptr<ServerToClientManager>> _connections;
     std::map<std::string, std::unique_ptr<Challenge>> _requestsToConnect;
-    std::unique_ptr<Database> _database;
+    std::unique_ptr<ServerDatabase> _database;
     std::unique_ptr<ServerTransmissionManager> _transmission;
 
     /**
@@ -177,14 +142,14 @@ private:
     Response registerUser(const Request &request);
 
     /**
-     * @brief Check correctness of client's public key and register
-     * him into the database.
+     * @brief Verify the signature and authenticate user
      *
      * @param connectionId temporarily removed connection id
+     * @param newUser true if user just registered (will insert database info)
      * @param request request from client
      * @return Response OK if user was registered
      */
-    Response completeUserRegistration(const Request &request);
+    Response completeAuthentication(const Request &request, bool newUser);
 
     /**
      * @brief Authenticate user by his knowledge of private key.
@@ -194,15 +159,6 @@ private:
      * @return Response OK challenge response
      */
     Response authenticateUser(const Request &request);
-
-    /**
-     * @brief Check correctness of client's public key and log him in.
-     *
-     * @param connectionId temporarily removed connection id
-     * @param request request from client
-     * @return Response OK response if user was registered
-     */
-    Response completeUserAuthentication(const Request &request);
 
     /**
      * @brief Get online user list
@@ -227,6 +183,39 @@ private:
      * @return Response OK response if user was logged out
      */
     Response logOut(const Request &request);
+
+    /**
+     * Logout user implementation
+     *
+     * @param name name to log out
+     */
+    void logout(const std::string& name);
+
+    /**
+     * Send reponse to user with manager
+     *
+     * @param username username to send the response to
+     * @param response response to parse
+     * @param manager manager to use or nullptr - the server will return generic error
+     */
+    void sendReponse(const std::string& username, const Response &response, ServerToClientManager* manager);
+
+    /**
+     * Send response to user without manager (e.g. auth fails)
+     *
+     * @param username username to send the response to
+     * @param response response to parse
+     * @param sessionKey session key to use to encrypt reponse, or empty string - the server will return generic error
+     */
+    void sendReponse(const std::string& username, const Response &response, const std::string& sessionKey);
+
+    /**
+     *
+     * @param username manager to the user
+     * @param trusted true if manager is supposed to be in _connections
+     * @return ptr to user manager, nullptr if failed
+     */
+    ServerToClientManager* getManagerPtr(const std::string& username,  bool trusted);
 };
 
 }    // namespace helloworld

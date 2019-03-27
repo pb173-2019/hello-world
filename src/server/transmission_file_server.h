@@ -51,7 +51,15 @@ public:
 
     ServerFiles &operator=(const ServerFiles &other) = delete;
 
-    ~ServerFiles() override = default;
+    ~ServerFiles() override {
+        //testing - delete any .tcp files
+        std::string leftovers = getIncoming();
+        while (!leftovers.empty()) {
+            leftovers.push_back('\0'); //sichr
+            remove(leftovers.c_str());
+            leftovers = getIncoming();
+        }
+    };
 
     void send(const std::string& usrname, std::iostream &data) override {
         data.seekg(0, std::ios::beg);
@@ -141,7 +149,6 @@ private:
 
         if (handle) {
             do {
-                std::wcout << data.cFileName << std::endl;
                 if (std::strstr(data.cFileName, ".tcp")) {
                     file = data.cFileName;
                     break;

@@ -14,7 +14,6 @@ Response registerAlice(Server &server, const std::string &name) {
     std::string publicKey((std::istreambuf_iterator<char>(input)),
                           std::istreambuf_iterator<char>());
 
-    //todo RSA make static method to load public key into vector
     std::vector<unsigned char> key(publicKey.begin(), publicKey.end());
 
     RegisterRequest registerRequest(name, sessionKey, key);
@@ -28,11 +27,8 @@ Response completeAlice(Server &server, const std::vector<unsigned char>& secret,
     RSA2048 rsa;
     rsa.loadPrivateKey("alice_priv.pem", "2b7e151628aed2a6abf7158809cf4f3c", "323994cfb9da285a5d9642e1759b224a");
 
-    CompleteAuthRequest crRequest(std::move(rsa.decrypt(secret)), name);
+    CompleteAuthRequest crRequest(std::move(rsa.sign(secret)), name);
     Request request{{type, 2, 0}, crRequest.serialize()};
-//    std::cout << static_cast<int>(request.header.type) <<"\n";
-//    std::cout << static_cast<int>(request.header.userId) <<"\n";
-
     return server.handleUserRequest(request);
 }
 
@@ -51,7 +47,7 @@ TEST_CASE("Add new user") {
         CHECK(response.header.type == Response::Type::CHALLENGE_RESPONSE_NEEDED);
 
         SECTION("Registration already started") {
-            CHECK(registerAlice(server, name).header.type == Response::Type::GENERIC_SERVER_ERROR);
+            CHECK_THROWS(registerAlice(server, name));
         }
 
         SECTION("Challenge incorrectly solved") {
@@ -59,8 +55,7 @@ TEST_CASE("Add new user") {
                     std::vector<unsigned char>(256, 10), name);
             Request request{{Request::Type::CREATE_COMPLETE, 2, 0},
                             crRequest.serialize()};
-            response = server.handleUserRequest(request);
-            CHECK(response.header.type == Response::Type::GENERIC_SERVER_ERROR);
+            CHECK_THROWS(server.handleUserRequest(request));
         }
 
         SECTION("Challenge correctly solved") {
@@ -68,6 +63,7 @@ TEST_CASE("Add new user") {
                   Response::Type::OK);
         }
     }
+    server.dropDatabase();
 }
 
 TEST_CASE("User authentication") {
@@ -90,8 +86,7 @@ TEST_CASE("User authentication") {
             CompleteAuthRequest caRequest(response.payload, name);
             Request request{{Request::Type::LOGIN_COMPLETE, 2, 0},
                             caRequest.serialize()};
-            response = server.handleUserRequest(request);
-            CHECK(response.header.type == Response::Type::GENERIC_SERVER_ERROR);
+            CHECK_THROWS(server.handleUserRequest(request));
         }
 
         SECTION("Challenge not solved 2") {
@@ -99,8 +94,7 @@ TEST_CASE("User authentication") {
                     std::vector<unsigned char>(128, 10), name);
             Request request{{Request::Type::LOGIN_COMPLETE, 2, 0},
                             caRequest.serialize()};
-            response = server.handleUserRequest(request);
-            CHECK(response.header.type == Response::Type::GENERIC_SERVER_ERROR);
+            CHECK_THROWS(server.handleUserRequest(request));
         }
 
         SECTION("Challenge solved") {
@@ -113,9 +107,9 @@ TEST_CASE("User authentication") {
         AuthenticateRequest authRequest("bob", "2b7e151628aed2a6abf7158809cf4f3c");
         Request request{{Request::Type::LOGIN, 10, 0}, authRequest.serialize()};
 
-        auto response = server.handleUserRequest(request);
-        CHECK(response.header.type == Response::Type::GENERIC_SERVER_ERROR);
+        CHECK_THROWS(server.handleUserRequest(request));
     }
+    server.dropDatabase();
 }
 
 TEST_CASE("Delete & logout") {
@@ -129,9 +123,7 @@ TEST_CASE("Delete & logout") {
     Request logoutRequest{{Request::Type::LOGOUT, 0, 0}, nameId.serialize()};
     auto logoutReponse = server.handleUserRequest(logoutRequest);
     CHECK(logoutReponse.header.type == Response::Type::OK);
-    //server does not log out users in handleUserRequest() mothod, the logging out is
-    //performed after sending the reponse, so here just logout force
-    server.logout("alice");
+
     //login
     AuthenticateRequest authRequest("alice", "2b7e151628aed2a6abf7158809cf4f3c");
     Request login{{Request::Type::LOGIN, 10, 0}, authRequest.serialize()};
@@ -144,6 +136,7 @@ TEST_CASE("Delete & logout") {
     //try to log in
     response = server.handleUserRequest(login);
     CHECK(response.header.type != Response::Type::OK);
+    server.dropDatabase();
 }
 
 TEST_CASE("Get list") {
@@ -170,4 +163,5 @@ TEST_CASE("Get list") {
             CHECK(server.getUsers().size() == 100);
         }
     }
+    server.dropDatabase();
 }

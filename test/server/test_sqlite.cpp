@@ -11,12 +11,12 @@ std::vector<unsigned char> strToVec(const std::string& data) {
 
 TEST_CASE("SQLITE Database test") {
 
-    SQLite db{ "sqlite_1.db" };
+    ServerSQLite db{};
 
     UserData data{ 555, "Pepa", "", strToVec("My sercret key")};
     db.insert(data, false);
 
-    const auto& res = db.select(data);
+    const auto& res = db.selectUsers(data);
 
     CHECK(res[0]->name == "Pepa");
     CHECK(res[0]->id == 555);
@@ -34,7 +34,7 @@ TEST_CASE("SQLITE Database test multiple data") {
                                "7wIDAQAB\n"
                                "-----END PUBLIC KEY-----"};
 
-    SQLite db{ "sqlite_2.db" };
+    ServerSQLite db{};
 
     UserData d1{ 245, "Penopa", "", strToVec("asdfasdfasdfasdfafb")};
     UserData d2{ 2, "karel", "", strToVec("adfbadfbasdfsdfbadgdsfcxx")};
@@ -51,12 +51,12 @@ TEST_CASE("SQLITE Database test multiple data") {
     db.insert(d6, false);
 
     UserData query1{0, "user", "", {}};
-    const auto& res1 = db.select(query1);
+    const auto& res1 = db.selectUsers(query1);
     CHECK(res1[0]->name == "user666");
     CHECK(res1[0]->id == 53);
 
     UserData query2{0, "no", "", {}};
-    const auto& res2 = db.select(query2);
+    const auto& res2 = db.selectUsers(query2);
     REQUIRE(res2.size() == 2);
     CHECK(res2[0]->name == "Penopa");
     CHECK(res2[0]->id == 245);
@@ -65,18 +65,18 @@ TEST_CASE("SQLITE Database test multiple data") {
     CHECK(res2[1]->publicKey == strToVec(realPublicKey));
 
     UserData query3{8752, "", "", {}};
-    const auto& res3 = db.select(query3);
+    const auto& res3 = db.selectUsers(query3);
     CHECK(res3[0]->name == "mybestnick");
 }
 
 TEST_CASE("SQLITE Database no data") {
-    SQLite db{ "sqlite_3.db" };
+    ServerSQLite db{};
     UserData query1{0, "user", "", {}};
-    CHECK(db.select(query1).empty());
+    CHECK(db.selectUsers(query1).empty());
 }
 
 TEST_CASE("SQLITE Database no matching query") {
-    SQLite db{ "sqlite_4.db" };
+    ServerSQLite db{};
 
     UserData d1{ 245, "Penopa",  "", strToVec("asdfasdfasdfasdfafb")};
     UserData d2{ 2, "karel",  "", strToVec("adfbadfbasdfsdfbadgdsfcxx")};
@@ -86,12 +86,12 @@ TEST_CASE("SQLITE Database no matching query") {
     db.insert(d3, false);
 
     UserData query1{0, "nowhere", "", {}};
-    const auto& res1 = db.select(query1);
+    const auto& res1 = db.selectUsers(query1);
     CHECK(res1.empty());
 }
 
 TEST_CASE("SQLITE Database delete") {
-    SQLite db{ "sqlite_4.db" };
+    ServerSQLite db{};
 
     UserData d1{ 245, "Penopa",  "", strToVec("asdfasdfasdfasdfafb")};
     UserData d2{ 2, "karel",  "", strToVec("adfbadfbasdfsdfbadgdsfcxx")};
@@ -101,9 +101,9 @@ TEST_CASE("SQLITE Database delete") {
     db.insert(d3, false);
 
     UserData query1{0, "Penopa", "", {}};
-    CHECK(db.remove(query1));
+    CHECK(db.removeUser(query1));
     UserData query2{55535, "nowhere", "", {}};
-    CHECK(db.remove(query2));
+    CHECK(db.removeUser(query2));
     UserData query3{22, "kkarel", "", {}};
-    CHECK(db.select(d2)[0]->name == "karel");
+    CHECK(db.selectUsers(d2)[0]->name == "karel");
 }

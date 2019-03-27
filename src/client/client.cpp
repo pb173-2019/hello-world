@@ -16,9 +16,12 @@ void Client::callback(std::stringstream &&data) {
     Response response = _connection->parseIncoming(std::move(data));
     switch (response.header.type) {
         case Response::Type::OK:
+            //todo maybe create response with REGISTRATION_SUCCESFULL to set registration to true
+            _isRegistered = true;
             return;
         case Response::Type::CHALLENGE_RESPONSE_NEEDED:
-            sendRequest(completeAuth(response.payload, Request::Type::CREATE_COMPLETE));
+            sendRequest(completeAuth(response.payload,
+                    (_isRegistered) ? Request::Type::LOGIN_COMPLETE : Request::Type::CREATE_COMPLETE));
             return;
         default:
             throw Error("Unknown response type.");
@@ -47,11 +50,13 @@ void Client::createAccount(const std::string &pubKeyFilename) {
 
     sendRequest({{Request::Type::CREATE, 1, 0}, registerRequest.serialize()});
     _connection->openSecureChannel(_sessionKey);
+    _isRegistered = false;
 }
 
 void Client::deleteAccount() {
     NameIdNeededRequest request(0, _username);
     sendRequest({{Request::Type::REMOVE, 0, 0}, request.serialize()});
+    _isRegistered = false;
 }
 
 std::vector<UserData> Client::getUsers(const std::string &query) { return {}; }
@@ -63,7 +68,7 @@ void Client::sendRequest(const Request &request) {
 
 Request Client::completeAuth(const std::vector<unsigned char> &secret,
                              Request::Type type) {
-    CompleteAuthRequest request(_rsa.decrypt(secret), _username);
+    CompleteAuthRequest request(_rsa.sign(secret), _username);
     return {{type, 2, 0}, request.serialize()};
 }
 

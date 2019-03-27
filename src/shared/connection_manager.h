@@ -127,7 +127,6 @@ protected:
     std::stringstream _GCMdecryptHead(std::istream &in) {
         //in hex string - 2x length
         std::stringstream headIvStream = _nBytesFromStream(in, AESGCM::iv_size * 2);
-        std::cout << headIvStream.str() << "\n";
         std::stringstream headStream = _nBytesFromStream(in, HEADER_ENCRYPTED_SIZE);
         std::stringstream headDecrypted;
         if (!_gcm.setKey(_sessionKey) || !_gcm.setIv(headIvStream.str())) {

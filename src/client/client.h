@@ -21,7 +21,6 @@
 #include "../shared/user_data.h"
 #include "../shared/rsa_2048.h"
 #include "../server/requests.h"
-#include "connection.h"
 #include "secure_channel.h"
 #include "transmission_file_client.h"
 
@@ -86,13 +85,14 @@ class Client : public Callable<void, std::stringstream &&> {
     // listening or gets notified by TCP
     void getRequest() { _transmission->receive(); };
 
-   private:
+private:
     const std::string _username;
     const std::string _clientPubKeyFilename;
     const std::string _sessionKey;
     std::unique_ptr<UserTransmissionManager> _transmission;
     std::unique_ptr<ClientToServerManager> _connection = nullptr;
     const std::string _serverPubKey;
+    bool _isRegistered = false;
 
     RSA2048 _rsa;
 

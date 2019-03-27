@@ -18,14 +18,15 @@
 
 namespace helloworld {
 
-class Database {
+class ServerDatabase {
 
 public:
-    Database() = default;
+    ServerDatabase() = default;
+
     // Copying is not available
-    Database(const Database &other) = delete;
-    Database &operator=(const Database &other) = delete;
-    virtual ~Database() = default;
+    ServerDatabase(const ServerDatabase &other) = delete;
+    ServerDatabase &operator=(const ServerDatabase &other) = delete;
+    virtual ~ServerDatabase() = default;
 
     /**
      * Insert into database data object
@@ -40,7 +41,7 @@ public:
      * @param query search request
      * @return std::vector<std::unique_ptr<UserData>>& data matching the query
      */
-    virtual const std::vector<std::unique_ptr<UserData>>& select(const UserData& query) = 0;
+    virtual const std::vector<std::unique_ptr<UserData>>& selectUsers(const UserData& query) = 0;
 
     /**
      * Delete user from database
@@ -48,12 +49,19 @@ public:
      * @param data must contain either user name or id
      * @return true if deletion succeeded
      */
-    virtual bool remove(const UserData& data) = 0;
+    virtual bool removeUser(const UserData& data) = 0;
 
     /**
-     * Delete the database
+     * Delete the database tables
      */
     virtual void drop() = 0;
+
+    /**
+     * Delete table
+     *
+     * @param tablename table to delete
+     */
+    virtual void drop(const std::string& tablename) = 0;
 
 };
 

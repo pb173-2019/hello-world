@@ -6,29 +6,29 @@
 
 namespace helloworld {
 
-SQLite::SQLite() {
+ServerSQLite::ServerSQLite() {
     if (int res = sqlite3_open(nullptr, &_handler) != SQLITE_OK) {
         throw Error("Could not create database: " + _getErrorMsgByReturnType(res));
     }
-    _createTableIfNExists();
+    _createTablesIfNExists();
 }
 
-SQLite::SQLite(std::string &&filename) {
+ServerSQLite::ServerSQLite(std::string &&filename) {
     filename.push_back('\0');
-    if (int res = sqlite3_open(nullptr, &_handler) != SQLITE_OK) {
+    if (int res = sqlite3_open(filename.c_str(), &_handler) != SQLITE_OK) {
         throw Error("Could not create database. " + _getErrorMsgByReturnType(res));
     }
-    _createTableIfNExists();
+    _createTablesIfNExists();
 }
 
-SQLite::~SQLite() {
+ServerSQLite::~ServerSQLite() {
     // todo: can return SQLITE_BUSY when not ready to release (backup) ... solve?
     if (sqlite3_close(_handler) != SQLITE_OK) {
         //todo cannot throw, but also cannot destruct...
     }
 }
 
-void SQLite::insert(const UserData &data, bool autoIncrement) {
+void ServerSQLite::insert(const UserData &data, bool autoIncrement) {
     std::string query = "INSERT INTO users ";
     if (autoIncrement) {
         query += "(username, pubkey) VALUES ('";
@@ -43,7 +43,7 @@ void SQLite::insert(const UserData &data, bool autoIncrement) {
     }
 }
 
-const std::vector<std::unique_ptr<UserData>> &SQLite::select(const UserData &query) {
+const std::vector<std::unique_ptr<UserData>> &ServerSQLite::selectUsers(const UserData &query) {
     _cache.clear();
     int res;
     if (query.id == 0 && query.name.empty()) {
@@ -59,20 +59,26 @@ const std::vector<std::unique_ptr<UserData>> &SQLite::select(const UserData &que
     return _cache;
 }
 
-bool SQLite::remove(const UserData &data) {
+bool ServerSQLite::removeUser(const UserData &data) {
     return _execute("DELETE FROM users WHERE username "
                     "LIKE '" + _sCheck(data.name) +
                     "' OR id=" + std::to_string(data.id) + ";",
             nullptr, nullptr) == SQLITE_OK;
 }
 
-void SQLite::drop() {
-    if (int res = _execute("DROP TABLE users;", nullptr, nullptr) != SQLITE_OK) {
+void ServerSQLite::drop(const std::string& tablename) {
+    if (int res = _execute("DROP TABLE " + tablename + ";", nullptr, nullptr) != SQLITE_OK) {
         throw Error("Could not delete database: " + _getErrorMsgByReturnType(res));
     }
 }
 
-int SQLite::_execute(std::string &&command, int (*callback)(void *, int, char **, char **), void *fstArg) {
+void ServerSQLite::drop() {
+    for (const auto& table : tables) {
+        drop(table);
+    }
+}
+
+int ServerSQLite::_execute(std::string &&command, int (*callback)(void *, int, char **, char **), void *fstArg) {
     command.push_back('\0'); //the c library - just to be sure
     char *error;
     int res = sqlite3_exec(_handler, command.data(), callback, fstArg, &error);
@@ -82,24 +88,39 @@ int SQLite::_execute(std::string &&command, int (*callback)(void *, int, char **
     return res;
 }
 
-void SQLite::_createTableIfNExists() {
+void ServerSQLite::_createTablesIfNExists() {
     if (int res = _execute("CREATE TABLE IF NOT EXISTS users ("
                            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                            "username TEXT, "
                            "pubkey TEXT);",
                            nullptr, nullptr) != SQLITE_OK) {
-        throw Error("Could not create database: " + _getErrorMsgByReturnType(res));
+        throw Error("Could not create users database: " + _getErrorMsgByReturnType(res));
+    }
+
+    if (int res = _execute("CREATE TABLE IF NOT EXISTS data ("
+                            "userid INTEGER, "
+                            "data BLOB);",
+                            nullptr, nullptr) != SQLITE_OK) {
+        throw Error("Could not create data database: " + _getErrorMsgByReturnType(res));
+    }
+
+    if (int res = _execute("CREATE TABLE IF NOT EXISTS bundles ("
+                           "userid INTEGER, "
+                           "keys TEXT);",
+                           nullptr, nullptr) != SQLITE_OK) {
+        throw Error("Could not create key bundles database: " + _getErrorMsgByReturnType(res));
     }
 }
 
-std::string SQLite::_sCheck(std::string query) {
+
+std::string ServerSQLite::_sCheck(std::string query) {
     std::transform(query.begin(), query.end(), query.begin(), [](char c) {
         return specialCharacters.find(c) == std::string::npos ? c : ' ';
     });
     return query;
 }
 
-std::string SQLite::_getErrorMsgByReturnType(int ret) {
+std::string ServerSQLite::_getErrorMsgByReturnType(int ret) {
     switch (ret) {
         /*
          * Doesn't consider following:

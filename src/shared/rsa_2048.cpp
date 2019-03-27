@@ -179,31 +179,39 @@ std::vector<unsigned char> RSA2048::decrypt(const std::vector<unsigned char> &da
     return buf;
 }
 
-std::vector<unsigned char> RSA2048::sign(const std::string &hash) {
+std::vector<unsigned char> RSA2048::sign(const std::vector<unsigned char> &hash) {
     if (!_valid(KeyType::PRIVATE_KEY))
         throw Error("RSA not instantiated properly for signature.");
-
-    std::vector<unsigned char> hash_bytes = from_hex(hash);
+    
     std::vector<unsigned char> signature(_basic_context->len);
     size_t olen;
     Random random{};
 
-    if (mbedtls_pk_sign(&_context, MBEDTLS_MD_SHA512, hash_bytes.data(), hash_bytes.size(),
+    if (mbedtls_pk_sign(&_context, MBEDTLS_MD_SHA512, hash.data(), hash.size(),
                         signature.data(), &olen, mbedtls_ctr_drbg_random, random.getEngine()) != 0) {
         throw Error("Failed to create signature.");
     }
     return signature;
 }
 
+std::vector<unsigned char> RSA2048::sign(const std::string &hash) {
+    std::vector<unsigned char> bytes = from_hex(hash);    
+    return sign(bytes);
+}
+
 bool RSA2048::verify(const std::vector<unsigned char> &signedData,
-                     const std::string &hash) {
+                     const std::vector<unsigned char> &hash) {
     if (!_valid(KeyType::PUBLIC_KEY))
         throw Error("RSA not instantiated properly for verification.");
 
-    std::vector<unsigned char> hash_bytes = from_hex(hash);
     return mbedtls_pk_verify_ext(MBEDTLS_PK_RSA, nullptr, &_context, MBEDTLS_MD_SHA512,
-                                 hash_bytes.data(), hash_bytes.size(),
+                                 hash.data(), hash.size(),
                                  signedData.data(), signedData.size()) == 0;
+}
+
+bool RSA2048::verify(const std::vector<unsigned char> &signedData, const std::string &hash) {
+    std::vector<unsigned char> bytes = from_hex(hash);
+    return verify(signedData, bytes);
 }
 
 void RSA2048::_setup(KeyType type) {

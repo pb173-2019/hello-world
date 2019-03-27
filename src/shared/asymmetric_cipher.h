@@ -128,20 +128,22 @@ public:
     /**
      * @brief Sign given message with hash imprint of data
      *
-     * @param hash
+     * @param hash hash to sign (either HEX string or raw buffer)
      * @return std::vector<unsigned char> signed hash of data
      */
-    virtual std::vector<unsigned char> sign(const std::string &hash) = 0;
+    virtual std::vector<unsigned char> sign(const std::vector<unsigned char> &data) = 0;
+    virtual std::vector<unsigned char> sign(const std::string &data) = 0;
 
     /**
      * @brief Verify the signature
      *
      * @param signedData signature to verify
-     * @param hash value to compare
+     * @param hash hash to sign (either HEX string or raw buffer)
      * @return true if signature was verified correctly
      * @return false if signature was not verified correctly
      */
-    virtual bool verify(const std::vector<unsigned char> &signedData, const std::string &hash) = 0;
+    virtual bool verify(const std::vector<unsigned char> &signedData, const std::vector<unsigned char> &data) = 0;
+    virtual bool verify(const std::vector<unsigned char> &signedData, const std::string &data) = 0;
 };
 
 }  // namespace helloworld

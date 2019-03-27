@@ -13,7 +13,7 @@
 
 #include <cstdint>
 
-#include "database.h"
+#include "database_server.h"
 #include "../shared/user_data.h"
 
 #include "sqlite3.h"
@@ -22,44 +22,51 @@ namespace helloworld {
 
 const std::string specialCharacters = ":?\"";
 
-class SQLite : public Database {
+class ServerSQLite : public ServerDatabase {
     std::vector<std::unique_ptr<UserData>> _cache;
-    std::string _tablename{"users"};
     sqlite3 *_handler = nullptr;
 public:
+    const std::vector<std::string> tables{"users", "bundles", "data"};
+
     /**
      * Creates temporary in-memory database
      * with table named user
      */
-    SQLite();
+    ServerSQLite();
 
     /**
      * Creates file database wit table named user
      *
-     * @param filename name of the database
+     * @param filename name of the database, the filename string is modified
+     *          filename without the '.db' file type specifier
      */
-    explicit SQLite(std::string&& filename);
+    explicit ServerSQLite(std::string &&filename);
 
     // Copying is not available
-    SQLite(const SQLite &other) = delete;
+    ServerSQLite(const ServerSQLite &other) = delete;
 
-    SQLite &operator=(const SQLite &other) = delete;
+    ServerSQLite &operator=(const ServerSQLite &other) = delete;
 
-    ~SQLite() override;
+    ~ServerSQLite() override;
 
     void insert(const UserData &data, bool autoIncrement) override;
 
-    const std::vector<std::unique_ptr<UserData>>& select(const UserData &query) override;
+    const std::vector<std::unique_ptr<UserData>>& selectUsers(const UserData &query) override;
 
-    bool remove(const UserData& data) override;
+    bool removeUser(const UserData& data) override;
 
     void drop() override;
+
+    void drop(const std::string& tablename) override;
 
 private:
 
     int _execute(std::string&& command, int (*callback)(void*,int,char**,char**), void* fstArg);
 
-    void _createTableIfNExists();
+    /**
+     * Create all tables and their structures if n exists
+     */
+    void _createTablesIfNExists();
 
     /**
      * Callback for execution, perform selection - save data
@@ -83,6 +90,12 @@ private:
 
     static std::string _getErrorMsgByReturnType(int ret);
 
+    /**
+     * Query check to protect from injection
+     *
+     * @param query query to check
+     * @return query without special characters that would allowed to attack database
+     */
     static std::string _sCheck(std::string query);
 };
 
