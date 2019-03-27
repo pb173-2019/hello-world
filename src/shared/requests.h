@@ -16,14 +16,14 @@
 
 namespace helloworld {
 
-struct RegisterRequest : public Serializable<RegisterRequest> {
+struct AuthenticateRequest : public Serializable<AuthenticateRequest> {
     std::string sessionKey = ""; //session key filled on server side
     std::string name;
     std::vector<unsigned char> publicKey;
 
-    RegisterRequest() = default;
+    AuthenticateRequest() = default;
 
-    RegisterRequest(std::string name, std::vector<unsigned char> publicKey)
+    AuthenticateRequest(std::string name, std::vector<unsigned char> publicKey)
             : name(std::move(name)), publicKey(std::move(publicKey)) {}
 
     std::vector<unsigned char> serialize() const override {
@@ -35,8 +35,8 @@ struct RegisterRequest : public Serializable<RegisterRequest> {
         return result;
     }
 
-    static RegisterRequest deserialize(const std::vector<unsigned char> &data) {
-        RegisterRequest result;
+    static AuthenticateRequest deserialize(const std::vector<unsigned char> &data) {
+        AuthenticateRequest result;
         uint64_t position = 0;
         position += Serializable::getContainer<std::string>(data, position,
                                                             result.name);
@@ -75,21 +75,17 @@ struct CompleteAuthRequest : public Serializable<CompleteAuthRequest> {
                 data, position, result.secret);
         position += Serializable::getContainer<std::string>(data, position,
                                                             result.name);
-
         return result;
     }
 };
 
-
-//todo maybe use user_data instead, but for now empty data serialization does not work properly
-struct GenericRequest : public Serializable<GenericRequest> {
+struct GenericRequest : public Serializable<AuthenticateRequest> {
     uint32_t id = 0;
     std::string name;
 
     GenericRequest() = default;
 
-    GenericRequest(uint32_t id, std::string name)
-            : id(id), name(std::move(name)) {}
+    GenericRequest(uint32_t id, std::string name) : id(id), name(std::move(name)) {}
 
     std::vector<unsigned char> serialize() const override {
         std::vector<unsigned char> result;
@@ -104,6 +100,36 @@ struct GenericRequest : public Serializable<GenericRequest> {
         uint64_t position = 0;
         position += Serializable::getNumeric<uint32_t>(data, position, result.id);
         position += Serializable::getContainer<std::string>(data, position, result.name);
+        return result;
+    }
+};
+
+struct GetUsers : public Serializable<GetUsers> {
+    uint32_t id = 0;
+    std::string name;
+    std::string query;
+
+    GetUsers() = default;
+
+    GetUsers(uint32_t id, std::string name, std::string query) :
+            id(id),
+            name(std::move(name)),
+            query(std::move(query)) {}
+
+    std::vector<unsigned char> serialize() const override {
+        std::vector<unsigned char> result;
+        Serializable::addNumeric<uint32_t>(result, id);
+        Serializable::addContainer<std::string>(result, name);
+        Serializable::addContainer<std::string>(result, query);
+        return result;
+    }
+
+    static GetUsers deserialize(const std::vector<unsigned char> &data) {
+        GetUsers result;
+        uint64_t position = 0;
+        position += Serializable::getNumeric<uint32_t>(data, position, result.id);
+        position += Serializable::getContainer<std::string>(data, position, result.name);
+        position += Serializable::getContainer<std::string>(data, position, result.query);
         return result;
     }
 };

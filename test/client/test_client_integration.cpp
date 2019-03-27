@@ -87,19 +87,19 @@ TEST_CASE("Scenario 2: getting users from database.") {
     registerUserRoutine(server, alice);
 
     Client bob("bob", "server_pub.pem", "alice_priv.pem", "hunter2");
-    registerUserRoutine(server, alice);
+    registerUserRoutine(server, bob);
 
     Client emily("emily", "server_pub.pem", "alice_priv.pem", "hunter2");
-    registerUserRoutine(server, alice);
+    registerUserRoutine(server, emily);
 
     Client lila("lila", "server_pub.pem", "alice_priv.pem", "hunter2");
-    registerUserRoutine(server, alice);
+    registerUserRoutine(server, lila);
 
     Client borek("borek", "server_pub.pem", "alice_priv.pem", "hunter2");
-    registerUserRoutine(server, alice);
+    registerUserRoutine(server, borek);
 
     Client lylibo("lylibo", "server_pub.pem", "alice_priv.pem", "hunter2");
-    registerUserRoutine(server, alice);
+    registerUserRoutine(server, lylibo);
 
     borek.sendGetOnline();
     server.getRequest();

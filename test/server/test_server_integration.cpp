@@ -18,13 +18,13 @@ Request registerUser(const std::string &name, const std::string& sessionKey, con
     std::string publicKey((std::istreambuf_iterator<char>(input)),
                           std::istreambuf_iterator<char>());
     std::vector<unsigned char> key(publicKey.begin(), publicKey.end());
-    RegisterRequest registerRequest(name, sessionKey, key);
+    AuthenticateRequest registerRequest(name, key);
     return {{Request::Type::CREATE, 1, 0}, registerRequest.serialize()};
 }
 
 Request loginUser(const std::string &name, const std::string& sessionKey) {
 
-    AuthenticateRequest auth(name, sessionKey);
+    AuthenticateRequest auth(name, {});
     return {{Request::Type::LOGIN, 1, 0}, auth.serialize()};
 }
 
@@ -43,13 +43,13 @@ Request completeAuth(const std::vector<unsigned char>& secret,
 
 Request logoutUser(const std::string& username) {
     //id ignored for now, we run on names to simplify
-    NameIdNeededRequest logout{0, username};
+    GenericRequest logout{0, username};
     return {{Request::Type::LOGOUT, 0, 0}, logout.serialize()};
 }
 
 Request deleteUser(const std::string& username) {
     //id ignored for now, we run on names to simplify
-    NameIdNeededRequest logout{0, username};
+    GenericRequest logout{0, username};
     return {{Request::Type::REMOVE, 0, 0}, logout.serialize()};
 }
 
@@ -68,8 +68,8 @@ public:
                 registered = true;
                 return;
             }
-            case Response::Type::DATABASE_ONLINE_SEND: {
-                OnlineUsersResponse data = OnlineUsersResponse::deserialize(response.payload);
+            case Response::Type::DATABASE_USERLIST: {
+                UserListReponse data = UserListReponse::deserialize(response.payload);
                 CHECK(data.online.size() == 3);
                 std::string names{"alicebobcyril"};
                 CHECK(names.find(data.online[1]) != std::string::npos);
@@ -107,13 +107,13 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
     Server server;
 
     ClientMock client{"alice"};
-    client._connection = std::make_unique<ClientToServerManager>("server_pub.pem");
+    client._connection = std::make_unique<ClientToServerManager>("2b7e151628aed2a6abf7158809cf4f3c", "server_pub.pem");
 
 
     std::stringstream registration = client._connection->parseOutgoing(
             registerUser("alice", "2b7e151628aed2a6abf7158809cf4f3c", "alice_pub.pem"));
     //!! now when parsed, can set secure channel
-    client._connection->openSecureChannel("2b7e151628aed2a6abf7158809cf4f3c");
+    client._connection->switchSecureChannel(true);
 
     client._transmission->send(registration);
     //server receives request
@@ -133,14 +133,12 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
     //client obtains the final OK response
     client._transmission->receive();
 
-    client._connection->openSecureChannel("");
+    client._connection->switchSecureChannel(false);
     std::stringstream loggingin = client._connection->parseOutgoing(
             loginUser("alice", "2b7e151628aed2a6abf7158809cf4f3c"));
-    client._connection->openSecureChannel("2b7e151628aed2a6abf7158809cf4f3c");
-
+    client._connection->switchSecureChannel(true);
 
     //!! now when parsed, can set secure channel
-    client._connection->openSecureChannel("2b7e151628aed2a6abf7158809cf4f3c");
     client._transmission->send(loggingin);
     //server receives request
     server.getRequest();
@@ -161,11 +159,11 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
 }
 
 void registerUserRoutine(Server& server, ClientMock& client) {
-    client._connection->openSecureChannel("");
+    client._connection = std::make_unique<ClientToServerManager>("2b7e151628aed2a6abf7158809cf4f3c", "server_pub.pem");
     std::stringstream registration = client._connection->parseOutgoing(
             registerUser(client._username, "2b7e151628aed2a6abf7158809cf4f3c", "alice_pub.pem"));
     //!! now when parsed, can set secure channel
-    client._connection->openSecureChannel("2b7e151628aed2a6abf7158809cf4f3c");
+    client._connection->switchSecureChannel(true);
     client._transmission->send(registration);
     //server receives request
     server.getRequest();
@@ -190,7 +188,7 @@ TEST_CASE("Scenario 2: get online users.") {
     registerUserRoutine(server, client3);
 
     std::stringstream getOnline = client2._connection->parseOutgoing(
-            {{Request::Type::GET_ONLINE, 0, 0}, NameIdNeededRequest{0, "bob"}.serialize()});
+            {{Request::Type::GET_ONLINE, 0, 0}, GenericRequest{0, "bob"}.serialize()});
     client2._transmission->send(getOnline);
     //server receives request
     server.getRequest();

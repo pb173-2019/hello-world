@@ -16,7 +16,9 @@ Response registerAlice(Server &server, const std::string &name) {
 
     std::vector<unsigned char> key(publicKey.begin(), publicKey.end());
 
-    RegisterRequest registerRequest(name, sessionKey, key);
+    AuthenticateRequest registerRequest(name, key);
+    //sets the transmission manager for server
+    registerRequest.sessionKey = "323994cfb9da285a5d9642e1759b224a";
     Request request{{Request::Type::CREATE, 1, 0}, registerRequest.serialize()};
 
     return server.handleUserRequest(request);
@@ -76,7 +78,8 @@ TEST_CASE("User authentication") {
     server.closeTransmission(name);
 
     SECTION("Existing user") {
-        AuthenticateRequest authRequest("alice", "2b7e151628aed2a6abf7158809cf4f3c");
+        AuthenticateRequest authRequest("alice", {});
+        authRequest.sessionKey = "323994cfb9da285a5d9642e1759b224a";
         Request request{{Request::Type::LOGIN, 10, 0}, authRequest.serialize()};
 
         auto response = server.handleUserRequest(request);
@@ -104,7 +107,8 @@ TEST_CASE("User authentication") {
     }
 
     SECTION("Non-existing user") {
-        AuthenticateRequest authRequest("bob", "2b7e151628aed2a6abf7158809cf4f3c");
+        AuthenticateRequest authRequest("bob", {});
+        authRequest.sessionKey = "323994cfb9da285a5d9642e1759b224a";
         Request request{{Request::Type::LOGIN, 10, 0}, authRequest.serialize()};
 
         CHECK_THROWS(server.handleUserRequest(request));
@@ -119,13 +123,14 @@ TEST_CASE("Delete & logout") {
     auto response = registerAlice(server, name);
     completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE);
 
-    NameIdNeededRequest nameId{0, name};
+    GenericRequest nameId{0, name};
     Request logoutRequest{{Request::Type::LOGOUT, 0, 0}, nameId.serialize()};
     auto logoutReponse = server.handleUserRequest(logoutRequest);
     CHECK(logoutReponse.header.type == Response::Type::OK);
 
     //login
-    AuthenticateRequest authRequest("alice", "2b7e151628aed2a6abf7158809cf4f3c");
+    AuthenticateRequest authRequest("alice", {});
+    authRequest.sessionKey = "323994cfb9da285a5d9642e1759b224a";
     Request login{{Request::Type::LOGIN, 10, 0}, authRequest.serialize()};
     response = server.handleUserRequest(login);
     completeAlice(server, response.payload, name, Request::Type::LOGIN_COMPLETE);
@@ -144,7 +149,7 @@ TEST_CASE("Get list") {
     std::string name = "alice";
 
     SECTION("Expected users in list") {
-        SECTION("No users") { CHECK(server.getUsers().empty()); }
+        SECTION("No users") { CHECK(server.getUsers("").empty()); }
 
         SECTION("Alice") {
             auto response = registerAlice(server, name);

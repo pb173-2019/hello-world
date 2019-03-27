@@ -33,36 +33,37 @@ void Client::callback(std::stringstream &&data) {
 }
 
 void Client::login() {
-    _connection = std::make_unique<ClientToServerManager>(_serverPubKey);
-    AuthenticateRequest request(_username, _sessionKey);
+    _connection = std::make_unique<ClientToServerManager>(_sessionKey, _serverPubKey);
+    AuthenticateRequest request(_username, {});
     sendRequest({{Request::Type::LOGIN, 1, 0}, request.serialize()});
 }
 
 void Client::logout() {
-    NameIdNeededRequest request(0, _username);
+    GenericRequest request(0, _username);
     sendRequest({{Request::Type::LOGOUT, 0, 0}, request.serialize()});
 }
 
 void Client::createAccount(const std::string &pubKeyFilename) {
-    _connection = std::make_unique<ClientToServerManager>(_serverPubKey);
+    _connection = std::make_unique<ClientToServerManager>(_sessionKey, _serverPubKey);
     std::ifstream input(pubKeyFilename);
     std::string publicKey((std::istreambuf_iterator<char>(input)),
                           std::istreambuf_iterator<char>());
     std::vector<unsigned char> key(publicKey.begin(), publicKey.end());
-    RegisterRequest registerRequest(_username, _sessionKey, key);
+    AuthenticateRequest registerRequest(_username, key);
 
     sendRequest({{Request::Type::CREATE, 1, 0}, registerRequest.serialize()});
     _isRegistered = false;
 }
 
 void Client::deleteAccount() {
-    NameIdNeededRequest request{0, _username};
+    GenericRequest request(0, _username);
     sendRequest({{Request::Type::REMOVE, 0, 0}, request.serialize()});
     _isRegistered = false;
 }
 
 void Client::sendFindUsers(const std::string &query) {
-    sendGenericRequest(Request::Type::FIND_USERS);
+    GetUsers request{0, _username, query};
+    sendRequest({{Request::Type::FIND_USERS, 0, 0}, request.serialize()});
 }
 
 void Client::sendGetOnline() {
@@ -80,7 +81,7 @@ void Client::sendRequest(const Request &request) {
 }
 
 void Client::sendGenericRequest(Request::Type type) {
-    NameIdNeededRequest request{0, _username};
+    GenericRequest request{0, _username};
     sendRequest({{type, 0, 0}, request.serialize()});
 }
 

@@ -38,8 +38,8 @@ Response Server::handleUserRequest(const Request &request) {
 }
 
 Response Server::registerUser(const Request &request) {
-    RegisterRequest registerRequest =
-            RegisterRequest::deserialize(request.payload);
+    AuthenticateRequest registerRequest =
+            AuthenticateRequest::deserialize(request.payload);
 
     UserData userData(0, registerRequest.name, "", registerRequest.publicKey);
     if (!_database->selectUsers(userData).empty()) {
@@ -127,7 +127,7 @@ Response Server::authenticateUser(const Request &request) {
 }
 
 Response Server::getOnline(const Request &request) {
-    NameIdNeededRequest curRequest = NameIdNeededRequest::deserialize(request.payload);
+    GenericRequest curRequest = GenericRequest::deserialize(request.payload);
 
     const std::set<std::string> &users = _transmission->getOpenConnections();
     Response r = {{Response::Type::DATABASE_USERLIST, request.header.messageNumber, request.header.userId},
@@ -137,8 +137,7 @@ Response Server::getOnline(const Request &request) {
 }
 
 Response Server::deleteAccount(const Request &request) {
-    NameIdNeededRequest curRequest =
-            NameIdNeededRequest::deserialize(request.payload);
+    GenericRequest curRequest = GenericRequest::deserialize(request.payload);
     UserData data;
     data.name = curRequest.name;
     data.id = curRequest.id;
@@ -154,8 +153,7 @@ Response Server::deleteAccount(const Request &request) {
 }
 
 Response Server::logOut(const Request &request) {
-    NameIdNeededRequest curRequest =
-            NameIdNeededRequest::deserialize(request.payload);
+    GenericRequest curRequest = GenericRequest::deserialize(request.payload);
     Response r = {{Response::Type::OK, 0, 0}, {}};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     logout(curRequest.name);
@@ -183,9 +181,9 @@ std::vector<std::string> Server::getUsers(const std::string& query) {
 }
 
 Response Server::findUsers(const Request &request) {
-    NameIdNeededRequest curRequest = NameIdNeededRequest::deserialize(request.payload);
+    GetUsers curRequest = GetUsers::deserialize(request.payload);
     UserListReponse response;
-    response.online = getUsers(curRequest.name);
+    response.online = getUsers(curRequest.query);
     Response r = {{Response::Type::DATABASE_USERLIST, 0, 0}, response.serialize()};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
@@ -225,7 +223,8 @@ void Server::sendReponse(const std::string &username, const Response &response, 
         //invalid key
         result = std::move(_genericManager.returnErrorGeneric());
     } else {
-        result = std::move(_genericManager.parseErrorGCM(response, sessionKey));
+        _genericManager.setKey(sessionKey);
+        result = std::move(_genericManager.parseOutgoing(response));
     }
     _transmission->send(username, result);
 }

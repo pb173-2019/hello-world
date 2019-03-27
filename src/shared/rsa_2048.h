@@ -56,7 +56,7 @@ public:
     }
 
     static std::string getHexIv(const std::string& pwd) {
-        return SHA512{}.getHex(pwd).substr(30, 62);
+        return SHA512{}.getHex(pwd).substr(30, 32);
     }
 
 private:

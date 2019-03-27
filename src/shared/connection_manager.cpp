@@ -70,7 +70,7 @@ Request GenericServerManager::parseIncoming(std::stringstream &&data) {
     request.payload = std::vector<unsigned char>(length);
     read_n(data, request.payload.data(), length);
 
-    RegisterRequest temp = RegisterRequest::deserialize(request.payload);
+    AuthenticateRequest temp = AuthenticateRequest::deserialize(request.payload);
     temp.sessionKey = to_hex(sessionKey);
 
     request.payload = temp.serialize();
