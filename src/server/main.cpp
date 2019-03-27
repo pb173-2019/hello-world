@@ -1,7 +1,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "../shared/request.h"
+#include "../shared/request_response.h"
 #include "../shared/aes_gcm.h"
 
 int main(int /* argc */, char ** /* argv */) {

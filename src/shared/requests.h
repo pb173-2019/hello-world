@@ -12,19 +12,19 @@
 #ifndef HELLOWORLD_SERVER_REQUESTS_H_
 #define HELLOWORLD_SERVER_REQUESTS_H_
 
-#include "../shared/serializable.h"
+#include "serializable.h"
 
 namespace helloworld {
 
 struct RegisterRequest : public Serializable<RegisterRequest> {
-    std::string sessionKey;
+    std::string sessionKey = ""; //session key filled on server side
     std::string name;
     std::vector<unsigned char> publicKey;
 
     RegisterRequest() = default;
 
-    RegisterRequest(std::string name, std::string sessionKey, std::vector<unsigned char> publicKey)
-            : sessionKey(std::move(sessionKey)), name(std::move(name)), publicKey(std::move(publicKey)) {}
+    RegisterRequest(std::string name, std::vector<unsigned char> publicKey)
+            : name(std::move(name)), publicKey(std::move(publicKey)) {}
 
     std::vector<unsigned char> serialize() const override {
         std::vector<unsigned char> result;
@@ -80,42 +80,15 @@ struct CompleteAuthRequest : public Serializable<CompleteAuthRequest> {
     }
 };
 
-struct AuthenticateRequest : public Serializable<AuthenticateRequest> {
-    std::string sessionKey;
-    std::string name;
-
-    AuthenticateRequest() = default;
-
-    AuthenticateRequest(std::string name, std::string sessionKey)
-            : sessionKey(std::move(sessionKey)), name(std::move(name)) {}
-
-    std::vector<unsigned char> serialize() const override {
-        std::vector<unsigned char> result;
-        Serializable::addContainer<std::string>(result, name);
-        Serializable::addContainer<std::string>(result, sessionKey);
-        return result;
-    }
-
-    static AuthenticateRequest deserialize(
-            const std::vector<unsigned char> &data) {
-        AuthenticateRequest result;
-        uint64_t position = 0;
-        position += Serializable::getContainer<std::string>(data, position,
-                                                            result.name);
-        position += Serializable::getContainer<std::string>(data, position,
-                                                            result.sessionKey);
-        return result;
-    }
-};
 
 //todo maybe use user_data instead, but for now empty data serialization does not work properly
-struct NameIdNeededRequest : public Serializable<AuthenticateRequest> {
+struct GenericRequest : public Serializable<GenericRequest> {
     uint32_t id = 0;
     std::string name;
 
-    NameIdNeededRequest() = default;
+    GenericRequest() = default;
 
-    NameIdNeededRequest(uint32_t id, std::string name)
+    GenericRequest(uint32_t id, std::string name)
             : id(id), name(std::move(name)) {}
 
     std::vector<unsigned char> serialize() const override {
@@ -125,9 +98,9 @@ struct NameIdNeededRequest : public Serializable<AuthenticateRequest> {
         return result;
     }
 
-    static NameIdNeededRequest deserialize(
+    static GenericRequest deserialize(
             const std::vector<unsigned char> &data) {
-        NameIdNeededRequest result;
+        GenericRequest result;
         uint64_t position = 0;
         position += Serializable::getNumeric<uint32_t>(data, position, result.id);
         position += Serializable::getContainer<std::string>(data, position, result.name);

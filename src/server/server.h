@@ -17,10 +17,10 @@
 #include <string>
 
 #include "../shared/random.h"
-#include "../shared/request.h"
+#include "../shared/request_response.h"
 #include "../shared/rsa_2048.h"
 #include "../shared/connection_manager.h"
-#include "requests.h"
+#include "../shared/requests.h"
 #include "transmission_file_server.h"
 #include "database_server.h"
 
@@ -108,8 +108,8 @@ public:
     //clear database to start from new
     void dropDatabase();
 
-    //check users present in db
-    std::vector<std::string> getUsers();
+    //visible because of testing, private otherwise
+    std::vector<std::string> getUsers(const std::string& query);
 
     //check for request, in future: either will run in thread later as listening
     //or gets notified by TCP
@@ -185,11 +185,18 @@ private:
     Response logOut(const Request &request);
 
     /**
-     * Logout user implementation
+     * @brief Logout user implementation
      *
      * @param name name to log out
      */
     void logout(const std::string& name);
+
+    /**
+     * @brief Search database of users
+     * @param request request containing name of the issuer
+     * @return list of users from database by query given in request
+     */
+    Response findUsers(const Request &request);
 
     /**
      * Send reponse to user with manager

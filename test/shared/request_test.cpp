@@ -13,7 +13,7 @@
 #include "catch.hpp"
 #include <sstream>
 #include <string>
-#include "../../src/shared/request.h"
+#include "../../src/shared/request_response.h"
 #include "../../src/shared/utils.h"
 #include "cstdlib"
 

@@ -1,6 +1,6 @@
 
 /**
- * @file request.h
+ * @file request_response.h
  * @author Ivan Mitruk (469063@mail.muni.cz)
  * @brief request and response structures
  * @version 0.1
@@ -38,7 +38,8 @@ public:
 
 struct Request {
     enum class Type {
-        LOGIN, LOGIN_COMPLETE, LOGOUT, CREATE, CREATE_COMPLETE, REMOVE, SEND, RECEIVE, FIND_USER, GET_ONLINE
+        LOGIN, LOGIN_COMPLETE, LOGOUT, CREATE, CREATE_COMPLETE,
+        REMOVE, SEND, RECEIVE, GET_ONLINE, FIND_USERS
     };
 
     struct Header : Serializable<Request::Header> {
@@ -77,7 +78,7 @@ struct Response {
      */
     enum class Type {
         OK = 0x0080,
-        DATABASE_ONLINE_SEND = 0x0150,
+        DATABASE_USERLIST = 0x0150,
 
         DATABASE_NOT_FOUD = 0x0151,
         USERNAME_NOT_VALID = 0x1150,

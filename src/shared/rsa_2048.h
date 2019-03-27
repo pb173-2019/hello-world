@@ -52,11 +52,11 @@ public:
     }
 
     static std::string getHexPwd(const std::string& pwd) {
-        return SHA512{}.getHex(/*Salt{"alsk5eutgahlsnd" + pwd}.get() +*/ pwd).substr(0, 32);
+        return SHA512{}.getHex(pwd).substr(0, 32);
     }
 
     static std::string getHexIv(const std::string& pwd) {
-        return SHA512{}.getHex(/*Salt{pwd + "d9fz68g54cv1as"}.get() +*/ pwd).substr(0, 32);
+        return SHA512{}.getHex(pwd).substr(30, 62);
     }
 
 private:

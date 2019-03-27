@@ -1,3 +1,5 @@
+#include <utility>
+
 /**
  * @file ConnectionManager.h
  * @author Jiří Horák (469130@mail.muni.cz)
@@ -20,37 +22,40 @@
 #include <map>
 #include <iterator>
 
-#include "request.h"
+#include "request_response.h"
 #include "rsa_2048.h"
 #include "aes_gcm.h"
 
 namespace helloworld {
-/**
- * body structure parsing in client-client communication
- * will use other keys for encryption than server
- */
-class ClientToClientManager {
-
-};
 
 /**
- * Request / reponse header parsing & body structure parsing in client-server communication
+ * STRUCTURE:
+ * ConnectionManager - helds random, gcm and session key instance,
+ * provides basic GCM encryption routines (encrypt head, body)
+ *     - BasicConnectionManager - message counting
+ *          - ClientToServerManager - first message send is always encrypted with server public key (RSA),
+ *          next are encrypted with GCM, use switchSecureChannel(bool) to switch between states
+ *
+ *          - ServerToClientManager - knows only GCM encryption, handles the session communication
+ *
+ *     - GenericServerManager - takes care of first requests & error handling
+ *     when no connection established available for target user
  */
+
 template<typename incoming, typename outgoing>
 class ConnectionManager {
 protected:
 
-    std::string _sessionKey;
-
-    //GCM used to encrypt session messages
     AESGCM _gcm{};
     Random _random;
 
-    //counter with random beginning, to accept only newer data
-    MessageNumberGenerator _counter;
+    std::string _sessionKey;
+    bool _established = false;
 
     static constexpr int HEADER_ENCRYPTED_SIZE = 28;
 public:
+    explicit ConnectionManager(std::string sessionKey) : _sessionKey(std::move(sessionKey)) {};
+
     virtual ~ConnectionManager() = default;
 
     /**
@@ -59,17 +64,17 @@ public:
      * @param key symmetric key used by both sides to encrypt the first message
      *        use empty string to close channel
      */
-    void openSecureChannel(std::string key) {
-        _sessionKey = std::move(key);
+    void switchSecureChannel(bool setEstablished) {
+        _established = setEstablished;
     }
 
     /**
-     * @brief Parse bytes into incoming (request/response) type structure,
-     *    decrypt and verify integrity
-     *
-     * @param data
-     * @return
-     */
+   * @brief Parse bytes into incoming (request/response) type structure,
+   *    decrypt and verify integrity
+   *
+   * @param data
+   * @return
+   */
     virtual incoming parseIncoming(std::stringstream &&data) = 0;
 
     /**
@@ -80,7 +85,6 @@ public:
      * @return
      */
     virtual std::stringstream parseOutgoing(const outgoing &data) = 0;
-
 
 protected:
     //pretty ugly, but C++ does not simply allows to move n bytes
@@ -93,8 +97,7 @@ protected:
         return result;
     }
 
-    template <typename Bundle>
-    void _GCMencryptBody(std::ostream& out, const Bundle &data) {
+    void _GCMencryptBody(std::ostream &out, const outgoing &data) {
         std::stringstream body;
         write_n(body, data.payload);
         std::string bodyIv = to_hex(_random.get(AESGCM::iv_size));
@@ -107,8 +110,7 @@ protected:
         _gcm.encryptWithAd(body, bodyIvStream, out);
     }
 
-    template <typename Bundle>
-    void _GCMencryptHead(std::ostream& out, const Bundle &data) {
+    void _GCMencryptHead(std::ostream &out, const outgoing &data) {
         std::vector<unsigned char> head_data = data.header.serialize();
         std::stringstream head;
         write_n(head, head_data);
@@ -137,7 +139,7 @@ protected:
         return headDecrypted;
     }
 
-    std::stringstream _GCMdecryptBody(std::istream& in) {
+    std::stringstream _GCMdecryptBody(std::istream &in) {
         std::stringstream bodyIvStream = _nBytesFromStream(in, AESGCM::iv_size * 2);
         std::stringstream bodyStream = _nBytesFromStream(in, getSize(in));
         std::stringstream bodyDecrypted;
@@ -150,6 +152,25 @@ protected:
     }
 };
 
+
+template<typename incoming, typename outgoing>
+class BasicConnectionManager : public ConnectionManager<incoming, outgoing> {
+protected:
+
+    //todo implement
+    MessageNumberGenerator _counter;
+
+public:
+    /**
+     * Initialize with session key
+     *
+     * @param sessionKey session key to use
+     */
+    explicit BasicConnectionManager(const std::string &sessionKey)
+            : ConnectionManager<incoming, outgoing>(sessionKey) {};
+
+};
+
 /**
  * Client side implementation with connections to other clients as well
  */
@@ -159,7 +180,7 @@ class ClientToServerManager : public ConnectionManager<Response, Request> {
     RSA2048 _rsa_out{};
 
     //future c-c managers
-    std::map<std::string, ClientToClientManager> _userManagers;
+    //std::map<std::string, ClientToClientManager> _userManagers;
 
 public:
     /**
@@ -169,7 +190,7 @@ public:
      * @param privkeyFilename rsa private key of the owner filename path
      * @param pwd password to decrypt private key
      */
-    explicit ClientToServerManager(const std::string &pubkeyFilename);
+    explicit ClientToServerManager(const std::string &sessionKey, const std::string &pubkeyFilename);
 
     /**
      * @brief Initialize with public key from buffer
@@ -178,7 +199,7 @@ public:
      * @param privkeyFilename rsa private key of the owner filename path
      * @param pwd password to decrypt private key
      */
-    explicit ClientToServerManager(const std::vector<unsigned char> &publicKeyData);
+    explicit ClientToServerManager(const std::string &sessionKey, const std::vector<unsigned char> &publicKeyData);
 
     Response parseIncoming(std::stringstream &&data) override;
 
@@ -191,13 +212,33 @@ private:
 
 };
 
+/**
+ * Server side implementation with connection to one client at time
+ * server always knows the session key as it is forwarded in auth / registration
+ */
+class ServerToClientManager : public ConnectionManager<Request, Response> {
+public:
+    explicit ServerToClientManager(const std::string &sessionKey);
+
+    Request parseIncoming(std::stringstream &&data) override;
+
+    std::stringstream parseOutgoing(const Response &data) override;
+};
+
+/**
+ * body structure parsing in client-client communication
+ * will use other keys for encryption than server
+ */
+class ClientToClientManager {
+
+};
 
 /**
  * Class that is meant to parse only with server private key - incoming registration & request
  */
-class GenericServerManager {
+class GenericServerManager : ConnectionManager<Request, Response> {
+
     RSA2048 _rsa_in{};
-    static constexpr int HEADER_ENCRYPTED_SIZE = 28;
 
 public:
     /**
@@ -215,7 +256,7 @@ public:
      * @param data data to parse
      * @return Request from new user
      */
-    Request parseIncoming(std::stringstream &&data);
+    Request parseIncoming(std::stringstream &&data) override;
 
     /**
      * Return reponse bytes of 0s that satisfies the parsed reponse length
@@ -224,26 +265,22 @@ public:
     std::stringstream returnErrorGeneric();
 
     /**
-     * Parse reponse with GCM with aes key given. One-time operation
+     * Serves as generic parser when key known, but
+     * connection manager is not present, uses key given
+     * in setKey method, which must be called before this
+     * one is used, the session key is deleted when data sent
+     *
      * @param data data to parse & encrypt
      * @param key GCM key to encrypt
      * @return stream
      */
-    std::stringstream parseErrorGCM(const Response& data, const std::string& key);
-
-};
-
-/**
- * Server side implementation with connection to one client at time
- * server always knows the session key as it is forwarded in auth / registration
- */
-class ServerToClientManager : public ConnectionManager<Request, Response> {
-public:
-    explicit ServerToClientManager(const std::string &sessionKey);
-
-    Request parseIncoming(std::stringstream &&data) override;
-
     std::stringstream parseOutgoing(const Response &data) override;
+
+    /**
+     * Set gcm key for parseOutgoing(const Response &data) method
+     * @param key
+     */
+    void setKey(const std::string& key);
 };
 
 }

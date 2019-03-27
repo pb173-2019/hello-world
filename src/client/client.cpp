@@ -1,4 +1,5 @@
 #include "client.h"
+#include "../shared/responses.h"
 
 namespace helloworld {
 
@@ -19,6 +20,9 @@ void Client::callback(std::stringstream &&data) {
             //todo maybe create response with REGISTRATION_SUCCESFULL to set registration to true
             _isRegistered = true;
             return;
+        case Response::Type::DATABASE_USERLIST:
+            parseUsers(response);
+            return;
         case Response::Type::CHALLENGE_RESPONSE_NEEDED:
             sendRequest(completeAuth(response.payload,
                     (_isRegistered) ? Request::Type::LOGIN_COMPLETE : Request::Type::CREATE_COMPLETE));
@@ -32,7 +36,6 @@ void Client::login() {
     _connection = std::make_unique<ClientToServerManager>(_serverPubKey);
     AuthenticateRequest request(_username, _sessionKey);
     sendRequest({{Request::Type::LOGIN, 1, 0}, request.serialize()});
-    _connection->openSecureChannel(_sessionKey);
 }
 
 void Client::logout() {
@@ -49,21 +52,36 @@ void Client::createAccount(const std::string &pubKeyFilename) {
     RegisterRequest registerRequest(_username, _sessionKey, key);
 
     sendRequest({{Request::Type::CREATE, 1, 0}, registerRequest.serialize()});
-    _connection->openSecureChannel(_sessionKey);
     _isRegistered = false;
 }
 
 void Client::deleteAccount() {
-    NameIdNeededRequest request(0, _username);
+    NameIdNeededRequest request{0, _username};
     sendRequest({{Request::Type::REMOVE, 0, 0}, request.serialize()});
     _isRegistered = false;
 }
 
-std::vector<UserData> Client::getUsers(const std::string &query) { return {}; }
+void Client::sendFindUsers(const std::string &query) {
+    sendGenericRequest(Request::Type::FIND_USERS);
+}
+
+void Client::sendGetOnline() {
+    sendGenericRequest(Request::Type::GET_ONLINE);
+}
+
+void Client::parseUsers(const helloworld::Response &response) {
+    UserListReponse online = UserListReponse::deserialize(response.payload);
+    _userList = online.online;
+}
 
 void Client::sendRequest(const Request &request) {
     auto data = _connection->parseOutgoing(request);
     _transmission->send(data);
+}
+
+void Client::sendGenericRequest(Request::Type type) {
+    NameIdNeededRequest request{0, _username};
+    sendRequest({{type, 0, 0}, request.serialize()});
 }
 
 Request Client::completeAuth(const std::vector<unsigned char> &secret,

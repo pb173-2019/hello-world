@@ -62,33 +62,6 @@ namespace helloworld {
         void _getSeedEntropy(unsigned char* buff);
     };
 
-
-    /**
-     * The pwd hashing is not secure, because it can be brute-forced
-     * use pseudo random generator to get different salt for different
-     * password, without need to store the salt (a bit less secure, but
-     * the password is not stored online
-     */
-    class Salt {
-        mbedtls_entropy_context _entropy{};
-        mbedtls_ctr_drbg_context _ctr_drbg{};
-
-    public:
-        explicit Salt(const std::string& seed);
-
-        Salt(const Salt &other) = delete;
-
-        Salt &operator=(const Salt &other) = delete;
-
-        /**
-         * Generates salt for pwd
-         *
-         * @return std::string salt
-         */
-        std::string get();
-
-        ~Salt();
-    };
 }
 
 #endif //HELLOWORLD_SHARED_RANDOM_H_

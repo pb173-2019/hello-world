@@ -3,7 +3,7 @@
 #include <fstream>
 #include "catch.hpp"
 
-#include "../../src/server/requests.h"
+#include "../../src/shared/requests.h"
 #include "../../src/server/server.h"
 
 using namespace helloworld;
@@ -150,7 +150,7 @@ TEST_CASE("Get list") {
             auto response = registerAlice(server, name);
             completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE);
 
-            CHECK(server.getUsers() == std::vector<std::string>{"alice"});
+            CHECK(server.getUsers("") == std::vector<std::string>{"alice"});
         }
 
         SECTION("Lots of users") {
@@ -160,7 +160,7 @@ TEST_CASE("Get list") {
                 completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE);
             }
 
-            CHECK(server.getUsers().size() == 100);
+            CHECK(server.getUsers("").size() == 100);
         }
     }
     server.dropDatabase();

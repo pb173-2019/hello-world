@@ -1,12 +1,16 @@
 #include "connection_manager.h"
 
+#include "requests.h"
+
 namespace helloworld {
 
-ClientToServerManager::ClientToServerManager(const std::string &pubkeyFilename) {
+ClientToServerManager::ClientToServerManager(const std::string& sessionKey,
+        const std::string &pubkeyFilename) : ConnectionManager(sessionKey) {
     _rsa_out.loadPublicKey(pubkeyFilename);
 }
 
-ClientToServerManager::ClientToServerManager(const std::vector<unsigned char> &publicKeyData) {
+ClientToServerManager::ClientToServerManager(const std::string& sessionKey,
+        const std::vector<unsigned char> &publicKeyData)  : ConnectionManager(sessionKey) {
     _rsa_out.setPublicKey(publicKeyData);
 }
 
@@ -28,23 +32,16 @@ Response ClientToServerManager::parseIncoming(std::stringstream &&data) {
 std::stringstream ClientToServerManager::parseOutgoing(const Request &data) {
     std::stringstream result{};
     //data.header.messageNumber = _counter.
-    if (_sessionKey.length() == AESGCM::key_size * 2) {
+    if (_established) {
         _GCMencryptHead(result, data);
         _GCMencryptBody(result, data);
     } else {
-        //when connection starts (registration / login)
-        //does not ensure integrity, results in connection failure as we're sending session key
+        //special sequence sent only once: when registered / authenticated
+        write_n(result, _rsa_out.encrypt(from_hex(_sessionKey)));
         write_n(result, _rsa_out.encrypt(data.header.serialize()));
-        int limit = 126;
-        int processed = 0;
-        while (processed < data.payload.size()) {
-            size_t length = data.payload.size() - processed;
-            if (length > limit) length = static_cast<size_t>(limit);
-            std::vector<unsigned char> toEncrypt(data.payload.data() + processed,
-                                                 data.payload.data() + processed + length);
-            write_n(result, _rsa_out.encrypt(toEncrypt));
-            processed += limit;
-        }
+        write_n(result, data.payload);
+        //session key sent, switch to secure state
+        switchSecureChannel(true);
     }
     result.seekg(0, std::ios::beg);
     return result;
@@ -52,87 +49,61 @@ std::stringstream ClientToServerManager::parseOutgoing(const Request &data) {
 
 
 GenericServerManager::GenericServerManager(const std::string &privkeyFilename, const std::string &key,
-                                           const std::string &iv) {
+                                           const std::string &iv) : ConnectionManager("") {
     _rsa_in.loadPrivateKey(privkeyFilename, key, iv);
 }
 
 Request GenericServerManager::parseIncoming(std::stringstream &&data) {
     Request request;
+    //encrypted session key
+    std::vector<unsigned char> sessionKey = std::vector<unsigned char>(RSA2048::BLOCK_SIZE_OAEP);
+    read_n(data, sessionKey.data(), sessionKey.size());
+    sessionKey = _rsa_in.decrypt(sessionKey);
+    //encrypted head
     std::vector<unsigned char> header = std::vector<unsigned char>(RSA2048::BLOCK_SIZE_OAEP);
     read_n(data, header.data(), header.size());
-
     header = _rsa_in.decrypt(header);
 
-    std::vector<unsigned char> body = std::vector<unsigned char>(RSA2048::BLOCK_SIZE_OAEP);
-    std::vector<unsigned char> result;
-    while (true) {
-        size_t read = read_n(data, body.data(), body.size());
-        if (read <= 0)
-            break;
-        std::vector<unsigned char> decrypted = _rsa_in.decrypt(body);
-        result.insert(result.end(), decrypted.begin(), decrypted.end());
-    }
     request.header = std::move(Request::Header::deserialize(header));
-    request.payload = std::move(result);
 
+    size_t length = getSize(data);
+    request.payload = std::vector<unsigned char>(length);
+    read_n(data, request.payload.data(), length);
+
+    RegisterRequest temp = RegisterRequest::deserialize(request.payload);
+    temp.sessionKey = to_hex(sessionKey);
+
+    request.payload = temp.serialize();
     return request;
 }
 
 std::stringstream GenericServerManager::returnErrorGeneric() {
     std::stringstream result;
     std::fill_n(std::ostream_iterator<char>(result),
-                AESGCM::iv_size * 4 + HEADER_ENCRYPTED_SIZE, 'a');
+                AESGCM::iv_size * 4 + HEADER_ENCRYPTED_SIZE, 0);
     return result;
 }
 
-std::stringstream GenericServerManager::parseErrorGCM(const Response &data, const std::string &key) {
-    Random random{};
-    AESGCM gcm;
+void GenericServerManager::setKey(const std::string &key) {
+    _sessionKey = key;
+}
 
+std::stringstream GenericServerManager::parseOutgoing(const Response &data) {
     std::stringstream result{};
     //data.header.messageNumber = _counter.
-
-    std::stringstream body;
-    write_n(body, data.payload);
-
-    std::vector<unsigned char> head_data = data.header.serialize();
-    std::stringstream head;
-    write_n(head, head_data);
-
-    //1) encrypt head
-    std::string headIv = to_hex(random.get(AESGCM::iv_size));
-    std::istringstream headIvStream{headIv};
-    std::stringstream headEncrypted;
-    if (!gcm.setKey(key) || !gcm.setIv(headIv)) {
-        throw Error("Could not initialize GCM.");
-    }
-    write_n(result, headIv);
-    gcm.encryptWithAd(head, headIvStream, result);
-
-    //2) encrypt body
-    std::string bodyIv = to_hex(random.get(AESGCM::iv_size));
-    std::istringstream bodyIvStream{bodyIv};
-    std::stringstream bodyEncrypted;
-    if (!gcm.setKey(key) || !gcm.setIv(bodyIv)) {
-        throw Error("Could not initialize GCM.");
-    }
-    write_n(result, bodyIv);
-    gcm.encryptWithAd(body, bodyIvStream, result);
-    bodyEncrypted.seekg(0, std::ios::beg);
-    bodyIvStream.seekg(0, std::ios::beg);
-
+    _GCMencryptHead(result, data);
+    _GCMencryptBody(result, data);
     result.seekg(0, std::ios::beg);
+    _sessionKey = ""; //ensure the setKey method calling
     return result;
 }
 
-
-ServerToClientManager::ServerToClientManager(const std::string &sessionKey) {
-    openSecureChannel(sessionKey);
+ServerToClientManager::ServerToClientManager(const std::string &sessionKey) : ConnectionManager(sessionKey) {
+    switchSecureChannel(true);
 }
 
 Request ServerToClientManager::parseIncoming(std::stringstream &&data) {
     Request request;
-    //data.header.messageNumber = _counter.
     std::stringstream headDecrypted = _GCMdecryptHead(data);
     std::stringstream bodyDecrypted = _GCMdecryptBody(data);
 
@@ -148,7 +119,6 @@ Request ServerToClientManager::parseIncoming(std::stringstream &&data) {
 
 std::stringstream ServerToClientManager::parseOutgoing(const Response &data) {
     std::stringstream result{};
-    //data.header.messageNumber = _counter.
 
     _GCMencryptHead(result, data);
     _GCMencryptBody(result, data);

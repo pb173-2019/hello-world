@@ -3,7 +3,7 @@ project(server)
 add_executable(${PROJECT_NAME} main.cpp
         server.h
         server.cpp
-        requests.h
+        ../shared/requests.h
         database_server.h
         sqlite_database.h
         sqlite_database.cpp)

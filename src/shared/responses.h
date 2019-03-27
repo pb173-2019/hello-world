@@ -14,16 +14,16 @@
 #ifndef HELLOWORLD_SERVER_RESPONSES_H_
 #define HELLOWORLD_SERVER_RESPONSES_H_
 
-#include "../shared/serializable.h"
+#include "serializable.h"
 
 namespace helloworld {
 
-struct OnlineUsersResponse : public Serializable<OnlineUsersResponse> {
+struct UserListReponse : public Serializable<UserListReponse> {
     std::vector<std::string> online;
 
-    OnlineUsersResponse() = default;
+    UserListReponse() = default;
 
-    explicit OnlineUsersResponse(std::vector<std::string> users) : online(std::move(users)) {}
+    explicit UserListReponse(std::vector<std::string> users) : online(std::move(users)) {}
 
     std::vector<unsigned char> serialize() const override {
         std::vector<unsigned char> result;
@@ -31,8 +31,8 @@ struct OnlineUsersResponse : public Serializable<OnlineUsersResponse> {
         return result;
     }
 
-    static OnlineUsersResponse deserialize(const std::vector<unsigned char> &data) {
-        OnlineUsersResponse result;
+    static UserListReponse deserialize(const std::vector<unsigned char> &data) {
+        UserListReponse result;
         Serializable::getNestedContainer<std::vector<std::string>, std::string>(data, 0, result.online);
         return result;
     }

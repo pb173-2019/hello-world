@@ -5,8 +5,8 @@
 #include <fstream>
 #include "catch.hpp"
 
-#include "../../src/server/requests.h"
-#include "../../src/server/responses.h"
+#include "../../src/shared/requests.h"
+#include "../../src/shared/responses.h"
 #include "../../src/server/server.h"
 #include "../../src/client/transmission_file_client.h"
 #include "../../src/shared/connection_manager.h"
@@ -133,7 +133,7 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
     //client obtains the final OK response
     client._transmission->receive();
 
-    client._connection = std::make_unique<ClientToServerManager>("server_pub.pem");
+    client._connection->openSecureChannel("");
     std::stringstream loggingin = client._connection->parseOutgoing(
             loginUser("alice", "2b7e151628aed2a6abf7158809cf4f3c"));
     client._connection->openSecureChannel("2b7e151628aed2a6abf7158809cf4f3c");
@@ -161,7 +161,7 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
 }
 
 void registerUserRoutine(Server& server, ClientMock& client) {
-    client._connection = std::make_unique<ClientToServerManager>("server_pub.pem");
+    client._connection->openSecureChannel("");
     std::stringstream registration = client._connection->parseOutgoing(
             registerUser(client._username, "2b7e151628aed2a6abf7158809cf4f3c", "alice_pub.pem"));
     //!! now when parsed, can set secure channel

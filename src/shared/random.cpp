@@ -107,46 +107,4 @@ void Random::_getSeedEntropy(unsigned char *buff) {
 #endif
 }
 
-// from https://github.com/ARMmbed/mbedtls/blob/development/tests/suites/test_suite_ctr_drbg.function
-// pseudo random generator
-// always generates the same sequence for same seed
-
-static size_t test_offset_idx = 0;
-int pseudorandom_entropy_func(void *data, unsigned char *output, size_t len) {
-    size_t test_max_idx  = 1024;
-    const unsigned char *p = (unsigned char *) data;
-    if( test_offset_idx + len > test_max_idx )
-        return( MBEDTLS_ERR_ENTROPY_SOURCE_FAILED );
-    std::memcpy( output, p + test_offset_idx, len );
-    test_offset_idx += len;
-    return( 0 );
-}
-
-Salt::Salt(const std::string &seed) {
-    if (seed.size() < 16)
-        throw Error("Invalid seed.");
-
-    mbedtls_entropy_init(&_entropy);
-    mbedtls_ctr_drbg_init(&_ctr_drbg);
-
-    if (mbedtls_ctr_drbg_seed(&_ctr_drbg, pseudorandom_entropy_func, &_entropy,
-                              reinterpret_cast<const unsigned char *>(seed.data()), 16) != 0) {
-        throw Error("Could not init seed.");
-    }
-    mbedtls_ctr_drbg_set_prediction_resistance(&_ctr_drbg, MBEDTLS_CTR_DRBG_PR_OFF);
-}
-
-std::string Salt::get() {
-    std::vector<unsigned char> result(16);
-    if (mbedtls_ctr_drbg_random(&_ctr_drbg, result.data(), result.size()) != 0) {
-        throw Error("Could not generate random sequence.");
-    }
-    return to_hex(result);
-}
-
-Salt::~Salt() {
-    mbedtls_ctr_drbg_free(&_ctr_drbg);
-    mbedtls_entropy_free(&_entropy);
-}
-
 }

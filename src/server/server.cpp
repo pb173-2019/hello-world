@@ -3,8 +3,8 @@
 #include "server.h"
 #include "../shared/serializable_error.h"
 #include "sqlite_database.h"
-#include "requests.h"
-#include "responses.h"
+#include "../shared/requests.h"
+#include "../shared/responses.h"
 
 namespace helloworld {
 
@@ -26,6 +26,8 @@ Response Server::handleUserRequest(const Request &request) {
             return completeAuthentication(request, false);
         case Request::Type::GET_ONLINE:
             return getOnline(request);
+        case Request::Type::FIND_USERS:
+            return findUsers(request);
         case Request::Type::REMOVE:
             return deleteAccount(request);
         case Request::Type::LOGOUT:
@@ -128,8 +130,8 @@ Response Server::getOnline(const Request &request) {
     NameIdNeededRequest curRequest = NameIdNeededRequest::deserialize(request.payload);
 
     const std::set<std::string> &users = _transmission->getOpenConnections();
-    Response r = {{Response::Type::DATABASE_ONLINE_SEND, request.header.messageNumber, request.header.userId},
-            OnlineUsersResponse{{users.begin(), users.end()}}.serialize()};
+    Response r = {{Response::Type::DATABASE_USERLIST, request.header.messageNumber, request.header.userId},
+            UserListReponse{{users.begin(), users.end()}}.serialize()};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }
@@ -171,13 +173,22 @@ void Server::logout(const std::string &name) {
 
 void Server::dropDatabase() { _database->drop(); }
 
-std::vector<std::string> Server::getUsers() {
-    const auto &users = _database->selectUsers({});
+std::vector<std::string> Server::getUsers(const std::string& query) {
+    const auto &users = _database->selectUsers({0, query, "", {}});
     std::vector<std::string> names;
     for (const auto &user : users) {
         names.push_back(user->name);
     }
     return names;
+}
+
+Response Server::findUsers(const Request &request) {
+    NameIdNeededRequest curRequest = NameIdNeededRequest::deserialize(request.payload);
+    UserListReponse response;
+    response.online = getUsers(curRequest.name);
+    Response r = {{Response::Type::DATABASE_USERLIST, 0, 0}, response.serialize()};
+    sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
+    return r;
 }
 
 ServerToClientManager *Server::getManagerPtr(const std::string &username, bool trusted) {
