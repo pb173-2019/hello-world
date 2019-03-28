@@ -116,5 +116,6 @@ TEST_CASE("Scenario 2: getting users from database.") {
     CHECK(checkContains<std::string>(borek.getUsers(), "lila"));
     CHECK(!checkContains<std::string>(borek.getUsers(), "emily"));
     CHECK(!checkContains<std::string>(borek.getUsers(), "bob"));
+    server.dropDatabase();
 }
 
