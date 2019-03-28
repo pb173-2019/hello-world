@@ -53,7 +53,7 @@ TEST_CASE("generate Serialize response header and deserialize") {
         header.userId = 0;
     }
     SECTION("Simple test 2") {
-        header.type = Response::Type::USER_AUTHENTICATED;
+        header.type = Response::Type::DATABASE_RECEIVE;
         header.userId = 5;
     }
 
@@ -68,6 +68,4 @@ TEST_CASE("generate Serialize response header and deserialize") {
     CHECK(header.type == oheader.type);
     CHECK(header.messageNumber == oheader.messageNumber);
     CHECK(header.userId == oheader.userId);
-
-
 }
