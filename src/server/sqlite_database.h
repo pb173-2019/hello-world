@@ -26,7 +26,7 @@ class ServerSQLite : public ServerDatabase {
     std::vector<std::unique_ptr<UserData>> _cache;
     sqlite3 *_handler = nullptr;
 public:
-    const std::vector<std::string> tables{"users", "bundles", "data"};
+    const std::vector<std::string> tables{"users", "bundles", "messages"};
 
     /**
      * Creates temporary in-memory database
@@ -49,20 +49,28 @@ public:
 
     ~ServerSQLite() override;
 
+    /*
+     * WORKING WITH USERDATA (table users)
+     */
     void insert(const UserData &data, bool autoIncrement) override;
+    const std::vector<std::unique_ptr<UserData>>& select(const UserData &query) override;
+    const std::vector<std::unique_ptr<UserData>>& selectLike(const UserData &query) override;
+    bool remove(const UserData& data) override;
 
-    const std::vector<std::unique_ptr<UserData>>& selectUsers(const UserData &query) override;
+    /*
+     * WORKING WITH MESSAGES (table users)
+     */
+    void insertData(uint32_t userId, const std::vector<unsigned char>& blob) override;
+    std::vector<unsigned char> selectData(uint32_t userId) override;
 
-    const std::vector<std::unique_ptr<UserData>>& selectUsersLike(const UserData &query) override;
+    /*
+     * WORKING WITH KEYBUNDLES (table users)
+     */
+    void insertBundle(uint32_t userId, const std::vector<unsigned char>& blob) override;
+    std::vector<unsigned char> selectBundle(uint32_t userId) override;
+    void updateBundle(uint32_t userId, const std::vector<unsigned char>& blob) override;
+    bool removeBundle(uint32_t userId) override;
 
-    template <typename object>
-    void insert(const std::string& table, uint32_t userId, const Serializable<object>& data);
-
-    template <typename object>
-    Serializable<object> select(const std::string& table, uint32_t userId);
-
-
-    bool removeUser(const UserData& data) override;
 
     void drop() override;
 

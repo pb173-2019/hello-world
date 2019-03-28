@@ -193,6 +193,24 @@ private:
     Response findUsers(const Request &request);
 
     /**
+     * @brief Called to forward message
+     *
+     * @param request request containing data to send
+     * @return Response OK response if stored succesfully
+     */
+    Response forward(const Request &request);
+
+    /**
+     * @brief Called when OK reponse should be sent
+     *        notifies user whether an event occurs that should user know
+     *        (e.g. old keys, empty key pool)
+     *
+     * @param request to get message number & user id
+     * @return OK if nothing needed, specific server response on event
+     */
+    Response checkEvent(const Request& request);
+
+    /**
      * Send reponse to user with manager
      *
      * @param username username to send the response to

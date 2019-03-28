@@ -6,10 +6,10 @@ namespace helloworld {
 Client::Client(std::string username, const std::string &serverPubKeyFilename,
                const std::string &clientPrivKeyFilename,
                const std::string &password)
-    : _username(std::move(username)),
-      _sessionKey(to_hex(Random().get(SYMMETRIC_KEY_SIZE))),
-      _transmission(std::make_unique<ClientFiles>(this, _username)),
-      _serverPubKey(serverPubKeyFilename){
+        : _username(std::move(username)),
+          _sessionKey(to_hex(Random().get(SYMMETRIC_KEY_SIZE))),
+          _transmission(std::make_unique<ClientFiles>(this, _username)),
+          _serverPubKey(serverPubKeyFilename) {
     _rsa.loadPrivateKey(clientPrivKeyFilename, password);
 }
 
@@ -68,6 +68,21 @@ void Client::sendFindUsers(const std::string &query) {
 
 void Client::sendGetOnline() {
     sendGenericRequest(Request::Type::GET_ONLINE);
+}
+
+
+void Client::sendKeysBundle() {
+    //todo
+    sendRequest({});
+}
+
+void Client::requestKeyBundle(uint32_t userId) {
+    //todo
+    sendRequest({});
+}
+
+void Client::sendData(uint32_t userId, const std::vector<unsigned char> &data) {
+    sendRequest({{Request::Type::SEND, 0, userId}, SendData(_username, data).serialize()});
 }
 
 void Client::parseUsers(const helloworld::Response &response) {

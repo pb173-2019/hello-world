@@ -33,12 +33,14 @@ Response ClientToServerManager::parseIncoming(std::stringstream &&data) {
 
 std::stringstream ClientToServerManager::parseOutgoing(const Request &data) {
     std::stringstream result{};
+    //todo if type SEND encrypt body with ANOTHER session key
+    //todo or parse both, (but the body will be parsed twice - for user, and for server)
     //data.header.messageNumber = _counter.
     if (_established) {
         _GCMencryptHead(result, data);
         _GCMencryptBody(result, data);
     } else {
-        //special sequence sent only once: when registered / authenticated
+        //this section sent only once: when registered / authenticated
         write_n(result, _rsa_out.encrypt(from_hex(_sessionKey)));
         write_n(result, _rsa_out.encrypt(data.header.serialize()));
         write_n(result, data.payload);
@@ -48,7 +50,6 @@ std::stringstream ClientToServerManager::parseOutgoing(const Request &data) {
     result.seekg(0, std::ios::beg);
     return result;
 }
-
 
 GenericServerManager::GenericServerManager(const std::string &privkeyFilename, const std::string &key,
                                            const std::string &iv) : ConnectionManager("") {
@@ -94,7 +95,7 @@ std::stringstream GenericServerManager::parseOutgoing(const Response &data) {
     _GCMencryptHead(result, data);
     _GCMencryptBody(result, data);
     result.seekg(0, std::ios::beg);
-    _sessionKey = ""; //ensure the setKey method calling
+    _sessionKey = ""; //reset key to nothing, prevent misuse
     return result;
 }
 
@@ -104,6 +105,10 @@ ServerToClientManager::ServerToClientManager(const std::string &sessionKey) : Co
 
 Request ServerToClientManager::parseIncoming(std::stringstream &&data) {
     Request request;
+
+    //todo DONT encrypt body when data sent for another user (if type SEND)
+    //todo or encrypt both, (but the body will be parsed twice - for user, and for server)
+
     std::stringstream headDecrypted = _GCMdecryptHead(data);
     std::stringstream bodyDecrypted = _GCMdecryptBody(data);
 

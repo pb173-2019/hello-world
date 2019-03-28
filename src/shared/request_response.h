@@ -39,7 +39,7 @@ public:
 struct Request {
     enum class Type {
         LOGIN, LOGIN_COMPLETE, LOGOUT, CREATE, CREATE_COMPLETE,
-        REMOVE, SEND, RECEIVE, GET_ONLINE, FIND_USERS
+        REMOVE, SEND, GET_ONLINE, FIND_USERS
     };
 
     struct Header : Serializable<Request::Header> {
@@ -78,8 +78,8 @@ struct Response {
      */
     enum class Type {
         OK = 0x0080,
-        DATABASE_USERLIST = 0x0150,
-
+        DATABASE_USERLIST = 0x0110,
+        DATABASE_RECEIVE = 0x0111,
         DATABASE_NOT_FOUD = 0x0151,
         USERNAME_NOT_VALID = 0x1150,
         FAILED_TO_DELETE_USER = 0x1151,

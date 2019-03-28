@@ -134,6 +134,51 @@ struct GetUsers : public Serializable<GetUsers> {
     }
 };
 
+    struct SendData : public Serializable<SendData> {
+        std::string from;
+        std::vector<unsigned char> data;
+
+        SendData() = default;
+
+        SendData(std::string from, std::vector<unsigned char> data) :
+                from(std::move(from)), data(std::move(data)) {}
+
+        std::vector<unsigned char> serialize() const override {
+            std::vector<unsigned char> result;
+            Serializable::addNumeric<std::string>(result, from);
+            Serializable::addContainer<std::vector<unsigned char>>(result, data);
+            return result;
+        }
+
+        static SendData deserialize(const std::vector<unsigned char> &data) {
+            SendData result;
+            uint64_t position = 0;
+            position += Serializable::getContainer<std::string>(data, position, result.from);
+            position += Serializable::getContainer<std::vector<unsigned char>>(data, position, result.data);
+            return result;
+        }
+    };
+
+    struct KeyBundle : public Serializable<KeyBundle> {
+        //todo keys needed X3DH
+
+        KeyBundle() = default;
+
+
+        std::vector<unsigned char> serialize() const override {
+            std::vector<unsigned char> result;
+            //todo
+            return result;
+        }
+
+        static KeyBundle deserialize(const std::vector<unsigned char> &data) {
+            KeyBundle result;
+            uint64_t position = 0;
+            //todo
+            return result;
+        }
+    };
+
 }    // namespace helloworld
 
 #endif    // HELLOWORLD_SERVER_REQUESTS_H_

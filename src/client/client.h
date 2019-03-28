@@ -73,12 +73,12 @@ class Client : public Callable<void, std::stringstream &&> {
      * @brief Get user list based on given query
      *
      */
-    void sendFindUsers(const std::string &name);
+    void sendFindUsers(const std::string &name); //todo return ids as well
 
     /**
      * @brief Get online user list
      */
-    void sendGetOnline();
+    void sendGetOnline(); //todo return ids as well
 
     /**
      * Returns the userlist requested in send*()
@@ -86,6 +86,30 @@ class Client : public Callable<void, std::stringstream &&> {
      const std::vector<std::string>& getUsers() {
         return _userList;
      }
+
+    /**
+     * Send data to server
+     * @param data data to send
+     * @param keys
+     */
+    void sendKeysBundle();
+
+    /**
+     * Request key bundle for user with id given.
+     * The id should be obtained in user-getting methods
+     *
+     * @param userId
+     */
+    void requestKeyBundle(uint32_t userId);
+
+    /**
+     * Send data to server, any bytes supported (todo: add some length checks)
+     *
+     * @param userId user id - the user that is supposed to receive the data
+     * @param data data to send
+     */
+    void sendData(uint32_t userId, const std::vector<unsigned char>& data);
+
 
     //
     // TESTING PURPOSE METHODS SECTION
