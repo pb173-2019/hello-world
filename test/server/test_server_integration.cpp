@@ -63,7 +63,10 @@ public:
     void callback(std::stringstream &&data) override {
         Response response = _connection->parseIncoming(std::move(data));
         switch (response.header.type) {
-            case Response::Type::OK: {
+            case Response::Type::OK:
+                CHECK(true);
+                return;
+            case Response::Type::USER_REGISTERED: {
                 CHECK(true);
                 registered = true;
                 return;
