@@ -42,6 +42,7 @@ TEST_CASE("Create key") {
 
 TEST_CASE("Add new user") {
     Server server;
+    server.dropDatabase();
     std::string name = "alice";
 
     SECTION("New user") {
@@ -65,7 +66,6 @@ TEST_CASE("Add new user") {
                   Response::Type::OK);
         }
     }
-    server.dropDatabase();
 }
 
 TEST_CASE("User authentication") {
