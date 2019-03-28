@@ -26,12 +26,11 @@ struct Error : public std::exception, public Serializable<Error> {
 
     explicit Error(std::string message) : message(std::move(message)) {}
 
-    const char *what() const throw() override { return message.c_str(); }
+    const char *what() const noexcept override { return message.c_str(); }
 
     std::vector<unsigned char> serialize() const override {
         std::vector<unsigned char> result;
         Serializable::addContainer<std::string>(result, message);
-
         return result;
     }
 

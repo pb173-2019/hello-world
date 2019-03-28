@@ -47,13 +47,13 @@ Response Server::registerUser(const Request &request) {
     }
 
     std::vector<unsigned char> challengeBytes = _random.get(CHALLENGE_SECRET_LENGTH);
-    _transmission->registerConnection(registerRequest.name);
     bool inserted = _requestsToConnect.emplace(userData.name,
             std::make_unique<Challenge>(userData, challengeBytes, registerRequest.sessionKey)).second;
 
     if (!inserted) {
         throw Error("User " + userData.name + " is already in the process of verification.");
     }
+    _transmission->registerConnection(registerRequest.name);
 
     Response r = {{Response::Type::CHALLENGE_RESPONSE_NEEDED, request.header.messageNumber,
                    request.header.userId}, challengeBytes};
@@ -72,7 +72,7 @@ Response Server::completeAuthentication(const Request &request, bool newUser) {
 
     RSA2048 rsa;
 
-    if (! newUser) {
+    if (!newUser) {
         UserData user{0, curRequest.name, "", {}};
         auto &resultList = _database->selectUsers(user);
         if (resultList.empty()) {
@@ -88,12 +88,15 @@ Response Server::completeAuthentication(const Request &request, bool newUser) {
         rsa.setPublicKey(registration->second->userData.publicKey);
     }
 
-    if (! rsa.verify(curRequest.secret, registration->second->secret)) {
+    if (!rsa.verify(curRequest.secret, registration->second->secret)) {
         throw Error("Cannot verify public key owner.");
     }
 
+    bool emplaced = _connections.emplace(curRequest.name, std::move(registration->second->manager)).second;
+    if (!emplaced)
+        throw Error("Invalid authentication under an online account.");
+
     if (newUser) _database->insert(registration->second->userData, true);
-    _connections.emplace(curRequest.name, std::move(registration->second->manager));
     _requestsToConnect.erase(curRequest.name);
 
     Response r = {{Response::Type::OK, request.header.messageNumber, request.header.userId}, {}};
@@ -111,17 +114,19 @@ Response Server::authenticateUser(const Request &request) {
         throw Error("User with given name is not registered.");
     }
     std::vector<unsigned char> challengeBytes = _random.get(CHALLENGE_SECRET_LENGTH);
-    //the secure channel is opened, but do not trusted, until not moved into connections vector
-    _transmission->registerConnection(authenticateRequest.name);
 
     bool inserted = _requestsToConnect.emplace(authenticateRequest.name,
-            std::make_unique<Challenge>(userData, challengeBytes, authenticateRequest.sessionKey)).second;
+            std::make_unique<Challenge>(userData, challengeBytes,
+                    authenticateRequest.sessionKey)).second;
+
     if (!inserted) {
         throw Error("User with given name is already in the process of verification.");
     }
+    _transmission->registerConnection(authenticateRequest.name);
+
 
     Response r = {{Response::Type::CHALLENGE_RESPONSE_NEEDED, request.header.messageNumber,
-                  request.header.userId}, challengeBytes};
+                   request.header.userId}, challengeBytes};
     sendReponse(authenticateRequest.name, r, getManagerPtr(authenticateRequest.name, false));
     return r;
 }
@@ -129,9 +134,9 @@ Response Server::authenticateUser(const Request &request) {
 Response Server::getOnline(const Request &request) {
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
 
-    const std::set<std::string> &users = _transmission->getOpenConnections();
+    const std::set <std::string> &users = _transmission->getOpenConnections();
     Response r = {{Response::Type::DATABASE_USERLIST, request.header.messageNumber, request.header.userId},
-            UserListReponse{{users.begin(), users.end()}}.serialize()};
+                  UserListReponse{{users.begin(), users.end()}}.serialize()};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }
@@ -143,9 +148,9 @@ Response Server::deleteAccount(const Request &request) {
     data.id = curRequest.id;
     Response r;
     if (!_database->removeUser({curRequest.id, curRequest.name, "", {}})) {
-        r = {{Response::Type::FAILED_TO_DELETE_USER, 0, 0}, {}};
+        r = {{Response::Type::FAILED_TO_DELETE_USER, request.header.messageNumber, request.header.userId}, {}};
     } else {
-        r = {{Response::Type::OK, 0, 0}, {}};
+        r = {{Response::Type::OK, request.header.messageNumber, request.header.userId}, {}};
     }
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     logout(curRequest.name);
@@ -154,7 +159,8 @@ Response Server::deleteAccount(const Request &request) {
 
 Response Server::logOut(const Request &request) {
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
-    Response r = {{Response::Type::OK, 0, 0}, {}};
+    Response r = {{Response::Type::OK, 0, 0},
+                  {}};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     logout(curRequest.name);
     return r;
@@ -164,16 +170,16 @@ void Server::logout(const std::string &name) {
     size_t deleted = _connections.erase(name);
     if (deleted != 1) {
         throw Error("Attempt to close connection: connections closed: " +
-        std::to_string(deleted));
+                    std::to_string(deleted));
     }
     _transmission->removeConnection(name);
 }
 
 void Server::dropDatabase() { _database->drop(); }
 
-std::vector<std::string> Server::getUsers(const std::string& query) {
+std::vector <std::string> Server::getUsers(const std::string &query) {
     const auto &users = _database->selectUsersLike({0, query, "", {}});
-    std::vector<std::string> names;
+    std::vector <std::string> names{};
     for (const auto &user : users) {
         names.push_back(user->name);
     }

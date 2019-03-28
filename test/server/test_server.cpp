@@ -42,7 +42,7 @@ TEST_CASE("Create key") {
 
 TEST_CASE("Add new user") {
     Server server;
-    server.dropDatabase();
+
     std::string name = "alice";
 
     SECTION("New user") {
@@ -65,6 +65,7 @@ TEST_CASE("Add new user") {
             CHECK(completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE).header.type ==
                   Response::Type::OK);
         }
+        server.dropDatabase();
     }
 }
 

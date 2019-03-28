@@ -15,6 +15,8 @@ ClientToServerManager::ClientToServerManager(const std::string& sessionKey,
 }
 
 Response ClientToServerManager::parseIncoming(std::stringstream &&data) {
+    if (getSize(data) < HEADER_ENCRYPTED_SIZE)
+        throw Error("Server returned generic error.");
     std::stringstream headDecrypted = _GCMdecryptHead(data);
     std::stringstream bodyDecrypted = _GCMdecryptBody(data);
 
@@ -78,10 +80,8 @@ Request GenericServerManager::parseIncoming(std::stringstream &&data) {
 }
 
 std::stringstream GenericServerManager::returnErrorGeneric() {
-    std::stringstream result;
-    std::fill_n(std::ostream_iterator<char>(result),
-                AESGCM::iv_size * 4 + HEADER_ENCRYPTED_SIZE, 0);
-    return result;
+    //empty stream to indicate generic error
+    return std::stringstream{};
 }
 
 void GenericServerManager::setKey(const std::string &key) {
