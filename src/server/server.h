@@ -114,11 +114,14 @@ public:
     void getRequest() {
         _transmission->receive();
     };
-    //when testing, the user is registered & then needs to disconnect to try to log in
-    void closeTransmission(const std::string& name) {
-        _transmission->removeConnection(name);
-    }
 
+    /**
+    * @brief Logout user implementation
+    * testing: visible as public
+    *
+    * @param name name to log out
+    */
+    void logout(const std::string& name);
 
 private:
     Random _random;
@@ -181,13 +184,6 @@ private:
      * @return Response OK response if user was logged out
      */
     Response logOut(const Request &request);
-
-    /**
-     * @brief Logout user implementation
-     *
-     * @param name name to log out
-     */
-    void logout(const std::string& name);
 
     /**
      * @brief Search database of users

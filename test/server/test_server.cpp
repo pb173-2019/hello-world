@@ -76,7 +76,7 @@ TEST_CASE("User authentication") {
     auto response = registerAlice(server, name);
     completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE);
     //registration opened transmission
-    server.closeTransmission(name);
+    server.logout(name);
 
     SECTION("Existing user") {
         AuthenticateRequest authRequest("alice", {});
