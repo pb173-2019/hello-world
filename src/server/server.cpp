@@ -98,10 +98,15 @@ Response Server::completeAuthentication(const Request &request, bool newUser) {
     if (!emplaced)
         throw Error("Invalid authentication under an online account.");
 
-    if (newUser) _database->insert(registration->second->userData, true);
+    uint32_t generatedId = 0;
+    if (newUser) generatedId = _database->insert(registration->second->userData, true);
     _requestsToConnect.erase(curRequest.name);
 
-    Response r = checkEvent(request);
+    Response r;
+    if (newUser)
+        r = {{Response::Type::USER_REGISTERED, 0, generatedId}, {}};
+    else
+        r = checkEvent(request);
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }
@@ -112,9 +117,12 @@ Response Server::authenticateUser(const Request &request) {
 
     UserData userData(0, authenticateRequest.name, "", {});
     auto &resultList = _database->select(userData);
-    if (resultList.empty()) {
+
+    if (resultList.empty())
         throw Error("User with given name is not registered.");
-    }
+    if (_connections.find(authenticateRequest.name) != _connections.end())
+        throw Error("User is online.");
+
     std::vector<unsigned char> challengeBytes = _random.get(CHALLENGE_SECRET_LENGTH);
 
     bool inserted = _requestsToConnect.emplace(authenticateRequest.name,

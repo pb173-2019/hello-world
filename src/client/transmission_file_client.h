@@ -55,16 +55,24 @@ public:
     }
 
     void receive() override {
-        std::ifstream received{username + "-response.tcp", std::ios::binary | std::ios::in};
-        if (!received) {
-            return;
+        try {
+            std::ifstream received{username + "-response.tcp", std::ios::binary | std::ios::in};
+            if (!received) {
+                return;
+            }
+
+            std::stringstream result{};
+            _base64.toStream(received, result);
+
+            result.seekg(0, std::ios::beg);
+            Callable<void, std::stringstream &&>::call(callback, std::move(result));
+        } catch (std::exception &e) {
+            //finally simulation, server doesn't need - it catches all the
+            // exceptions in its callback
+            remove((username + "-response.tcp").c_str());
+            throw e;
         }
 
-        std::stringstream result{};
-        _base64.toStream(received, result);
-
-        result.seekg(0, std::ios::beg);
-        Callable<void, std::stringstream &&>::call(callback, std::move(result));
         if (remove((username + "-response.tcp").c_str()) != 0) {
             throw Error("Could not finish transmission.\n");
         }

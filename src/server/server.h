@@ -115,6 +115,14 @@ public:
         _transmission->receive();
     };
 
+    //delete connection id (username) to treat new request as new connection
+    void simulateNewChannel(const std::string& old) {
+        _transmission->removeConnection(old);
+    };
+    void restoreOldChannel(const std::string& old) {
+        _transmission->registerConnection(old);
+    }
+
     /**
     * @brief Logout user implementation
     * testing: visible as public

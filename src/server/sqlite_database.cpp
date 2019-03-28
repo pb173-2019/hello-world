@@ -28,7 +28,7 @@ namespace helloworld {
         }
     }
 
-    void ServerSQLite::insert(const UserData &data, bool autoIncrement) {
+    uint32_t ServerSQLite::insert(const UserData &data, bool autoIncrement) {
         std::string query = "INSERT INTO users ";
         if (autoIncrement) {
             query += "(username, pubkey) VALUES ('";
@@ -41,6 +41,8 @@ namespace helloworld {
         if (int res = _execute(std::move(query), nullptr, nullptr) != SQLITE_OK) {
             throw Error("Insert command failed: " + _getErrorMsgByReturnType(res));
         }
+        uint32_t id = static_cast<uint32_t>(sqlite3_last_insert_rowid(_handler));
+        return id;
     }
     const std::vector<std::unique_ptr<UserData>> &ServerSQLite::selectLike(const UserData &query) {
         _cache.clear();
@@ -189,6 +191,8 @@ namespace helloworld {
                                nullptr, nullptr) != SQLITE_OK) {
             throw Error("Could not create users database: " + _getErrorMsgByReturnType(res));
         }
+        // skip id 0 reserved for special use
+        _execute("UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = 'users';", nullptr, nullptr);
 
         if (int res = _execute("CREATE TABLE IF NOT EXISTS messages ("
                                "id INTEGER PRIMARY KEY AUTOINCREMENT, "

@@ -16,6 +16,7 @@
 
 #include "serializable.h"
 
+
 namespace helloworld {
 
 struct UserListReponse : public Serializable<UserListReponse> {
@@ -37,7 +38,6 @@ struct UserListReponse : public Serializable<UserListReponse> {
         return result;
     }
 };
-
 
 
 }    // namespace helloworld

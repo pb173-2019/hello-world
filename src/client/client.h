@@ -105,10 +105,10 @@ class Client : public Callable<void, std::stringstream &&> {
     /**
      * Send data to server, any bytes supported (todo: add some length checks)
      *
-     * @param userId user id - the user that is supposed to receive the data
+     * @param receiverId user id - the user that is supposed to receive the data
      * @param data data to send
      */
-    void sendData(uint32_t userId, const std::vector<unsigned char>& data);
+    void sendData(uint32_t receiverId, const std::vector<unsigned char>& data);
 
 
     //
@@ -121,13 +121,13 @@ class Client : public Callable<void, std::stringstream &&> {
 
 private:
     const std::string _username;
+    uint32_t _userId = 0;
     const std::string _clientPubKeyFilename;
     const std::string _sessionKey;
     std::unique_ptr<UserTransmissionManager> _transmission;
     std::unique_ptr<ClientToServerManager> _connection = nullptr;
     std::vector<std::string> _userList;
     const std::string _serverPubKey;
-    bool _isRegistered = false;
 
     RSA2048 _rsa;
 

@@ -32,11 +32,12 @@ public:
     virtual ~ServerDatabase() = default;
 
     /**
-     * Insert into database data object
+     * Insert into database data user object
      *
      * @param data data to insert
+     * @return id assigned in database by autoincrement
      */
-    virtual void insert(const UserData &data, bool autoIncrement) = 0;
+    virtual uint32_t insert(const UserData &data, bool autoIncrement) = 0;
 
     /**
      * Select from database data by query
@@ -75,10 +76,10 @@ public:
     virtual void drop(const std::string &tablename) = 0;
 
     /**
-   * Select data bundle from messages table
-   * @param userId user id - to whom the data are sent to
-   * @param blob data to store
-   */
+     * Select data bundle from messages table
+     * @param userId user id - to whom the data are sent to
+     * @param blob data to store
+     */
     virtual void insertData(uint32_t userId, const std::vector<unsigned char> &blob) = 0;
 
     /**

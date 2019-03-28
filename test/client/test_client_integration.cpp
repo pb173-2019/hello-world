@@ -118,3 +118,42 @@ TEST_CASE("Scenario 2: getting users from database.") {
     CHECK(!checkContains<std::string>(borek.getUsers(), "bob"));
     server.dropDatabase();
 }
+
+TEST_CASE("Incorrect authentications") {
+    Server server;
+    Client alice("alice", "server_pub.pem", "alice_priv.pem", "hunter2");
+    registerUserRoutine(server, alice);
+    Client bob("bob", "server_pub.pem", "alice_priv.pem", "hunter2");
+    registerUserRoutine(server, bob);
+
+    Client client1("alice", "server_pub.pem", "alice_priv.pem", "hunter2");
+    //registrates when user logged with that exact username
+    server.simulateNewChannel("alice");
+    client1.createAccount("alice_pub.pem");
+    // server receives request
+    server.getRequest();
+    // client receives challenge
+    CHECK_THROWS(client1.getResponse());
+
+
+    //registrates when username exists, but not logged in
+    server.logout("alice");
+    client1.createAccount("alice_pub.pem");
+    // server receives request
+    server.getRequest();
+    // client receives challenge
+    CHECK_THROWS(client1.getResponse());
+
+    server.simulateNewChannel("bob");
+    Client client2("bob", "server_pub.pem", "alice_priv.pem", "hunter2");
+    client2.login();
+    // server receives request //TODO fails
+    server.getRequest();
+    // client receives challenge
+    CHECK_THROWS(client2.getResponse());
+    server.dropDatabase();
+}
+
+TEST_CASE("Data storage") {
+    //todo first implement ID supporting message exchange
+}

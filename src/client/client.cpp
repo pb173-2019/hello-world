@@ -17,15 +17,16 @@ void Client::callback(std::stringstream &&data) {
     Response response = _connection->parseIncoming(std::move(data));
     switch (response.header.type) {
         case Response::Type::OK:
-            //todo maybe create response with REGISTRATION_SUCCESFULL to set registration to true
-            _isRegistered = true;
             return;
         case Response::Type::DATABASE_USERLIST:
             parseUsers(response);
             return;
         case Response::Type::CHALLENGE_RESPONSE_NEEDED:
             sendRequest(completeAuth(response.payload,
-                    (_isRegistered) ? Request::Type::LOGIN_COMPLETE : Request::Type::CREATE_COMPLETE));
+                    (_userId == 0) ? Request::Type::CREATE_COMPLETE : Request::Type::LOGIN_COMPLETE));
+            return;
+        case Response::Type::USER_REGISTERED:
+            _userId = response.header.userId;
             return;
         default:
             throw Error("Unknown response type.");
@@ -35,12 +36,12 @@ void Client::callback(std::stringstream &&data) {
 void Client::login() {
     _connection = std::make_unique<ClientToServerManager>(_sessionKey, _serverPubKey);
     AuthenticateRequest request(_username, {});
-    sendRequest({{Request::Type::LOGIN, 1, 0}, request.serialize()});
+    sendRequest({{Request::Type::LOGIN, 1, _userId}, request.serialize()});
 }
 
 void Client::logout() {
-    GenericRequest request(0, _username);
-    sendRequest({{Request::Type::LOGOUT, 0, 0}, request.serialize()});
+    GenericRequest request(_userId, _username);
+    sendRequest({{Request::Type::LOGOUT, 0, _userId}, request.serialize()});
 }
 
 void Client::createAccount(const std::string &pubKeyFilename) {
@@ -52,18 +53,18 @@ void Client::createAccount(const std::string &pubKeyFilename) {
     AuthenticateRequest registerRequest(_username, key);
 
     sendRequest({{Request::Type::CREATE, 1, 0}, registerRequest.serialize()});
-    _isRegistered = false;
+    _userId = 0;
 }
 
 void Client::deleteAccount() {
-    GenericRequest request(0, _username);
-    sendRequest({{Request::Type::REMOVE, 0, 0}, request.serialize()});
-    _isRegistered = false;
+    GenericRequest request(_userId, _username);
+    sendRequest({{Request::Type::REMOVE, 0, _userId}, request.serialize()});
+    _userId = 0;
 }
 
 void Client::sendFindUsers(const std::string &query) {
-    GetUsers request{0, _username, query};
-    sendRequest({{Request::Type::FIND_USERS, 0, 0}, request.serialize()});
+    GetUsers request{_userId, _username, query};
+    sendRequest({{Request::Type::FIND_USERS, 0, _userId}, request.serialize()});
 }
 
 void Client::sendGetOnline() {
@@ -81,8 +82,8 @@ void Client::requestKeyBundle(uint32_t userId) {
     sendRequest({});
 }
 
-void Client::sendData(uint32_t userId, const std::vector<unsigned char> &data) {
-    sendRequest({{Request::Type::SEND, 0, userId}, SendData(_username, data).serialize()});
+void Client::sendData(uint32_t receiverId, const std::vector<unsigned char> &data) {
+    sendRequest({{Request::Type::SEND, 0, receiverId}, SendData(_username, data).serialize()});
 }
 
 void Client::parseUsers(const helloworld::Response &response) {
@@ -96,14 +97,14 @@ void Client::sendRequest(const Request &request) {
 }
 
 void Client::sendGenericRequest(Request::Type type) {
-    GenericRequest request{0, _username};
-    sendRequest({{type, 0, 0}, request.serialize()});
+    GenericRequest request{_userId, _username};
+    sendRequest({{type, 0, _userId}, request.serialize()});
 }
 
 Request Client::completeAuth(const std::vector<unsigned char> &secret,
                              Request::Type type) {
     CompleteAuthRequest request(_rsa.sign(secret), _username);
-    return {{type, 2, 0}, request.serialize()};
+    return {{type, 2, _userId}, request.serialize()};
 }
 
 }    // namespace helloworld
