@@ -36,11 +36,49 @@ void ServerSQLite::insert(const UserData &data, bool autoIncrement) {
         query += "VALUES (" + std::to_string(data.id) + ", '";
     }
     query += _sCheck(data.name) + "', '" +
-            std::string(data.publicKey.begin(), data.publicKey.end()) + "');";
+             std::string(data.publicKey.begin(), data.publicKey.end()) + "');";
 
     if (int res = _execute(std::move(query), nullptr, nullptr) != SQLITE_OK) {
         throw Error("Insert command failed: " + _getErrorMsgByReturnType(res));
     }
+}
+
+template <typename object>
+void ServerSQLite::insert(const std::string& table, uint32_t userId, const Serializable<object>& data) {
+    if (table == "users")
+        throw Error("Blob cannot be stored to users table.");
+
+    sqlite3_stmt* statement = nullptr;
+    std::string query = "INSERT INTO " + table + " VALUES (?, ?)";
+    sqlite3_prepare_v2(_handler, query.c_str(), -1, &statement, nullptr);
+    sqlite3_bind_int(statement, 1, userId);
+    std::vector<unsigned char> blob = data.serialize();
+    sqlite3_bind_blob64(statement, 2, blob.data(), blob.size() * sizeof(unsigned char), SQLITE_STATIC);
+
+    if (sqlite3_step(statement) != SQLITE_DONE)
+        throw Error("Failed to store blob into table " + table);
+    sqlite3_finalize(statement);
+}
+
+template <typename object>
+Serializable<object> ServerSQLite::select(const std::string& table, uint32_t userId) {
+    if (table == "users")
+        throw Error("Serializable objects are not stored in users database.");
+
+    sqlite3_stmt* statement = nullptr;
+    std::string query = "SELECT data FROM " + table + " WHERE userid = ?";
+    sqlite3_prepare_v2(_handler, query.c_str(), -1, &statement, nullptr);
+    sqlite3_bind_int(statement, 1, userId);
+    std::vector<unsigned char> blob;
+    if (sqlite3_step(statement) == SQLITE_ROW) {
+        const auto* ptr = reinterpret_cast<const unsigned char*>(sqlite3_column_blob(statement, 0));
+        blob.resize(static_cast<unsigned long>(
+                sqlite3_column_bytes(statement, 0) / static_cast<int>(sizeof(unsigned char)))
+                );
+        std::copy(ptr, ptr + blob.size(), blob.data());
+    }
+    sqlite3_finalize(statement);
+    return Serializable<object>::deserialize(blob);
 }
 
 const std::vector<std::unique_ptr<UserData>> &ServerSQLite::selectUsers(const UserData &query) {
@@ -62,7 +100,7 @@ const std::vector<std::unique_ptr<UserData>> &ServerSQLite::selectUsers(const Us
 const std::vector<std::unique_ptr<UserData>> &ServerSQLite::selectUsersLike(const UserData &query) {
     _cache.clear();
     int res = _execute("SELECT * FROM users WHERE username LIKE '%" + _sCheck(query.name) + "%' ORDER BY id DESC;",
-                _fillData, &_cache);
+                       _fillData, &_cache);
     if (res != SQLITE_OK)
         throw Error("Select command failed: " + _getErrorMsgByReturnType(res));
     return _cache;
@@ -72,17 +110,17 @@ bool ServerSQLite::removeUser(const UserData &data) {
     return _execute("DELETE FROM users WHERE username "
                     "LIKE '" + _sCheck(data.name) +
                     "' OR id=" + std::to_string(data.id) + ";",
-            nullptr, nullptr) == SQLITE_OK;
+                    nullptr, nullptr) == SQLITE_OK;
 }
 
-void ServerSQLite::drop(const std::string& tablename) {
+void ServerSQLite::drop(const std::string &tablename) {
     if (int res = _execute("DROP TABLE " + tablename + ";", nullptr, nullptr) != SQLITE_OK) {
         throw Error("Could not delete database: " + _getErrorMsgByReturnType(res));
     }
 }
 
 void ServerSQLite::drop() {
-    for (const auto& table : tables) {
+    for (const auto &table : tables) {
         drop(table);
     }
 }
@@ -107,15 +145,15 @@ void ServerSQLite::_createTablesIfNExists() {
     }
 
     if (int res = _execute("CREATE TABLE IF NOT EXISTS data ("
-                            "userid INTEGER, "
-                            "data BLOB);",
-                            nullptr, nullptr) != SQLITE_OK) {
+                           "userid INTEGER, "
+                           "data BLOB);",
+                           nullptr, nullptr) != SQLITE_OK) {
         throw Error("Could not create data database: " + _getErrorMsgByReturnType(res));
     }
 
     if (int res = _execute("CREATE TABLE IF NOT EXISTS bundles ("
                            "userid INTEGER, "
-                           "keys TEXT);",
+                           "data BLOB);",
                            nullptr, nullptr) != SQLITE_OK) {
         throw Error("Could not create key bundles database: " + _getErrorMsgByReturnType(res));
     }

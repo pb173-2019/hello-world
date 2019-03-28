@@ -65,8 +65,8 @@ TEST_CASE("Add new user") {
             CHECK(completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE).header.type ==
                   Response::Type::OK);
         }
-        server.dropDatabase();
     }
+    server.dropDatabase();
 }
 
 TEST_CASE("User authentication") {

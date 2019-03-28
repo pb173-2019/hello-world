@@ -55,6 +55,13 @@ public:
 
     const std::vector<std::unique_ptr<UserData>>& selectUsersLike(const UserData &query) override;
 
+    template <typename object>
+    void insert(const std::string& table, uint32_t userId, const Serializable<object>& data);
+
+    template <typename object>
+    Serializable<object> select(const std::string& table, uint32_t userId);
+
+
     bool removeUser(const UserData& data) override;
 
     void drop() override;
