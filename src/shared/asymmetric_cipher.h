@@ -17,6 +17,10 @@
 
 namespace helloworld {
 
+enum class KeyType {
+    PUBLIC_KEY, PRIVATE_KEY, NO_KEY
+};
+
 class AsymmetricKeyGen {
 public:
     AsymmetricKeyGen() = default;

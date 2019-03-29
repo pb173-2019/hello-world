@@ -41,10 +41,8 @@ RSAKeyGen::RSAKeyGen() {
 
 bool RSAKeyGen::savePrivateKey(const std::string &filename, const std::string &key, const std::string &iv) {
     std::ofstream out_pri{filename, std::ios::out | std::ios::binary};
-    if (!out_pri)
+    if (!out_pri || _priv_olen == 0)
         return false;
-
-    if (_priv_olen == 0) return false;
 
     if (!key.empty()) {
         std::stringstream keystream{};
@@ -65,10 +63,9 @@ bool RSAKeyGen::savePrivateKeyPassword(const std::string &filename, const std::s
 
 bool RSAKeyGen::savePublicKey(const std::string &filename) const {
     std::ofstream out_pub{filename, std::ios::out | std::ios::binary};
-    if (!out_pub)
+    if (!out_pub || _pub_olen == 0)
         return false;
 
-    if (_pub_olen == 0) return false;
     write_n(out_pub, _buffer_public, _pub_olen);
     return true;
 }

@@ -63,10 +63,6 @@ private:
     size_t _getKeyLength(const unsigned char *key, int len, const std::string &terminator);
 };
 
-enum class KeyType {
-    PUBLIC_KEY, PRIVATE_KEY, NO_KEY
-};
-
 class RSA2048 : public AsymmetricCipher {
     friend RSAKeyGen;
 
