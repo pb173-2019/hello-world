@@ -15,7 +15,7 @@ TEST_CASE("Curve keygen & key loading") {
 
     C25519 client;
     C25519 server;
-    
+
     SECTION("No encryption") {
         keyGen1.savePublicKey("client.c25519");
         keyGen1.savePrivateKey("client-priv.c25519", "", "");
@@ -23,7 +23,7 @@ TEST_CASE("Curve keygen & key loading") {
 
         keyGen2.savePublicKey("server.c25519");
         keyGen2.savePrivateKey("server-priv.c25519", "", "");
-        client.loadPrivateKey("server-priv.c25519", "", "");
+        server.loadPrivateKey("server-priv.c25519", "", "");
     }
 
     SECTION("With encryption") {
@@ -33,7 +33,7 @@ TEST_CASE("Curve keygen & key loading") {
 
         keyGen2.savePublicKey("server.c25519");
         keyGen2.savePrivateKey("server-priv.c25519", "323994cfb9da285a5d9642e1759b224a", "2b7e151628aed2a6abf7158809cf4f3c");
-        client.loadPrivateKey("server-priv.c25519", "323994cfb9da285a5d9642e1759b224a", "2b7e151628aed2a6abf7158809cf4f3c");
+        server.loadPrivateKey("server-priv.c25519", "323994cfb9da285a5d9642e1759b224a", "2b7e151628aed2a6abf7158809cf4f3c");
     }
     client.loadPeerPublicKey("server.c25519");
     server.loadPeerPublicKey("client.c25519");
