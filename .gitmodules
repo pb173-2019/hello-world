@@ -1,3 +1,6 @@
 [submodule "include/mbedtls"]
 	path = include/mbedtls
 	url = https://github.com/ARMmbed/mbedtls.git
+[submodule "include/xeddsa"]
+	path = include/xeddsa
+	url = https://github.com/pfork/xeddsa.git

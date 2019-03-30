@@ -1,25 +1,18 @@
 version: "{build}"
 
-os:
-  - Visual Studio 2017
+image: ubuntu
 
 init:
   - git config --global core.autocrlf input
-  # Set build version to git commit-hash
-  - ps: Update-AppveyorBuild -Version "$($env:APPVEYOR_REPO_BRANCH) - $($env:APPVEYOR_REPO_COMMIT)"
 
 install:
   - git submodule update --init --recursive
+  - sudo apt-get update && sudo apt-get install -y libsodium18 libsodium-dev
 
-before_build:
-  - cmake -H. -BBuild -G "Visual Studio 15 2017 Win64" .
-
-# build with MSBuild
-build:
-  project: Build\helloworld.sln
-  parallel: true
-  verbosity: normal
+build_script:
+  - cmake .
+  - make
 
 test_script:
-  - cd Build
-  #- ctest -V -j 2 -C %CONFIGURATION%
+   - make test ARGS="-V"
+
