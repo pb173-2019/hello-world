@@ -147,6 +147,30 @@ std::vector<unsigned char> C25519::getShared() {
     return buffer;
 }
 
+std::vector<unsigned char> C25519::hash_1(const mbedtls_mpi& X) {
+    SHA512 sha;
+    //2^b - 1 - i for i==1 -> FE
+    char buff[128];
+    size_t actualLen;
+    buff[0] = 'F';
+    buff[1] = 'E';
+    mbedtls_mpi_write_string(&X, /*hexa*/16, buff + 2, 126, &actualLen);
+    return sha.get(std::string(buff, buff + actualLen));
+}
+
+std::vector<unsigned char> C25519::hash(const mbedtls_mpi& X) {
+    SHA512 sha;
+    char buff[128];
+    size_t actualLen;
+    mbedtls_mpi_write_string(&X, /*hexa*/16, buff, 128, &actualLen);
+    return sha.get(std::string(buff, buff + actualLen));
+}
+
+void C25519::getTwistedEdwardKeyPaird(mbedtls_mpi& A, mbedtls_mpi& a, const mbedtls_mpi& d) {
+    //E = k * B
+    mbedtls_mpi E;
+
+}
 
 bool C25519::_valid() {
     return (_flags & 0x03) == 0x03;
