@@ -31,10 +31,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/include/mbedtls/include)
 include_directories(${PROJECT_SOURCE_DIR}/include/sqlite3)
 
-add_subdirectory(include/mbedtls)
-add_subdirectory(include/sqlite3)
-add_subdirectory(include/xeddsa)
-
+add_subdirectory(include)
 add_subdirectory(src)
 
 enable_testing()
