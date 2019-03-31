@@ -35,6 +35,8 @@
 #define MBEDTLS_CTR_DRBG_C
 //sha
 #define MBEDTLS_SHA512_C
+#define MBEDTLS_SHA256_C
+#define MBEDTLS_SHA1_C
 //wrapper
 #define MBEDTLS_CIPHER_C
 #define MBEDTLS_CIPHER_MODE_CBC

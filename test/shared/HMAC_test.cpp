@@ -5,7 +5,7 @@
 #include "catch.hpp"
 #include <sstream>
 #include <string>
-#include "../../src/shared/hmac.h"
+#include "../../src/shared/hmac_base.h"
 #include "../../src/shared/utils.h"
 
 using namespace helloworld;
@@ -71,17 +71,17 @@ TEST_CASE("TEST VECTORS") {
     }
 
 
-    INFO("key: " + to_hex(key));
-    INFO("data: " + data);
+    INFO("key: " + to_hex(key))
+    INFO("data: " + data)
 
-    HMAC test;
-    test.setKey(key);
+    hmac_base<MBEDTLS_MD_SHA512, 64> test;
+    test.setKey(to_hex(key));
     std::vector<unsigned char> ss(data.begin(), data.end());
     auto result = test.generate(ss);
     std::string hexResult = to_hex(result.data(), result.size());
 
-    INFO("result: " + hexResult);
-    INFO("expected: " + output);
+    INFO("result: " + hexResult)
+    INFO("expected: " + output)
     // because some tests use truncated output
     CHECK(hexResult.rfind(output, 0) == 0);
 }
