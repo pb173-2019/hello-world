@@ -96,24 +96,24 @@ namespace helloworld {
         loadPrivateKey(keyFile, C25519KeyGen::getHexPwd(pwd), C25519KeyGen::getHexIv(pwd));
     }
 
-    mbedtls_mpi toMpi(unsigned char* buff, size_t len) {
+    mbedtls_mpi toMpi(const unsigned char* buff, size_t len) {
         mbedtls_mpi a;
         mbedtls_mpi_init(&a);
         C25519KeyGen::mpiFromByteArray(&a, buff, len);
         return a;
     }
 
-    std::vector<unsigned char>X25519(std::vector<unsigned char>& key, const mbedtls_ecdh_context& _context) {
+    std::vector<unsigned char>X25519(const std::vector<unsigned char>& key,
+                                     const std::vector<unsigned char>& d,
+                                     const mbedtls_ecdh_context& _context) {
         mbedtls_mpi k = toMpi(key.data(), key.size());
         mbedtls_mpi Exp2; mbedtls_mpi_init(&Exp2);
         mbedtls_mpi_lset(&Exp2, 2);
 
-        mbedtls_mpi x_1; mbedtls_mpi_init(&x_1);
-        mbedtls_mpi_lset(&x_1, 9);
+        mbedtls_mpi x_1 = toMpi(d.data(), d.size());
         mbedtls_mpi x_2; mbedtls_mpi_init(&x_2);
         mbedtls_mpi_lset(&x_2, 1);
-        mbedtls_mpi x_3; mbedtls_mpi_init(&x_3);
-        mbedtls_mpi_lset(&x_3, 9);
+        mbedtls_mpi x_3 = toMpi(d.data(), d.size());
         mbedtls_mpi z_2; mbedtls_mpi_init(&z_2);
         mbedtls_mpi_lset(&z_2, 0);
         mbedtls_mpi z_3; mbedtls_mpi_init(&z_3);
@@ -199,38 +199,7 @@ namespace helloworld {
     std::vector<unsigned char> C25519::getShared() {
         if (!_valid())
             throw Error("C25519 not initialized properly.");
-//
-//    //32 byte field of shared secret
-//    std::vector<unsigned char> shared_secret(KEY_BYTES_LEN);
-//    // ed25519 pubkey point
-//    ge_p3 ed;
-//    // computed shared secret scalar
-//    fe u;
-//
-//    ge_scalarmult_base(&ed, _buffer_public.data());
-//    ge_p3_to_montx(u, &ed);
-//
-//    fe_tobytes(shared_secret.data(), u);
-//    return shared_secret;
 
-//    ge_p3 u = getSmallGroupElement(0x09);
-//    ge_p3 k_1;
-//    ge_scalarmult_base(&k_1, _buffer_private.data());
-//
-//    // k scalar??
-////    fe k_1scalar;
-////    fe_frombytes(k_1scalar, _buffer_private.data());
-//
-//    ge_p3 x_1 = u;
-//    ge_p3 x_2 = getSmallGroupElement(0x01);
-//    ge_p3 z_2 = getSmallGroupElement(0x00);
-//    ge_p3 x_3 = u;
-//    ge_p3 z_3 = getSmallGroupElement(0x01);
-//    ge_p3 swap = getSmallGroupElement(0x00);
-//
-//    for (int i = 255; i >= 0; i--) {
-//
-//    }
 
         mbedtls_ecdh_context _context;
         mbedtls_ecdh_init(&_context);
@@ -238,8 +207,8 @@ namespace helloworld {
             throw Error("Could not load CURVE25519 to context.");
         }
 
-        std::vector<unsigned char> temp = X25519(_buffer_private, _context);
-        return X25519(_buffer_public, _context);
+        std::vector<unsigned char> temp = X25519(_buffer_private, {9}, _context);
+        return X25519(_buffer_public, temp, _context);
     }
 
     bool C25519::_valid() {
