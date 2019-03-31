@@ -1,6 +1,14 @@
-//
-// Created by ivan on 31.3.19.
-//
+/**
+ * @file hmac_base.h
+ * @author Ivan Mitruk (469063@mail.muni.cz)
+ * @brief HMAC base class
+ * @version 0.1
+ * @date 2019-03-30
+ *
+ * @copyright Copyright (c) 2019
+ *
+ */
+
 
 #ifndef HELLOWORLD_HMAC_BASE_H
 #define HELLOWORLD_HMAC_BASE_H

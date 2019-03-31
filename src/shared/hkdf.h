@@ -1,6 +1,13 @@
-//
-// Created by ivan on 30.3.19.
-//
+/**
+ * @file hkdf.h
+ * @author Ivan Mitruk (469063@mail.muni.cz)
+ * @brief hmac based key derivation function (class)
+ * @version 0.1
+ * @date 2019-03-30
+ *
+ * @copyright Copyright (c) 2019
+ *
+ */
 
 #ifndef HELLOWORLD_HKDF_H
 #define HELLOWORLD_HKDF_H

@@ -1,8 +1,8 @@
 /**
  * @file hmac.h
  * @author Ivan Mitruk (469063@mail.muni.cz)
- * @brief HMAC class (SHA-512)
- * @version 0.1
+ * @brief HMAC interface
+ * @version 0.2
  * @date 2019-03-13
  *
  * @copyright Copyright (c) 2019
