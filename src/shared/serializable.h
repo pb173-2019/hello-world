@@ -22,14 +22,16 @@ namespace helloworld {
         template<typename T, typename _ = void>
         struct is_container : std::false_type {};
 
-        template<typename T, typename _ = void>
-        struct is_set : std::false_type {};
+        template<typename... Ts>
+        struct is_container_helper {};
+
+
         template<typename T>
         struct is_container<
                 T,
                 std::conditional_t<
                         false,
-                        std::void_t<
+                        is_container_helper<
                                 decltype(std::end(std::declval<T>())),
                                 decltype(std::begin(std::declval<T>()))
                         >,
