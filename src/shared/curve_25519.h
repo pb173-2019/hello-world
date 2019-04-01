@@ -19,10 +19,6 @@
 
 #include "mbedtls/ecdh.h"
 
-extern "C" {
-#include "ed25519/xeddsa.h"
-}
-
 #include "aes_128.h"
 #include "sha_512.h"
 #include "utils.h"
@@ -102,18 +98,10 @@ public:
     void loadPrivateKey(const std::string &keyFile, const std::string &pwd) override;
 
     /**
-     * Compute the first step of DH
-     *
-     * @return shared secret key based on owner's private key
+     * Compute the second step of DH (the first is generating the public key)
+     * @return shared secret
      */
-    std::vector<unsigned char> getSharedStep1();
-
-    /**
-     * Compute the second step of DH
-     * @param shared
-     * @return
-     */
-    std::vector<unsigned char> getSharedStep2(const std::vector<unsigned char> &shared);
+    std::vector<unsigned char> getShared();
 
     std::vector<unsigned char> sign(const std::vector<unsigned char> &msg) override;
 

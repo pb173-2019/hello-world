@@ -4,6 +4,7 @@
 
 extern "C" {
 #include "ed25519/keygen.h"
+#include "ed25519/xeddsa.h"
 }
 
 namespace helloworld {
@@ -35,9 +36,6 @@ bool C25519KeyGen::savePrivateKey(const std::string &filename, const std::string
     } else {
         write_n(out_pri, _buffer_private);
     }
-    std::cout << to_hex(_buffer_private) << std::endl;
-    std::cout << to_hex(_buffer_public) << std::endl << std::endl;
-
     return true;
 }
 
@@ -97,23 +95,12 @@ void C25519::loadPrivateKey(const std::string &keyFile, const std::string &pwd) 
     loadPrivateKey(keyFile, C25519KeyGen::getHexPwd(pwd), C25519KeyGen::getHexIv(pwd));
 }
 
-std::vector<unsigned char> C25519::getSharedStep1() {
-    if (!_valid())
-        throw Error("C25519 not initialized properly.");
-
-    std::vector<unsigned char> u_coord = from_hex(
-            "0900000000000000000000000000000000000000000000000000000000000000");
-    std::vector<unsigned char> result(32);
-    x25519(result.data(), _buffer_private.data(), u_coord.data());
-    return result;
-}
-
-std::vector<unsigned char> C25519::getSharedStep2(const std::vector<unsigned char> &shared) {
+std::vector<unsigned char> C25519::getShared() {
     if (!_valid())
         throw Error("C25519 not initialized properly.");
 
     std::vector<unsigned char> result(32);
-    x25519(result.data(), _buffer_private.data(), shared.data());
+    x25519(result.data(), _buffer_private.data(), _buffer_public.data());
 
     return result;
 }
