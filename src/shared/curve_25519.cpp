@@ -7,7 +7,30 @@ extern "C" {
 #include "ed25519/fe.h"
 }
 
+
 namespace helloworld {
+
+    class safe_mpi {
+        mbedtls_mpi obj;
+    public:
+
+        safe_mpi() {
+            mbedtls_mpi_init(&obj);
+        }
+        void reset() {
+            mbedtls_mpi_free(&obj);
+            mbedtls_mpi_init(&obj);
+        }
+        safe_mpi(const safe_mpi& o) = default;
+        safe_mpi& operator=(const safe_mpi& o) = default;
+        mbedtls_mpi *operator&() {
+            return &obj;
+        }
+        ~safe_mpi() {
+            mbedtls_mpi_free(&obj);
+        }
+    };
+
 
     C25519KeyGen::C25519KeyGen() {
         Random random{};
@@ -96,9 +119,8 @@ namespace helloworld {
         loadPrivateKey(keyFile, C25519KeyGen::getHexPwd(pwd), C25519KeyGen::getHexIv(pwd));
     }
 
-    mbedtls_mpi toMpi(const unsigned char* buff, size_t len) {
-        mbedtls_mpi a;
-        mbedtls_mpi_init(&a);
+    safe_mpi toMpi(const unsigned char* buff, size_t len) {
+        safe_mpi a;
         C25519KeyGen::mpiFromByteArray(&a, buff, len);
         return a;
     }
@@ -106,23 +128,23 @@ namespace helloworld {
     std::vector<unsigned char>X25519(const std::vector<unsigned char>& key,
                                      const std::vector<unsigned char>& d,
                                      const mbedtls_ecdh_context& _context) {
-        mbedtls_mpi k = toMpi(key.data(), key.size());
-        mbedtls_mpi Exp2; mbedtls_mpi_init(&Exp2);
+        safe_mpi k = toMpi(key.data(), key.size());
+        safe_mpi Exp2;
         mbedtls_mpi_lset(&Exp2, 2);
 
-        mbedtls_mpi x_1 = toMpi(d.data(), d.size());
-        mbedtls_mpi x_2; mbedtls_mpi_init(&x_2);
+        safe_mpi x_1 = toMpi(d.data(), d.size());
+        safe_mpi x_2;
         mbedtls_mpi_lset(&x_2, 1);
-        mbedtls_mpi x_3 = toMpi(d.data(), d.size());
-        mbedtls_mpi z_2; mbedtls_mpi_init(&z_2);
+        safe_mpi x_3 = toMpi(d.data(), d.size());
+        safe_mpi z_2;
         mbedtls_mpi_lset(&z_2, 0);
-        mbedtls_mpi z_3; mbedtls_mpi_init(&z_3);
+        safe_mpi z_3;
         mbedtls_mpi_lset(&z_3, 1);
         int swap = 0;
 
         for (int i = 255; i >= 0; i--) {
             //todo possibly get ith bit
-            mbedtls_mpi temp_k; mbedtls_mpi_init(&temp_k);
+            safe_mpi temp_k;
             mbedtls_mpi_copy(&temp_k, &k);
             mbedtls_mpi_shift_r(&k, i);
             int lastBit = mbedtls_mpi_get_bit(&temp_k, 0);
@@ -132,63 +154,60 @@ namespace helloworld {
             mbedtls_mpi_safe_cond_swap(&z_2, &z_3, swap);
             swap = lastBit;
             // A = X_2 + Z_2
-            mbedtls_mpi A; mbedtls_mpi_init(&A);
+            safe_mpi A;
             mbedtls_mpi_add_mpi(&A, &x_2, &z_2);
             //A^2
-            mbedtls_mpi AA; mbedtls_mpi_init(&AA);
+            safe_mpi AA;
             mbedtls_mpi_exp_mod(&AA, &A, &Exp2, &_context.grp.P, nullptr);
             // B = x_2 - z_2
-            mbedtls_mpi B; mbedtls_mpi_init(&B);
+            safe_mpi B;
             mbedtls_mpi_sub_mpi(&B, &x_2, &z_2);
             //B^2
-            mbedtls_mpi BB; mbedtls_mpi_init(&BB);
+            safe_mpi BB;
             mbedtls_mpi_exp_mod(&BB, &B, &Exp2, &_context.grp.P, nullptr);
             // E = AA - BB
-            mbedtls_mpi E; mbedtls_mpi_init(&E);
+            safe_mpi E;
             mbedtls_mpi_sub_mpi(&E, &AA, &BB);
             // C = x_3 + z_3
-            mbedtls_mpi C; mbedtls_mpi_init(&C);
+            safe_mpi C;
             mbedtls_mpi_add_mpi(&C, &x_3, &z_3);
             // D = x_3 - z_3
-            mbedtls_mpi D; mbedtls_mpi_init(&D);
+            safe_mpi D;
             mbedtls_mpi_sub_mpi(&D, &x_3, &z_3);
             // DA = D * A
-            mbedtls_mpi DA; mbedtls_mpi_init(&DA);
+            safe_mpi DA;
             mbedtls_mpi_mul_mpi(&DA, &D, &A);
             //CB = C * B
-            mbedtls_mpi CB; mbedtls_mpi_init(&CB);
+            safe_mpi CB;
             mbedtls_mpi_mul_mpi(&CB, &C, &B);
             //x_3 = (DA + CB)^2
-            mbedtls_mpi tmp; mbedtls_mpi_init(&tmp);
+            safe_mpi tmp;
             mbedtls_mpi_add_mpi(&tmp, &DA, &CB);
             mbedtls_mpi_exp_mod(&x_3, &tmp, &Exp2, &_context.grp.P, nullptr);
-            mbedtls_mpi_free(&tmp);
-            //z_3 = x_1 * (DA - CB)^2
-            mbedtls_mpi_init(&tmp);
-            mbedtls_mpi tmp2; mbedtls_mpi_init(&tmp2);
+            tmp.reset();
+            safe_mpi tmp2;
             mbedtls_mpi_sub_mpi(&tmp, &DA, &CB);
             mbedtls_mpi_exp_mod(&tmp2, &tmp, &Exp2, &_context.grp.P, nullptr);
             mbedtls_mpi_mul_mpi(&z_3, &x_1, &tmp2);
-            mbedtls_mpi_free(&tmp); mbedtls_mpi_free(&tmp2);
             //x_2 = AA * BB
             mbedtls_mpi_mul_mpi(&x_2, &AA, &BB);
             //z_2 = E * (AA + a24 * E)
-            mbedtls_mpi_init(&tmp); mbedtls_mpi_init(&tmp2);
+            tmp.reset();
+            tmp2.reset();
             mbedtls_mpi_mul_int(&tmp, &E, 121665 /*a24*/);
             mbedtls_mpi_add_mpi(&tmp2, &AA, &tmp);
             mbedtls_mpi_mul_mpi(&z_2, &E, &tmp2);
-            mbedtls_mpi_free(&tmp); mbedtls_mpi_free(&tmp2);
         }
         mbedtls_mpi_safe_cond_swap(&x_2, &x_3, swap);
         mbedtls_mpi_safe_cond_swap(&z_2, &z_3, swap);
 
         // Return x_2 * (z_2^(p - 2))
-        mbedtls_mpi tmp; mbedtls_mpi_init(&tmp);
+        safe_mpi tmp;
         mbedtls_mpi_sub_int(&tmp, &_context.grp.P, 2);
-        mbedtls_mpi tmp2; mbedtls_mpi_init(&tmp2);
+        safe_mpi tmp2;
         mbedtls_mpi_exp_mod(&tmp2, &z_2, &tmp, &_context.grp.P, nullptr);
 
-        mbedtls_mpi result; mbedtls_mpi_init(&result);
+        safe_mpi result;
         mbedtls_mpi_mul_mpi(&result, &x_2, &tmp2);
 
         std::vector<unsigned char> buffer(32);
@@ -208,7 +227,9 @@ namespace helloworld {
         }
 
         std::vector<unsigned char> temp = X25519(_buffer_private, {9}, _context);
-        return X25519(_buffer_public, temp, _context);
+        std::vector<unsigned char> result = X25519(_buffer_public, temp, _context);
+        mbedtls_ecdh_free(&_context);
+        return result;
     }
 
     bool C25519::_valid() {

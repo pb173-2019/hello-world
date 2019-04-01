@@ -21,8 +21,9 @@ namespace helloworld {
         static constexpr int key_len = Asymmetric::KEY_BYTES_LEN;
         static constexpr int signiture_len = Asymmetric::SIGN_BYTES_LEN;
 
-        using key_t = unsigned char [key_len];
-        using signiture_t = unsigned char [signiture_len];
+        // can be changed to fixed storage container for length checking in the future
+        using key_t = std::vector<unsigned char>;
+        using signiture_t = std::vector<unsigned char>;
 
         key_t identityKey;
         key_t preKey;
@@ -31,20 +32,20 @@ namespace helloworld {
 
         std::vector<unsigned char> serialize() const override {
             std::vector<unsigned char> result;
-            addContainer(result, identityKey);
-            addContainer(result, preKey);
-            addContainer(result, preKeySingiture);
-            addNestedContainer(result, oneTimeKeys);
+            Serializable<KeyBundle<Asymmetric> >::addContainer(result, identityKey);
+            Serializable<KeyBundle<Asymmetric> >::addContainer(result, preKey);
+            Serializable<KeyBundle<Asymmetric> >::addContainer(result, preKeySingiture);
+            Serializable<KeyBundle<Asymmetric> >::addNestedContainer(result, oneTimeKeys);
             return result;
         }
 
         static KeyBundle deserialize(const std::vector<unsigned char >& data) {
             KeyBundle result;
             uint64_t offset = 0;
-            offset += getContainer(data, offset, result.identityKey);
-            offset += getContainer(data, offset, result.preKey);
-            offset += getContainer(data, offset, result.preKeySingiture);
-            offset += getNestedContainer(data, offset, result.identityKey);
+            offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.identityKey);
+            offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.preKey);
+            offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.preKeySingiture);
+            offset += Serializable<KeyBundle<Asymmetric> >::getNestedContainer(data, offset, result.oneTimeKeys);
             return result;
         }
     };
