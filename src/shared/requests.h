@@ -16,6 +16,41 @@
 
 namespace helloworld {
 
+    template <typename Asymmetric>
+    struct KeyBundle : Serializable<KeyBundle<Asymmetric> > {
+        static constexpr int key_len = Asymmetric::KEY_BYTES_LEN;
+        static constexpr int signiture_len = Asymmetric::SIGN_BYTES_LEN;
+
+        // can be changed to fixed storage container for length checking in the future
+        using key_t = std::vector<unsigned char>;
+        using signiture_t = std::vector<unsigned char>;
+
+        key_t identityKey;
+        key_t preKey;
+        signiture_t preKeySingiture;
+        std::vector<key_t > oneTimeKeys;
+
+        std::vector<unsigned char> serialize() const override {
+            std::vector<unsigned char> result;
+            Serializable<KeyBundle<Asymmetric> >::addContainer(result, identityKey);
+            Serializable<KeyBundle<Asymmetric> >::addContainer(result, preKey);
+            Serializable<KeyBundle<Asymmetric> >::addContainer(result, preKeySingiture);
+            Serializable<KeyBundle<Asymmetric> >::addNestedContainer(result, oneTimeKeys);
+            return result;
+        }
+
+        static KeyBundle deserialize(const std::vector<unsigned char >& data) {
+            KeyBundle result;
+            uint64_t offset = 0;
+            offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.identityKey);
+            offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.preKey);
+            offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.preKeySingiture);
+            offset += Serializable<KeyBundle<Asymmetric> >::getNestedContainer(data, offset, result.oneTimeKeys);
+            return result;
+        }
+    };
+
+
 struct AuthenticateRequest : public Serializable<AuthenticateRequest> {
     std::string sessionKey = ""; //session key filled on server side
     std::string name;
@@ -155,26 +190,6 @@ struct SendData : public Serializable<SendData> {
         uint64_t position = 0;
         position += Serializable::getContainer<std::string>(data, position, result.from);
         position += Serializable::getContainer<std::vector<unsigned char>>(data, position, result.data);
-        return result;
-    }
-};
-
-struct KeyBundle : public Serializable<KeyBundle> {
-    //todo keys needed X3DH
-
-    KeyBundle() = default;
-
-
-    std::vector<unsigned char> serialize() const override {
-        std::vector<unsigned char> result;
-        //todo
-        return result;
-    }
-
-    static KeyBundle deserialize(const std::vector<unsigned char> &data) {
-        KeyBundle result;
-        uint64_t position = 0;
-        //todo
         return result;
     }
 };
