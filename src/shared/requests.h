@@ -16,6 +16,40 @@
 
 namespace helloworld {
 
+    template <typename Asymmetric>
+    struct KeyBundle : Serializable<KeyBundle<Asymmetric> > {
+        static constexpr int key_len = Asymmetric::KEY_BYTES_LEN;
+        static constexpr int signiture_len = Asymmetric::SIGN_BYTES_LEN;
+
+        using key_t = unsigned char [key_len];
+        using signiture_t = unsigned char [signiture_len];
+
+        key_t identityKey;
+        key_t preKey;
+        signiture_t preKeySingiture;
+        std::vector<key_t > oneTimeKeys;
+
+        std::vector<unsigned char> serialize() const override {
+            std::vector<unsigned char> result;
+            addContainer(result, identityKey);
+            addContainer(result, preKey);
+            addContainer(result, preKeySingiture);
+            addNestedContainer(result, oneTimeKeys);
+            return result;
+        }
+
+        static KeyBundle deserialize(const std::vector<unsigned char >& data) {
+            KeyBundle result;
+            uint64_t offset = 0;
+            offset += getContainer(data, offset, result.identityKey);
+            offset += getContainer(data, offset, result.preKey);
+            offset += getContainer(data, offset, result.preKeySingiture);
+            offset += getNestedContainer(data, offset, result.identityKey);
+            return result;
+        }
+    };
+
+
 struct AuthenticateRequest : public Serializable<AuthenticateRequest> {
     std::string sessionKey = ""; //session key filled on server side
     std::string name;
@@ -155,26 +189,6 @@ struct SendData : public Serializable<SendData> {
         uint64_t position = 0;
         position += Serializable::getContainer<std::string>(data, position, result.from);
         position += Serializable::getContainer<std::vector<unsigned char>>(data, position, result.data);
-        return result;
-    }
-};
-
-struct KeyBundle : public Serializable<KeyBundle> {
-    //todo keys needed X3DH
-
-    KeyBundle() = default;
-
-
-    std::vector<unsigned char> serialize() const override {
-        std::vector<unsigned char> result;
-        //todo
-        return result;
-    }
-
-    static KeyBundle deserialize(const std::vector<unsigned char> &data) {
-        KeyBundle result;
-        uint64_t position = 0;
-        //todo
         return result;
     }
 };

@@ -91,6 +91,10 @@ namespace helloworld {
         static constexpr int XEDDSA_RAND_LEN = 64;
         static constexpr int XEDDSA_SIGN_LEN = 64;
 
+        // Just for key bundle
+        // Might replace XEDSA_SIGN_LEN so it can be used generaly for SFINAE
+        static constexpr int SIGN_BYTES_LEN = 64;
+
         Random _random;
         unsigned char _flags;
 
