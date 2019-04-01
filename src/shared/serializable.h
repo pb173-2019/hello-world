@@ -48,7 +48,7 @@ namespace helloworld {
                 T,
                 std::conditional_t<
                         false,
-                        std::void_t<
+                        is_container_helper<
                                 decltype(std::declval<T>().push_back(*std::declval<T>().begin()))
                         >,
                         void
