@@ -7,6 +7,18 @@
 
 namespace helloworld {
 
+std::ostream &operator<<(std::ostream &out, safe_mpi &mpi) {
+    out << "mpi: ";
+    std::vector<unsigned char> buffer(32);
+    mbedtls_mpi_write_binary(&mpi, buffer.data(), buffer.size());
+    for (auto value : buffer) {
+        out << static_cast<int>(value) << '.';
+    }
+    out << " |\n";
+    return out;
+}
+
+
 size_t getSize(std::istream &input) {
     auto original = input.tellg();
     input.seekg(0, std::ios::end);
@@ -24,11 +36,11 @@ void write_n(std::ostream &out, const unsigned char *data, size_t length) {
     out.write((char *) data, length);
 }
 
-void write_n(std::ostream &out, const std::string& data) {
-    write_n(out, reinterpret_cast<const unsigned char*>(data.data()), data.size());
+void write_n(std::ostream &out, const std::string &data) {
+    write_n(out, reinterpret_cast<const unsigned char *>(data.data()), data.size());
 }
 
-void write_n(std::ostream &out, const std::vector<unsigned char>& data) {
+void write_n(std::ostream &out, const std::vector<unsigned char> &data) {
     write_n(out, data.data(), data.size());
 }
 
@@ -37,10 +49,10 @@ std::string &to_upper(std::string &&lowercase) {
     return lowercase;
 }
 
-    std::string &to_lower(std::string &&uppercase) {
-        std::transform(uppercase.begin(), uppercase.end(), uppercase.begin(), ::tolower);
-        return uppercase;
-    }
+std::string &to_lower(std::string &&uppercase) {
+    std::transform(uppercase.begin(), uppercase.end(), uppercase.begin(), ::tolower);
+    return uppercase;
+}
 
 std::string to_hex(const std::string &buff) {
     return to_hex((const unsigned char *) buff.data(), buff.length());

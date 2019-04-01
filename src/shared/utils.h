@@ -15,6 +15,9 @@
 #include <vector>
 #include <cstring>
 #include <iostream>
+#include <mbedtls/include/mbedtls/bignum.h>
+
+#include "serializable_error.h"
 
 namespace helloworld {
 
@@ -35,10 +38,51 @@ struct Callable {
      * @param args args for callback
      * @return <returnType> type value
      */
-    static returnType call(Callable *callable, Args&& ... args) {
-        return callable->callback( std::forward<Args>(args)... );
+    static returnType call(Callable *callable, Args &&... args) {
+        return callable->callback(std::forward<Args>(args)...);
     }
 };
+
+class safe_mpi {
+    mbedtls_mpi obj;
+public:
+
+    safe_mpi() {
+        mbedtls_mpi_init(&obj);
+    }
+
+    void reset() {
+        mbedtls_mpi_free(&obj);
+        mbedtls_mpi_init(&obj);
+    }
+
+    safe_mpi(const safe_mpi &o) = default;
+
+    safe_mpi &operator=(const safe_mpi &o) = default;
+
+    mbedtls_mpi *operator&() {
+        return &obj;
+    }
+
+    ~safe_mpi() {
+        mbedtls_mpi_free(&obj);
+    }
+
+    static void mpiToByteArray(const mbedtls_mpi *bigInt, unsigned char *buffer, size_t len) {
+        //big integer saved as int.n times value on int.p pointer
+        if (mbedtls_mpi_write_binary(bigInt, buffer, len) != 0) {
+            throw Error("Failed to write big integer value into buffer.");
+        }
+    }
+
+    static void mpiFromByteArray(mbedtls_mpi *bigInt, const unsigned char *buffer, size_t len) {
+        if (mbedtls_mpi_read_binary(bigInt, buffer, len) != 0) {
+            throw Error("Failed to read big integer value from buffer.");
+        }
+    }
+};
+
+std::ostream &operator<<(std::ostream &out, safe_mpi &mpi);
 
 
 /**
@@ -68,9 +112,9 @@ size_t read_n(std::istream &in, unsigned char *data, size_t length);
  */
 void write_n(std::ostream &out, const unsigned char *data, size_t length);
 
-void write_n(std::ostream &out, const std::string& data);
+void write_n(std::ostream &out, const std::string &data);
 
-void write_n(std::ostream &out, const std::vector<unsigned char>& data);
+void write_n(std::ostream &out, const std::vector<unsigned char> &data);
 
 /**
  * Hex conversion bundle
