@@ -63,7 +63,12 @@ TEST_CASE("Add new user") {
 
         SECTION("Challenge correctly solved") {
             CHECK(completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE).header.type ==
-                  Response::Type::USER_REGISTERED);
+                  Response::Type::BUNDLE_UPDATE_NEEDED);
+        }
+        
+        SECTION("Keys initialization") {
+            Request request{{Request::Type::KEY_BUNDLE_UPDATE, 3, 0},
+                            {}};
         }
     }
     server.dropDatabase();
