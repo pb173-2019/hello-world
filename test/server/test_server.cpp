@@ -63,7 +63,7 @@ TEST_CASE("Add new user") {
 
         SECTION("Challenge correctly solved") {
             CHECK(completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE).header.type ==
-                  Response::Type::KEY_INIT_NEEDED);
+                  Response::Type::BUNDLE_UPDATE_NEEDED);
         }
         
         SECTION("Keys initialization") {
