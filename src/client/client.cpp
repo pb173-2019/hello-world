@@ -1,5 +1,8 @@
+#include <ctime>
+#include <chrono>
 #include "client.h"
 #include "../shared/responses.h"
+#include "../shared/X3DH.h"
 
 namespace helloworld {
 
@@ -7,6 +10,7 @@ Client::Client(std::string username, const std::string &serverPubKeyFilename,
                const std::string &clientPrivKeyFilename,
                const std::string &password)
         : _username(std::move(username)),
+          _pwd(password),
           _sessionKey(to_hex(Random().get(SYMMETRIC_KEY_SIZE))),
           _transmission(std::make_unique<ClientFiles>(this, _username)),
           _serverPubKey(serverPubKeyFilename) {
@@ -83,7 +87,32 @@ void Client::requestKeyBundle(uint32_t userId) {
 }
 
 void Client::sendData(uint32_t receiverId, const std::vector<unsigned char> &data) {
-    sendRequest({{Request::Type::SEND, 0, receiverId}, SendData(_username, data).serialize()});
+    std::ifstream in {std::to_string(receiverId) + ".msg", std::ios::binary};
+    if (in)
+        throw Error("There are messages waiting to be send.");
+    in.close();
+    std::ofstream out {std::to_string(receiverId) + ".msg", std::ios::binary};
+    write_n(out, data);
+    requestKeyBundle(receiverId);
+}
+
+void Client::sendData(uint32_t receiverId, const KeyBundle<C25519>& bundle) {
+    std::ifstream in {std::to_string(receiverId) + ".msg", std::ios::binary};
+    if (!in)
+        throw Error("There are no messages to be send.");
+    size_t size = getSize(in);
+    std::vector<unsigned char> data(size);
+    read_n(in, data.data(), data.size());
+
+    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::string time = std::ctime(&now);
+    SendData toSend(time, _username, data);
+
+    X3DH protocol;
+    X3DHRequest<C25519> request;
+    std::string key = protocol.out(_pwd, toSend, bundle, request);
+
+    sendRequest({{Request::Type::SEND, 0, receiverId}, request.serialize()});
 }
 
 void Client::parseUsers(const helloworld::Response &response) {
