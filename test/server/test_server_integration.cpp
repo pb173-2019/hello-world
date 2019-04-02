@@ -66,9 +66,8 @@ public:
             case Response::Type::OK:
                 CHECK(true);
                 return;
-            case Response::Type::USER_REGISTERED: {
+            case Response::Type::KEY_BUNDLE_UPDATED: {
                 CHECK(true);
-                registered = true;
                 return;
             }
             case Response::Type::DATABASE_USERLIST: {
@@ -78,12 +77,20 @@ public:
                 CHECK(names.find(data.online[1]) != std::string::npos);
                 return;
             }
+            case Response::Type::KEY_INIT_NEEDED: {
 
+                if (!registered) registered = true;
+                CHECK(true);
+                std::stringstream buffer = _connection->parseOutgoing({{Request::Type::KEY_BUNDLE_UPDATE, 0, 0}, {0}});
+                _transmission->send(buffer);
+                return;
+            }
             case Response::Type::CHALLENGE_RESPONSE_NEEDED: {
                 Request complete = completeAuth(response.payload, _username,
                         "alice_priv.pem", "the most secure pwd ever",
                         (registered) ?  Request::Type::LOGIN_COMPLETE : Request::Type::CREATE_COMPLETE);
                 std::stringstream buffer = _connection->parseOutgoing(complete);
+
                 _transmission->send(buffer);
                 return;
             }
@@ -115,6 +122,8 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
 
     std::stringstream registration = client._connection->parseOutgoing(
             registerUser("alice", "2b7e151628aed2a6abf7158809cf4f3c", "alice_pub.pem"));
+    std::cout << "I am blue" << std::endl;
+
     //!! now when parsed, can set secure channel
     client._connection->switchSecureChannel(true);
 
@@ -123,10 +132,15 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
     server.getRequest();
     //client receives challenge
     client._transmission->receive();
-    //server verifies challenge
+    //server verifies challenge and requests keys
     server.getRequest();
-    //client obtains the final OK response
+    //client sends keybundle
     client._transmission->receive();
+    // server updates keys in database
+    server.getRequest();
+    // user recieves final OK response
+    client._transmission->receive();
+    std::cout << "I am blue" << std::endl;
 
     //reset connection
     std::stringstream loggingout = client._connection->parseOutgoing(logoutUser("alice"));
@@ -140,17 +154,23 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
     std::stringstream loggingin = client._connection->parseOutgoing(
             loginUser("alice", "2b7e151628aed2a6abf7158809cf4f3c"));
     client._connection->switchSecureChannel(true);
+    std::cout << "I am blue" << std::endl;
 
     //!! now when parsed, can set secure channel
     client._transmission->send(loggingin);
+
+    std::cout << "I am red" << std::endl;
     //server receives request
     server.getRequest();
+    std::cout << "I am red" << std::endl;
     //client receives challenge
     client._transmission->receive();
     //server verifies challenge
     server.getRequest();
-    //client obtains the final OK response
+    std::cout << "I am red" << std::endl;
+//client obtains the final OK response
     client._transmission->receive();
+    std::cout << "I am blue" << std::endl;
 
     std::stringstream deleteuser = client._connection->parseOutgoing(deleteUser("alice"));
     client._transmission->send(deleteuser);
@@ -159,6 +179,8 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
     //client obtains the final OK response
     client._transmission->receive();
     server.dropDatabase();
+    std::cout << "I am blue" << std::endl;
+
 }
 
 void registerUserRoutine(Server& server, ClientMock& client) {
@@ -174,6 +196,10 @@ void registerUserRoutine(Server& server, ClientMock& client) {
     client._transmission->receive();
     //server verifies challenge
     server.getRequest();
+    //client obtains key init request
+    client._transmission->receive();
+    // server recieves keys
+    server.getRequest();
     //client obtains the final OK response
     client._transmission->receive();
 }
@@ -181,18 +207,25 @@ void registerUserRoutine(Server& server, ClientMock& client) {
 TEST_CASE("Scenario 2: get online users.") {
 
     Server server;
+    std::cout << "I am blue" << std::endl;
 
     ClientMock client1{"alice"};
     ClientMock client2{"bob"};
     ClientMock client3{"cyril"};
+    std::cout << "I am blue" << std::endl;
 
     registerUserRoutine(server, client1);
+    std::cout << "I am blue" << std::endl;
+
     registerUserRoutine(server, client2);
     registerUserRoutine(server, client3);
+    std::cout << "I am blue" << std::endl;
 
     std::stringstream getOnline = client2._connection->parseOutgoing(
             {{Request::Type::GET_ONLINE, 0, 0}, GenericRequest{0, "bob"}.serialize()});
     client2._transmission->send(getOnline);
+    std::cout << "I am blue" << std::endl;
+
     //server receives request
     server.getRequest();
     //client obtains the final OK response

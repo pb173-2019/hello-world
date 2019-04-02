@@ -34,7 +34,9 @@ Response Server::handleUserRequest(const Request &request) {
             return deleteAccount(request);
         case Request::Type::LOGOUT:
             return logOut(request);
-        default:
+        case Request::Type::KEY_BUNDLE_UPDATE:
+            return updateKeyBundle(request);
+            default:
             throw Error("Invalid operation.");
     }
 }
@@ -104,10 +106,12 @@ Response Server::completeAuthentication(const Request &request, bool newUser) {
 
     Response r;
     if (newUser)
-        r = {{Response::Type::USER_REGISTERED, 0, generatedId}, {}};
+        r = {{Response::Type::BUNDLE_UPDATE_NEEDED, 0, generatedId},{}};
     else
         r = checkEvent(request);
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
+
+
     return r;
 }
 
@@ -265,5 +269,12 @@ void Server::sendReponse(const std::string &username, const Response &response, 
     }
     _transmission->send(username, result);
 }
+
+Response Server::updateKeyBundle(const Request &request) {
+    Response r = {{Response::Type::KEY_BUNDLE_UPDATED, 0, request.header.userId}, {}};
+    _database->insertBundle(request.header.userId, request.payload);
+
+     return r;
+    }
 
 }    // namespace helloworld

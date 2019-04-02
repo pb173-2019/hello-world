@@ -25,10 +25,12 @@ TEST_CASE("serialization test")
     keyBundle.preKeySingiture = r.get(KeyBundle<C25519>::signiture_len);
 
     keyBundle.oneTimeKeys.push_back(r.get(KeyBundle<C25519>::key_len));
+    keyBundle.generateTimeStamp();
 
     auto data = keyBundle.serialize();
 
     KeyBundle<C25519> newBundle = Serializable<KeyBundle<C25519> >::deserialize(data);
+    CHECK(keyBundle.timestamp == newBundle.timestamp);
     CHECK(keyBundle.identityKey == newBundle.identityKey);
     CHECK(keyBundle.preKey == newBundle.preKey);
     CHECK(keyBundle.preKeySingiture == newBundle.preKeySingiture);

@@ -20,6 +20,7 @@
 #include "../shared/request_response.h"
 #include "../shared/user_data.h"
 #include "../shared/rsa_2048.h"
+#include "../shared/curve_25519.h"
 #include "../shared/requests.h"
 #include "secure_channel.h"
 #include "transmission_file_client.h"
@@ -128,8 +129,11 @@ private:
     std::unique_ptr<ClientToServerManager> _connection = nullptr;
     std::vector<std::string> _userList;
     const std::string _serverPubKey;
+    std::string _password;
 
     RSA2048 _rsa;
+
+    KeyBundle<C25519> updateKeys();
 
     Request completeAuth(const std::vector<unsigned char> &secret,
                          Request::Type type);

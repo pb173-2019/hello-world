@@ -39,7 +39,7 @@ public:
 struct Request {
     enum class Type {
         LOGIN, LOGIN_COMPLETE, LOGOUT, CREATE, CREATE_COMPLETE,
-        REMOVE, SEND, GET_ONLINE, FIND_USERS
+        REMOVE, SEND, GET_ONLINE, FIND_USERS, KEY_BUNDLE_UPDATE
     };
 
     struct Header : Serializable<Request::Header> {
@@ -90,6 +90,9 @@ struct Response {
         INVALID_AUTH = 0x1200,
         FAILED_TO_CLOSE_CONNECTION = 0x1350,
         CHALLENGE_RESPONSE_NEEDED = 0x2200,
+        BUNDLE_UPDATE_NEEDED = 0x2201,
+        FAILED_TO_UPDATE_BUNDLE = 0x1100,
+        KEY_BUNDLE_UPDATED = 0x0201
     };
 
     struct Header : Serializable<Response::Header> {
