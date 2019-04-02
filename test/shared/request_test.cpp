@@ -53,7 +53,7 @@ TEST_CASE("generate Serialize response header and deserialize") {
         header.userId = 0;
     }
     SECTION("Simple test 2") {
-        header.type = Response::Type::DATABASE_RECEIVE;
+        header.type = Response::Type::RECEIVE;
         header.userId = 5;
     }
 

@@ -62,37 +62,24 @@ struct Request {
 };
 
 struct Response {
-    /**
-     * number order in type: 1 | 2 | 3 | 4
-     * 1:   0 - ok
-     *      1 - error
-     *      2 - response needed
-     *      3 - communication to other user
-     *      ...
-     * 2:   0 - generic event
-     *      1 - database event
-     *      2 - security event
-     *      3 - channel event
-     *      ...
-     * 3 & 4 - further specification
-     */
+
     enum class Type {
         OK = 0x0080,
-        DATABASE_USERLIST = 0x0110,
-        DATABASE_RECEIVE = 0x0111,
-        DATABASE_NOT_FOUD = 0x0151,
-        USERNAME_NOT_VALID = 0x1150,
-        FAILED_TO_DELETE_USER = 0x1151,
-        
-        USER_REGISTERED = 0x0300,
-
-        GENERIC_SERVER_ERROR = 0x1000,
-        INVALID_AUTH = 0x1200,
-        FAILED_TO_CLOSE_CONNECTION = 0x1350,
-        CHALLENGE_RESPONSE_NEEDED = 0x2200,
-        BUNDLE_UPDATE_NEEDED = 0x2201,
-        FAILED_TO_UPDATE_BUNDLE = 0x1100,
-        KEY_BUNDLE_UPDATED = 0x0201
+        USERLIST,
+        RECEIVE_OLD,
+        RECEIVE,
+        RECEIVER_BUNDLE,
+        DATABASE_NOT_FOUD,
+        USERNAME_NOT_VALID,
+        FAILED_TO_DELETE_USER,
+        USER_REGISTERED,
+        GENERIC_SERVER_ERROR,
+        INVALID_AUTH,
+        FAILED_TO_CLOSE_CONNECTION,
+        CHALLENGE_RESPONSE_NEEDED,
+        BUNDLE_UPDATE_NEEDED,
+        FAILED_TO_UPDATE_BUNDLE,
+        KEY_BUNDLE_UPDATED
     };
 
     struct Header : Serializable<Response::Header> {

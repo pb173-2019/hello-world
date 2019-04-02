@@ -178,16 +178,18 @@ struct GetUsers : public Serializable<GetUsers> {
 };
 
 struct SendData : public Serializable<SendData> {
+    std::string date;
     std::string from;
     std::vector<unsigned char> data;
 
     SendData() = default;
 
-    SendData(std::string from, std::vector<unsigned char> data) :
-            from(std::move(from)), data(std::move(data)) {}
+    SendData(std::string date, std::string from, std::vector<unsigned char> data) :
+            date(std::move(date)), from(std::move(from)), data(std::move(data)) {}
 
     std::vector<unsigned char> serialize() const override {
         std::vector<unsigned char> result;
+        Serializable::addContainer<std::string>(result, date);
         Serializable::addContainer<std::string>(result, from);
         Serializable::addContainer<std::vector<unsigned char>>(result, data);
         return result;
@@ -196,11 +198,50 @@ struct SendData : public Serializable<SendData> {
     static SendData deserialize(const std::vector<unsigned char> &data) {
         SendData result;
         uint64_t position = 0;
+        position += Serializable::getContainer<std::string>(data, position, result.date);
         position += Serializable::getContainer<std::string>(data, position, result.from);
         position += Serializable::getContainer<std::vector<unsigned char>>(data, position, result.data);
         return result;
     }
 };
+
+    template <typename Asymmetric>
+    struct X3DHRequest : public Serializable<X3DHRequest<Asymmetric>> {
+        using key_t = typename KeyBundle<Asymmetric>::key_t;
+
+        static constexpr unsigned char OP_KEY_NONE = 0x00;
+        static constexpr unsigned char OP_KEY_USED = 0x00;
+
+        key_t senderIdPubKey;
+        key_t senderEphermalPubKey;
+        //todo add key bundle version identifier
+        unsigned char opKeyUsed = OP_KEY_NONE;
+        size_t opKeyId;
+        std::vector<unsigned char> AEADenrypted;
+
+        X3DHRequest() = default;
+
+        std::vector<unsigned char> serialize() const override {
+            std::vector<unsigned char> result;
+            Serializable<X3DHRequest<Asymmetric> >::addContainer(result, senderIdPubKey);
+            Serializable<X3DHRequest<Asymmetric> >::addContainer(result, senderEphermalPubKey);
+            Serializable<X3DHRequest<Asymmetric> >::addNumeric(result, opKeyUsed);
+            Serializable<X3DHRequest<Asymmetric> >::addNumeric(result, opKeyId);
+            Serializable<X3DHRequest<Asymmetric> >::addContainer(result, AEADenrypted);
+            return result;
+        }
+
+        static X3DHRequest deserialize(const std::vector<unsigned char> &data) {
+            X3DHRequest result;
+            uint64_t offset = 0;
+            offset += Serializable<X3DHRequest<Asymmetric> >::getContainer(data, offset, result.senderIdPubKey);
+            offset += Serializable<X3DHRequest<Asymmetric> >::getContainer(data, offset, result.senderEphermalPubKey);
+            offset += Serializable<X3DHRequest<Asymmetric> >::getNumeric(data, offset, result.opKeyUsed);
+            offset += Serializable<X3DHRequest<Asymmetric> >::getNumeric(data, offset, result.opKeyId);
+            offset += Serializable<X3DHRequest<Asymmetric> >::getContainer(data, offset, result.AEADenrypted);
+            return result;
+        }
+    };
 
 }    // namespace helloworld
 

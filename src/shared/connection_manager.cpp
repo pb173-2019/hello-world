@@ -15,6 +15,9 @@ ClientToServerManager::ClientToServerManager(const std::string& sessionKey,
 }
 
 Response ClientToServerManager::parseIncoming(std::stringstream &&data) {
+
+    //todo if incomming head type of RECEIVE / RECEIVE OLD react: X3DH protocol
+
     if (getSize(data) < HEADER_ENCRYPTED_SIZE)
         throw Error("Server returned generic error.");
     std::stringstream headDecrypted = _GCMdecryptHead(data);

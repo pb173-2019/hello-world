@@ -27,6 +27,14 @@
 
 namespace helloworld {
 
+//todo delete when implemented
+class DoubleRatchet {
+public:
+    bool running() {
+        return false;
+    }
+};
+
 class Client : public Callable<void, std::stringstream &&> {
     static constexpr int SYMMETRIC_KEY_SIZE = 16;
 
@@ -104,12 +112,24 @@ class Client : public Callable<void, std::stringstream &&> {
     void requestKeyBundle(uint32_t userId);
 
     /**
-     * Send data to server, any bytes supported (todo: add some length checks)
+     * Send data to other user
+     * decides whether to encrypt with double ratchet (e.g. session is runnung)
+     * or request new key bundle & start session
      *
      * @param receiverId user id - the user that is supposed to receive the data
      * @param data data to send
      */
     void sendData(uint32_t receiverId, const std::vector<unsigned char>& data);
+
+    /**
+     * Send data to other user using X3Dh protocol
+     * called on server response RECEIVER_BUNDLE which was invoked by sendData()
+     *
+     * @param receiverId user id - the user that is supposed to receive the data
+     * @param bundle keys bundle of the receiver
+     * @param data data to send
+     */
+    void sendInitialMessage(uint32_t receiverId, const Response& bundle);
 
 
     //
@@ -122,12 +142,17 @@ class Client : public Callable<void, std::stringstream &&> {
 
 private:
     const std::string _username;
+    const std::string _pwd;
     uint32_t _userId = 0;
+    //todo config file with all constants
     const std::string _clientPubKeyFilename;
+    //todo move to connection manager, now its only sent to manager anyway
     const std::string _sessionKey;
+    std::unique_ptr<DoubleRatchet> _usersSession;
     std::unique_ptr<UserTransmissionManager> _transmission;
     std::unique_ptr<ClientToServerManager> _connection = nullptr;
     std::vector<std::string> _userList;
+    //todo config file
     const std::string _serverPubKey;
     std::string _password;
 

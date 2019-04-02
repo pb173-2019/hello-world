@@ -179,8 +179,8 @@ class ClientToServerManager : public ConnectionManager<Response, Request> {
     //outgoing RSA initialized with server public key
     RSA2048 _rsa_out{};
 
-    //future c-c managers
-    //std::map<std::string, ClientToClientManager> _userManagers;
+    //will perform double ratchet
+//    ClientToClientManager manager;
 
 public:
     /**
@@ -206,9 +206,6 @@ public:
     std::stringstream parseOutgoing(const Request &data) override;
 
 private:
-    //in future: will get connection from _userManagers and encrypts
-    // message body with different approach
-    /*std::vector<unsigned char> getUserInput()  = 0;*/
 
 };
 
@@ -223,14 +220,6 @@ public:
     Request parseIncoming(std::stringstream &&data) override;
 
     std::stringstream parseOutgoing(const Response &data) override;
-};
-
-/**
- * body structure parsing in client-client communication
- * will use other keys for encryption than server
- */
-class ClientToClientManager {
-
 };
 
 /**

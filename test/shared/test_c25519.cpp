@@ -4,6 +4,7 @@
 #include "../../src/shared/curve_25519.h"
 #include "../../include/eddsa/eddsa.h"
 
+
 using namespace helloworld;
 
 TEST_CASE("Curve keygen & key loading") {
@@ -39,10 +40,7 @@ TEST_CASE("Curve keygen & key loading") {
     client.loadPublicKey("server.c25519");
     server.loadPublicKey("client.c25519");
 
-    std::vector<unsigned char> alice = client.getSharedStep1();
-    std::vector<unsigned char> bob = server.getSharedStep1();
-
-    CHECK(client.getSharedStep2(bob) == server.getSharedStep2(alice));
+    CHECK(client.getShared() == server.getShared());
 }
 
 

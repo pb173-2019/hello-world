@@ -19,10 +19,6 @@
 
 #include "mbedtls/ecdh.h"
 
-extern "C" {
-#include "ed25519/xeddsa.h"
-}
-
 #include "aes_128.h"
 #include "sha_512.h"
 #include "utils.h"
@@ -30,7 +26,10 @@ extern "C" {
 
 namespace helloworld {
 
+class C25519;
+
 class C25519KeyGen : AsymmetricKeyGen {
+    friend C25519;
     static constexpr int KEY_BYTES_LEN = 32;
 
     std::vector<unsigned char> _buffer_private;
@@ -91,6 +90,26 @@ public:
         clear<unsigned char>(_buffer_private.data(), KEY_BYTES_LEN);
     }
 
+    /**
+     * X3DH purpose easy setter
+     */
+    void setPrivateKey(const C25519KeyGen &keys) {
+        _buffer_private = keys._buffer_private;
+    }
+
+    /**
+     * X3DH purpose easy setter
+     */
+    void setPublicKey(const C25519KeyGen &keys) {
+        _buffer_private = keys._buffer_public;
+    }
+
+    /**
+     * Compute the second step of DH (the first is generating the public key)
+     * @return shared secret
+     */
+    std::vector<unsigned char> getShared();
+
     //this method is implemented, but not needed for DH, as the public key is loaded by the other user
     void setPublicKey(const std::vector<unsigned char> &key) override;
 
@@ -100,20 +119,6 @@ public:
     void loadPrivateKey(const std::string &keyFile, const std::string &key, const std::string &iv) override;
 
     void loadPrivateKey(const std::string &keyFile, const std::string &pwd) override;
-
-    /**
-     * Compute the first step of DH
-     *
-     * @return shared secret key based on owner's private key
-     */
-    std::vector<unsigned char> getSharedStep1();
-
-    /**
-     * Compute the second step of DH
-     * @param shared
-     * @return
-     */
-    std::vector<unsigned char> getSharedStep2(const std::vector<unsigned char> &shared);
 
     std::vector<unsigned char> sign(const std::vector<unsigned char> &msg) override;
 
