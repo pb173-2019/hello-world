@@ -32,12 +32,22 @@ TEST_CASE("Scenario 1: create, logout, login, delete.") {
     client.getResponse();
 
     std::cout << "server verifies challenge\n";
-    // server verifies challenge
+    // server verifies challenge and asks for keys
     server.getRequest();
 
-    std::cout << "client obtains the final OK response\n";
-    // client obtains the final OK response
+
+    std::cout << "client recieves Key Init Response\n";
+    // client recieves Key Init Request
     client.getResponse();
+
+    std::cout << "server recieve Key Update request and update keys in database\n";
+    // server recieve Key Update request and update keys in database
+    server.getRequest();
+
+    std::cout << "client recieves final ok response";
+    // Final OK response
+    client.getResponse();
+
 
     client.logout();
     // server receives request
@@ -65,6 +75,8 @@ TEST_CASE("Scenario 1: create, logout, login, delete.") {
 
 void registerUserRoutine(Server& server, Client& client) {
     client.createAccount("alice_pub.pem");
+    server.getRequest();
+    client.getResponse();
     server.getRequest();
     client.getResponse();
     server.getRequest();

@@ -12,6 +12,7 @@
 #ifndef HELLOWORLD_SERVER_REQUESTS_H_
 #define HELLOWORLD_SERVER_REQUESTS_H_
 
+#include <ctime>
 #include "serializable.h"
 
 namespace helloworld {
@@ -25,13 +26,21 @@ namespace helloworld {
         using key_t = std::vector<unsigned char>;
         using signiture_t = std::vector<unsigned char>;
 
+        uint64_t timestamp;
         key_t identityKey;
         key_t preKey;
         signiture_t preKeySingiture;
         std::vector<key_t > oneTimeKeys;
 
+        void generateTimeStamp() {
+            std::time_t t = std::time(nullptr);
+            std::tm *lt = std::localtime(&t);
+            timestamp = lt->tm_year * 366 * 24 + lt->tm_yday * 24 + lt->tm_hour;
+        }
+
         std::vector<unsigned char> serialize() const override {
             std::vector<unsigned char> result;
+            Serializable<KeyBundle<Asymmetric> >::addNumeric(result, timestamp);
             Serializable<KeyBundle<Asymmetric> >::addContainer(result, identityKey);
             Serializable<KeyBundle<Asymmetric> >::addContainer(result, preKey);
             Serializable<KeyBundle<Asymmetric> >::addContainer(result, preKeySingiture);
@@ -42,6 +51,7 @@ namespace helloworld {
         static KeyBundle deserialize(const std::vector<unsigned char >& data) {
             KeyBundle result;
             uint64_t offset = 0;
+            offset += Serializable<KeyBundle<Asymmetric> >::getNumeric(data, offset, result.timestamp);
             offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.identityKey);
             offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.preKey);
             offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.preKeySingiture);

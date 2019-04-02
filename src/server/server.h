@@ -208,6 +208,8 @@ private:
      */
     Response forward(const Request &request);
 
+    Response updateKeyBundle(const Request &request);
+
     /**
      * @brief Called when OK reponse should be sent
      *        notifies user whether an event occurs that should user know

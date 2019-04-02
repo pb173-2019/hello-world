@@ -119,7 +119,7 @@ namespace helloworld {
         sqlite3_bind_int(statement, 1, userId);
         sqlite3_bind_blob64(statement, 2, blob.data(), blob.size() * sizeof(unsigned char), SQLITE_STATIC);
         if (sqlite3_step(statement) != SQLITE_DONE)
-            throw Error("Failed to store blob into table 'bundles'.");
+            throw Error("Failed to store blob into table 'bundles'. (" + std::string(sqlite3_errmsg(_handler)) + ")");
         sqlite3_finalize(statement);
     }
 

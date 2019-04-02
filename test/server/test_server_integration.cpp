@@ -66,9 +66,8 @@ public:
             case Response::Type::OK:
                 CHECK(true);
                 return;
-            case Response::Type::USER_REGISTERED: {
+            case Response::Type::KEY_BUNDLE_UPDATED: {
                 CHECK(true);
-                registered = true;
                 return;
             }
             case Response::Type::USERLIST: {
@@ -78,12 +77,23 @@ public:
                 CHECK(names.find(data.online[1]) != std::string::npos);
                 return;
             }
+            case Response::Type::BUNDLE_UPDATE_NEEDED: {
 
+                if (!registered) {
+                    registered = true;
+                    uid = response.header.userId;
+                }
+                CHECK(true);
+                std::stringstream buffer = _connection->parseOutgoing({{Request::Type::KEY_BUNDLE_UPDATE, 0, uid}, {0}});
+                _transmission->send(buffer);
+                return;
+            }
             case Response::Type::CHALLENGE_RESPONSE_NEEDED: {
                 Request complete = completeAuth(response.payload, _username,
                         "alice_priv.pem", "the most secure pwd ever",
                         (registered) ?  Request::Type::LOGIN_COMPLETE : Request::Type::CREATE_COMPLETE);
                 std::stringstream buffer = _connection->parseOutgoing(complete);
+
                 _transmission->send(buffer);
                 return;
             }
@@ -93,6 +103,7 @@ public:
         }
     }
 
+    uint32_t uid = 0;
     std::string _username = "alice";
     std::unique_ptr<UserTransmissionManager> _transmission;
     std::unique_ptr<ClientToServerManager> _connection = nullptr;
@@ -115,6 +126,7 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
 
     std::stringstream registration = client._connection->parseOutgoing(
             registerUser("alice", "2b7e151628aed2a6abf7158809cf4f3c", "alice_pub.pem"));
+
     //!! now when parsed, can set secure channel
     client._connection->switchSecureChannel(true);
 
@@ -123,9 +135,13 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
     server.getRequest();
     //client receives challenge
     client._transmission->receive();
-    //server verifies challenge
+    //server verifies challenge and requests keys
     server.getRequest();
-    //client obtains the final OK response
+    //client sends keybundle
+    client._transmission->receive();
+    // server updates keys in database
+    server.getRequest();
+    // user recieves final OK response
     client._transmission->receive();
 
     //reset connection
@@ -143,13 +159,14 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
 
     //!! now when parsed, can set secure channel
     client._transmission->send(loggingin);
+
     //server receives request
     server.getRequest();
     //client receives challenge
     client._transmission->receive();
     //server verifies challenge
     server.getRequest();
-    //client obtains the final OK response
+//client obtains the final OK response
     client._transmission->receive();
 
     std::stringstream deleteuser = client._connection->parseOutgoing(deleteUser("alice"));
@@ -159,6 +176,7 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
     //client obtains the final OK response
     client._transmission->receive();
     server.dropDatabase();
+
 }
 
 void registerUserRoutine(Server& server, ClientMock& client) {
@@ -173,6 +191,10 @@ void registerUserRoutine(Server& server, ClientMock& client) {
     //client receives challenge
     client._transmission->receive();
     //server verifies challenge
+    server.getRequest();
+    //client obtains key init request
+    client._transmission->receive();
+    // server recieves keys
     server.getRequest();
     //client obtains the final OK response
     client._transmission->receive();
@@ -193,6 +215,7 @@ TEST_CASE("Scenario 2: get online users.") {
     std::stringstream getOnline = client2._connection->parseOutgoing(
             {{Request::Type::GET_ONLINE, 0, 0}, GenericRequest{0, "bob"}.serialize()});
     client2._transmission->send(getOnline);
+
     //server receives request
     server.getRequest();
     //client obtains the final OK response
