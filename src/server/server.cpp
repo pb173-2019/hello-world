@@ -145,7 +145,7 @@ Response Server::getOnline(const Request &request) {
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
 
     const std::set <std::string> &users = _transmission->getOpenConnections();
-    Response r = {{Response::Type::DATABASE_USERLIST, request.header.messageNumber, request.header.userId},
+    Response r = {{Response::Type::USERLIST, request.header.messageNumber, request.header.userId},
                   UserListReponse{{users.begin(), users.end()}}.serialize()};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
@@ -199,7 +199,7 @@ Response Server::findUsers(const Request &request) {
     GetUsers curRequest = GetUsers::deserialize(request.payload);
     UserListReponse response;
     response.online = getUsers(curRequest.query);
-    Response r = {{Response::Type::DATABASE_USERLIST, 0, 0}, response.serialize()};
+    Response r = {{Response::Type::USERLIST, 0, 0}, response.serialize()};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }
@@ -212,7 +212,7 @@ Response Server::forward(const Request &request) {
     const std::set<std::string> &users = _transmission->getOpenConnections();
     if (users.find(receiver) != users.end())  {
         //todo message id?
-        r = {{Response::Type::DATABASE_RECEIVE, 0, request.header.userId}, request.payload};
+        r = {{Response::Type::RECEIVE, 0, request.header.userId}, request.payload};
         sendReponse(receiver, r, getManagerPtr(receiver, true));
     } else {
         _database->insertData(request.header.userId, request.payload);
@@ -223,6 +223,7 @@ Response Server::forward(const Request &request) {
 
 Response Server::checkEvent(const Request& request) {
     //todo check for keys that should be updated
+    //todo check for new messages that are waiting for user to come online
     return {{Response::Type::OK, request.header.messageNumber, request.header.userId}, {}};
 }
 

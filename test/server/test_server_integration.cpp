@@ -71,7 +71,7 @@ public:
                 registered = true;
                 return;
             }
-            case Response::Type::DATABASE_USERLIST: {
+            case Response::Type::USERLIST: {
                 UserListReponse data = UserListReponse::deserialize(response.payload);
                 CHECK(data.online.size() == 3);
                 std::string names{"alicebobcyril"};

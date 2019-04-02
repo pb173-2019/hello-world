@@ -223,14 +223,6 @@ public:
 };
 
 /**
- * body structure parsing in client-client communication
- * will use other keys for encryption than server
- */
-class ClientToClientManager {
-
-};
-
-/**
  * Class that is meant to parse only with server private key - incoming registration & request
  */
 class GenericServerManager : ConnectionManager<Request, Response> {

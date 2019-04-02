@@ -2,6 +2,7 @@
 #include <chrono>
 #include "client.h"
 #include "../shared/responses.h"
+#include "../shared/curve_25519.h"
 #include "../shared/X3DH.h"
 
 namespace helloworld {
@@ -22,7 +23,7 @@ void Client::callback(std::stringstream &&data) {
     switch (response.header.type) {
         case Response::Type::OK:
             return;
-        case Response::Type::DATABASE_USERLIST:
+        case Response::Type::USERLIST:
             parseUsers(response);
             return;
         case Response::Type::CHALLENGE_RESPONSE_NEEDED:
@@ -31,6 +32,11 @@ void Client::callback(std::stringstream &&data) {
             return;
         case Response::Type::USER_REGISTERED:
             _userId = response.header.userId;
+            return;
+        case Response::Type::RECEIVER_BUNDLE:
+            //todo attrib only response as the response contains id, for now just to emphasize
+            //todo that response has receiver's (to whom we send message) id in header
+            sendInitialMessage(response.header.userId, response);
             return;
         default:
             throw Error("Unknown response type.");
@@ -75,7 +81,6 @@ void Client::sendGetOnline() {
     sendGenericRequest(Request::Type::GET_ONLINE);
 }
 
-
 void Client::sendKeysBundle() {
     //todo
     sendRequest({});
@@ -87,16 +92,22 @@ void Client::requestKeyBundle(uint32_t userId) {
 }
 
 void Client::sendData(uint32_t receiverId, const std::vector<unsigned char> &data) {
-    std::ifstream in {std::to_string(receiverId) + ".msg", std::ios::binary};
-    if (in)
-        throw Error("There are messages waiting to be send.");
-    in.close();
-    std::ofstream out {std::to_string(receiverId) + ".msg", std::ios::binary};
-    write_n(out, data);
-    requestKeyBundle(receiverId);
+    if (_usersSession->running()) {
+        //todo double ratchet
+    } else {
+        std::ifstream in {std::to_string(receiverId) + ".msg", std::ios::binary};
+        if (in)
+            throw Error("There are messages waiting to be send.");
+        in.close();
+        std::ofstream out {std::to_string(receiverId) + ".msg", std::ios::binary};
+        write_n(out, data);
+        requestKeyBundle(receiverId);
+    }
 }
 
-void Client::sendData(uint32_t receiverId, const KeyBundle<C25519>& bundle) {
+void Client::sendInitialMessage(uint32_t receiverId, const Response& response) {
+    KeyBundle<C25519> bundle = KeyBundle<C25519>::deserialize(response.payload);
+
     std::ifstream in {std::to_string(receiverId) + ".msg", std::ios::binary};
     if (!in)
         throw Error("There are no messages to be send.");
