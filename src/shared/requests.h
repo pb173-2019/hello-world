@@ -202,7 +202,7 @@ struct SendData : public Serializable<SendData> {
         using key_t = typename KeyBundle<Asymmetric>::key_t;
 
         static constexpr unsigned char OP_KEY_NONE = 0x00;
-        static constexpr unsigned char OP_KEY_USED = 0x00;
+        static constexpr unsigned char OP_KEY_USED = 0x01;
 
         key_t senderIdPubKey;
         key_t senderEphermalPubKey;

@@ -76,7 +76,7 @@ class C25519 : public AsymmetricCipher {
 
 
     Random _random;
-    unsigned char _flags;
+    unsigned char _flags = 0x00;
 
 public:
     // Just for key bundle
@@ -87,7 +87,8 @@ public:
     explicit C25519();
 
     ~C25519() override {
-        clear<unsigned char>(_buffer_private.data(), KEY_BYTES_LEN);
+        if (!_buffer_private.empty())
+            clear<unsigned char>(_buffer_private.data(), KEY_BYTES_LEN);
     }
 
     /**
@@ -95,6 +96,7 @@ public:
      */
     void setPrivateKey(const C25519KeyGen &keys) {
         _buffer_private = keys._buffer_private;
+        _setup(KeyType::PRIVATE_KEY);
     }
 
     /**
@@ -102,6 +104,8 @@ public:
      */
     void setPublicKey(const C25519KeyGen &keys) {
         _buffer_private = keys._buffer_public;
+        _setup(KeyType::PUBLIC_KEY);
+
     }
 
     /**

@@ -36,12 +36,12 @@ public:
      * @return X3DH SK key
      */
     std::string out(const std::string& pwd,
-            const SendData& toSend,
-            const KeyBundle<C25519> bundle,
-            X3DHRequest<C25519>& toFill) {
+                    const KeyBundle<C25519> bundle,
+                    const SendData& toSend,
+                    X3DHRequest<C25519>& toFill) {
 
         if (! verifyPrekey(bundle.identityKey, bundle.preKey, bundle.preKeySingiture))
-            throw Error("X3DH aborted: prekey signature verification failed.");
+            return "";
 
         bool opUsed = !bundle.oneTimeKeys.empty();
         size_t keyId = 0;
@@ -68,12 +68,8 @@ public:
         }
 
         hkdf kdf;
-        std::string sk = kdf.generate(to_hex(dh), 32);
+        std::string sk = kdf.generate(to_hex(dh), 16);
 
-        //cleanup
-        if (remove("ephermal.ep") != 0) {
-            throw Error("Could not delete temporary key.\n");
-        }
         clear<unsigned char>(dh.data(), dh.size());
 
         //build request
@@ -88,14 +84,14 @@ public:
     }
 
 private:
-    /**
-     * Verify signature on prekey used
-     *
-     * @param identityPub identity public key of the receiver
-     * @param prekeyPub identity prekey of the receiver
-     * @param signature signature of the prekeyPub
-     * @return true if verified
-     */
+//    /**
+//     * Verify signature on prekey used
+//     *
+//     * @param identityPub identity public key of the receiver
+//     * @param prekeyPub identity prekey of the receiver
+//     * @param signature signature of the prekeyPub
+//     * @return true if verified
+//     */
     bool verifyPrekey(const KeyBundle<C25519>::key_t& identityPub,
             const KeyBundle<C25519>::key_t& prekeyPub,
             const KeyBundle<C25519>::signiture_t& signature) {
@@ -158,8 +154,8 @@ private:
         gcm.setKey(key);
 
         //prekey used as IV if no onetime keys
-        if (opKeyUsed) gcm.setIv(to_hex(bundle.oneTimeKeys[opKeyId]).substr(0, 32));
-        else gcm.setIv(to_hex(bundle.preKey).substr(0, 32));
+        if (opKeyUsed) gcm.setIv(to_hex(bundle.oneTimeKeys[opKeyId]).substr(0, 24));
+        else gcm.setIv(to_hex(bundle.preKey).substr(0, 24));
 
         std::stringstream toEncrypt{};
         std::stringstream result{};

@@ -130,7 +130,8 @@ bool C25519::verify(const std::vector<unsigned char> &signature, const std::vect
     if (signature.size() != XEDDSA_SIGN_LEN)
         throw Error("Invalid signature length.");
 
-    return xed25519_verify(signature.data(), _buffer_public.data(), msg.data(), msg.size()) == 0;
+    int a = xed25519_verify(signature.data(), _buffer_public.data(), msg.data(), msg.size());
+    return a == 0;
 }
 
 bool C25519::verify(const std::vector<unsigned char> &signature, const std::string &msg) {

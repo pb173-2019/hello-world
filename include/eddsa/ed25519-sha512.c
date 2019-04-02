@@ -145,7 +145,7 @@ ed25519_sign(uint8_t sig[ED25519_SIG_LEN],
  *
  * returns true if signature is ok and false otherwise.
  */
-bool
+int
 ed25519_verify(const uint8_t sig[ED25519_SIG_LEN],
 	       const uint8_t pub[ED25519_KEY_LEN],
 	       const uint8_t *data, size_t len)
@@ -177,7 +177,9 @@ ed25519_verify(const uint8_t sig[ED25519_SIG_LEN],
 	ed_export(check, &C);
 	
 	/* is export(C) == export(R) (vartime!) */
-	return (memcmp(check, sig, 32) == 0);
+	if (memcmp(check, sig, 32) == 0)
+		return 0;
+	return 1;
 }
 
 
@@ -293,12 +295,14 @@ eddsa_sign(uint8_t sig[ED25519_SIG_LEN],
  * (obsolete interface!)
  *
  */
-bool
+int
 eddsa_verify(const uint8_t sig[ED25519_SIG_LEN],
 	     const uint8_t pub[ED25519_KEY_LEN],
 	     const uint8_t *data, size_t len)
 {
-	return ed25519_verify(sig, pub, data, len);
+	if (ed25519_verify(sig, pub, data, len))
+		return 0;
+	return 1;
 }
 
 /*
