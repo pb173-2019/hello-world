@@ -121,7 +121,7 @@ void Client::sendInitialMessage(uint32_t receiverId, const Response& response) {
 
     X3DH protocol;
     X3DHRequest<C25519> request;
-    std::string key = protocol.out(_pwd, toSend, bundle, request);
+    std::string key = protocol.out(_pwd, bundle, toSend, request);
 
     sendRequest({{Request::Type::SEND, 0, receiverId}, request.serialize()});
 }
