@@ -39,6 +39,7 @@ void Client::callback(std::stringstream &&data) {
         case Response::Type::BUNDLE_UPDATE_NEEDED:
             _userId = response.header.userId;
             sendKeysBundle();
+            return;
         case Response::Type::RECEIVER_BUNDLE:
             //todo attrib only response as the response contains id, for now just to emphasize
             //todo that response has receiver's (to whom we send message) id in header

@@ -26,14 +26,16 @@ namespace helloworld {
         using key_t = std::vector<unsigned char>;
         using signiture_t = std::vector<unsigned char>;
 
-        std::time_t timestamp;
+        uint64_t timestamp;
         key_t identityKey;
         key_t preKey;
         signiture_t preKeySingiture;
         std::vector<key_t > oneTimeKeys;
 
         void generateTimeStamp() {
-            timestamp = std::time(nullptr);
+            std::time_t t = std::time(nullptr);
+            std::tm *lt = std::localtime(&t);
+            timestamp = lt->tm_year * 366 * 24 + lt->tm_yday * 24 + lt->tm_hour;
         }
 
         std::vector<unsigned char> serialize() const override {

@@ -109,6 +109,7 @@ Response Server::completeAuthentication(const Request &request, bool newUser) {
         r = {{Response::Type::BUNDLE_UPDATE_NEEDED, 0, generatedId},{}};
     else
         r = checkEvent(request);
+
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
 
 
