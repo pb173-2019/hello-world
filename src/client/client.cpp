@@ -13,7 +13,6 @@ Client::Client(std::string username, const std::string &serverPubKeyFilename,
                const std::string &clientPrivKeyFilename,
                const std::string &password)
         : _username(std::move(username)),
-          _pwd(password),
           _sessionKey(to_hex(Random().get(SYMMETRIC_KEY_SIZE))),
           _transmission(std::make_unique<ClientFiles>(this, _username)),
           _serverPubKey(serverPubKeyFilename),
@@ -107,11 +106,6 @@ KeyBundle<C25519> Client::updateKeys() {
         newKeybundle.identityKey = identityKeyGen.getPublicKey();
     }
 
-    C25519 identity{};
-    identity.loadPrivateKey("identityKey.key", _password);
-    identity.loadPublicKey("identityKey.pub");
-
-
     temp.open("preKey.pub", std::ios::binary | std::ios::in);
 
     if (temp.is_open()) {
@@ -132,6 +126,9 @@ KeyBundle<C25519> Client::updateKeys() {
 
     newKeybundle.preKey = preKeyGen.getPublicKey();
 
+    C25519 identity{};
+    identity.loadPrivateKey("identityKey.key", _password);
+    identity.loadPublicKey("identityKey.pub");
     newKeybundle.preKeySingiture = identity.sign(newKeybundle.preKey);
 
     for (int i = 0; i < numberOfOneTimeKeys; ++i) {
@@ -185,7 +182,7 @@ void Client::sendInitialMessage(uint32_t receiverId, const Response& response) {
 
     X3DH protocol;
     X3DHRequest<C25519> request;
-    std::string key = protocol.out(_pwd, bundle, toSend, request);
+    std::string key = protocol.out(_password, bundle, toSend, request);
 
     sendRequest({{Request::Type::SEND, 0, receiverId}, request.serialize()});
 }

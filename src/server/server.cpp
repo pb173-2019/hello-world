@@ -259,7 +259,6 @@ void Server::sendReponse(const std::string &username, const Response &response, 
     _transmission->send(username, result);
 }
 
-
 void Server::sendReponse(const std::string &username, const Response &response, const std::string &sessionKey) {
     std::stringstream result;
     if (sessionKey.length() != AESGCM::key_size * 2) {
@@ -275,7 +274,6 @@ void Server::sendReponse(const std::string &username, const Response &response, 
 Response Server::updateKeyBundle(const Request &request) {
     Response r = {{Response::Type::KEY_BUNDLE_UPDATED, 0, request.header.userId}, {}};
     _database->insertBundle(request.header.userId, request.payload);
-
      return r;
     }
 

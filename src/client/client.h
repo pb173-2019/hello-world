@@ -142,7 +142,6 @@ class Client : public Callable<void, std::stringstream &&> {
 
 private:
     const std::string _username;
-    const std::string _pwd;
     uint32_t _userId = 0;
     //todo config file with all constants
     const std::string _clientPubKeyFilename;

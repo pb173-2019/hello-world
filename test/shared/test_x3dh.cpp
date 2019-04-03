@@ -12,7 +12,7 @@ using namespace helloworld;
 TEST_CASE("X3DH process test") {
     //X3DH assumes the files with public key saved in identityKey.key, identityKey.pub
 
-    C25519KeyGen keyGen;
+    C25519KeyGen keyGen; //alice's identity keys
     keyGen.savePrivateKeyPassword("identityKey.key", "1234");
     keyGen.savePublicKey("identityKey.pub");
 
@@ -36,56 +36,76 @@ TEST_CASE("X3DH process test") {
     X3DHRequest<C25519> toFill;
 
     SendData toSend{"1.3.2013", "user", {1, 2, 3, 4}};
+    SendData transfered;
 
     X3DH x3dh;
     std::string shared = x3dh.out("1234", bundle, toSend, toFill);
 
-    CHECK(shared.size() == 32);
-    REQUIRE(toFill.opKeyUsed == 0x01);
-    REQUIRE(toFill.opKeyId == 1);
+    std::cout << shared << "\n";
 
-    std::vector <unsigned char> dhs;
+    SECTION("SIMULATE receiver") {
+        CHECK(shared.size() == 32);
+        REQUIRE(toFill.opKeyUsed == 0x01);
+        REQUIRE(toFill.opKeyId == 1);
 
-    // DH1 step
-    C25519 dhcurve;
-    dhcurve.setPrivateKey(bobPreKey);
-    dhcurve.setPublicKey(toFill.senderIdPubKey);
-    dhs = dhcurve.getShared();
+        std::vector <unsigned char> dhs;
 
-    //DH2 step
-    identity.setPublicKey(toFill.senderEphermalPubKey);
-    appendVector(dhs, identity.getShared());
+        // DH1 step
+        C25519 dhcurve;
+        dhcurve.setPrivateKey(bobPreKey);
+        dhcurve.setPublicKey(toFill.senderIdPubKey);
+        dhs = dhcurve.getShared();
 
-    //DH3
-    dhcurve.setPublicKey(toFill.senderEphermalPubKey);
-    appendVector(dhs, dhcurve.getShared());
+        //DH2 step
+        identity.setPublicKey(toFill.senderEphermalPubKey);
+        appendVector(dhs, identity.getShared());
 
-    //DH4 (optional)
-    dhcurve.setPrivateKey(bobOneTime2);
-    appendVector(dhs, dhcurve.getShared());
+        //DH3
+        dhcurve.setPublicKey(toFill.senderEphermalPubKey);
+        appendVector(dhs, dhcurve.getShared());
 
-    hkdf kdf;
-    std::string sk = kdf.generate(to_hex(dhs), 16);
+        //DH4 (optional)
+        dhcurve.setPrivateKey(bobOneTime2);
+        appendVector(dhs, dhcurve.getShared());
 
-    CHECK(sk == shared);
+        hkdf kdf;
+        std::string sk = kdf.generate(to_hex(dhs), 16);
 
-    AESGCM gcm;
-    gcm.setKey(sk);
-    gcm.setIv(to_hex(bundle.oneTimeKeys[toFill.opKeyId]).substr(0, 24));
+        CHECK(sk == shared);
 
-    std::stringstream toDecrypt{};
-    std::stringstream result{};
-    std::stringstream ad{to_hex(toFill.senderIdPubKey) + to_hex(bundle.identityKey)};
-    write_n(toDecrypt, toFill.AEADenrypted);
+        AESGCM gcm;
+        gcm.setKey(sk);
+        gcm.setIv(to_hex(toFill.senderEphermalPubKey).substr(0, 24));
 
-    gcm.decryptWithAd(toDecrypt, ad, result);
+        std::stringstream toDecrypt{};
+        std::stringstream result{};
+        std::stringstream ad{to_hex(toFill.senderIdPubKey) + to_hex(bundle.identityKey)};
+        write_n(toDecrypt, toFill.AEADenrypted);
 
-    size_t size = getSize(result);
-    std::vector<unsigned char> resultBytes(size);
-    size_t read = read_n(result, resultBytes.data(), size);
-    CHECK(read == size);
+        gcm.decryptWithAd(toDecrypt, ad, result);
 
-    SendData transfered = SendData::deserialize(resultBytes);
+        size_t size = getSize(result);
+        std::vector<unsigned char> resultBytes(size);
+        size_t read = read_n(result, resultBytes.data(), size);
+        CHECK(read == size);
+
+        transfered = SendData::deserialize(resultBytes);
+    }
+
+    SECTION("ACTUAL receiver") {
+        Response r{{Response::Type::RECEIVE, 0, 0}, toFill.serialize()};
+
+        bobIdentity.savePublicKey("identityKey.pub");
+        bobIdentity.savePrivateKeyPassword("identityKey.key", "1234");
+
+        bobPreKey.savePublicKey("preKey.pub");
+        bobPreKey.savePrivateKeyPassword("preKey.key", "1234");
+
+        bobOneTime2.savePublicKey("oneTime" + std::to_string(toFill.opKeyId) + ".pub");
+        bobOneTime2.savePrivateKeyPassword("oneTime" + std::to_string(toFill.opKeyId) + ".key", "1234");
+
+        CHECK(x3dh.in("1234", transfered, r) == shared);
+    }
 
     CHECK(transfered.from == toSend.from);
     CHECK(transfered.data == toSend.data);
