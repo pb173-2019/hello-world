@@ -5,9 +5,9 @@
 namespace helloworld {
 
 DoubleRatchet::DoubleRatchet(int SK, int bob_dh_public_key) {
-    _DHs = GENERATE_DH();
+    _DHs = ext.GENERATE_DH();
     _DHr = bob_dh_public_key;
-    std::tie(_RK, _CKs) = KDF_RK(SK, DH(_DHs, _DHr));
+    std::tie(_RK, _CKs) = ext.KDF_RK(SK, ext.DH(_DHs, _DHr));
     _CKr = {};
     _Ns = 0;
     _Nr = 0;
@@ -29,11 +29,11 @@ DoubleRatchet::DoubleRatchet(int SK, size_t bob_dh_key_pair) {
 
 Message DoubleRatchet::RatchetEncrypt(int plaintext, int AD) {
     int mk;
-    std::tie(_CKs, mk) = KDF_CK(_CKs);
-    Header header = HEADER(_DHs, _PN, _Ns);
+    std::tie(_CKs, mk) = ext.KDF_CK(_CKs);
+    Header header = ext.HEADER(_DHs, _PN, _Ns);
     ++_Ns;
 
-    return {header, ENCRYPT(mk, plaintext, CONCAT(AD, header))};
+    return {header, ext.ENCRYPT(mk, plaintext, ext.CONCAT(AD, header))};
 }
 
 int DoubleRatchet::RatchetDecrypt(const Header &header, int ciphertext,
@@ -50,10 +50,10 @@ int DoubleRatchet::RatchetDecrypt(const Header &header, int ciphertext,
 
     SkipMessageKeys(header.n);
     int mk;
-    std::tie(_CKr, mk) = KDF_CK(_CKr);
+    std::tie(_CKr, mk) = ext.KDF_CK(_CKr);
     ++_Nr;
 
-    return DECRYPT(mk, ciphertext, CONCAT(AD, header));
+    return ext.DECRYPT(mk, ciphertext, ext.CONCAT(AD, header));
 }
 
 int DoubleRatchet::TrySkippedMessageKeys(const Header &header, int ciphertext,
@@ -66,7 +66,7 @@ int DoubleRatchet::TrySkippedMessageKeys(const Header &header, int ciphertext,
     int mk = found->second;
     _MKSKIPPED.erase(found);
 
-    return DECRYPT(mk, ciphertext, CONCAT(AD, header));
+    return ext.DECRYPT(mk, ciphertext, ext.CONCAT(AD, header));
 }
 
 int DoubleRatchet::SkipMessageKeys(int until) {
@@ -78,7 +78,7 @@ int DoubleRatchet::SkipMessageKeys(int until) {
     if (_CKr) {
         while (_Nr < until) {
             int mk;
-            std::tie(_CKr, mk) = KDF_CK(_CKr);
+            std::tie(_CKr, mk) = ext.KDF_CK(_CKr);
             _MKSKIPPED.emplace(std::make_pair(_DHr, _Nr), mk);
             ++_Nr;
         }
@@ -90,9 +90,9 @@ void DoubleRatchet::DHRatchet(const Header &header) {
     _Ns = 0;
     _Nr = 0;
     _DHr = header.dh;
-    std::tie(_RK, _CKr) = KDF_RK(_RK, DH(_DHs, _DHr));
-    _DHs = GENERATE_DH();
-    std::tie(_RK, _CKs) = KDF_RK(_RK, DH(_DHs, _DHr));
+    std::tie(_RK, _CKr) = ext.KDF_RK(_RK, ext.DH(_DHs, _DHr));
+    _DHs = ext.GENERATE_DH();
+    std::tie(_RK, _CKs) = ext.KDF_RK(_RK, ext.DH(_DHs, _DHr));
 }
 
 }    // namespace helloworld

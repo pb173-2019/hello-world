@@ -13,6 +13,8 @@
 #define HELLOWORLD_SHARED_DOUBLE_RATCHET_H_
 
 #include <map>
+#include <vector>
+#include "curve_25519.h"
 
 namespace helloworld {
 
@@ -27,11 +29,34 @@ struct Message {
     int payload;
 };
 
+struct DHPair {
+    std::vector<unsigned char> pub;
+    std::vector<unsigned char> priv;
+};
+
+class ExternalAdapter {
+   public:
+    DHPair GENERATE_DH() {
+        C25519KeyGen c25519generator;
+        return {c25519generator.getPublicKey(),
+                c25519generator.getPrivateKey()};
+    }
+
+    int DH(int dh_pair, int dh_pub);
+    std::pair<int, int> KDF_RK(int rk, int dh_out);
+    std::pair<int, int> KDF_CK(int ck);
+    int ENCRYPT(int mk, int plaintext, int associated_data);
+    int DECRYPT(int mk, int ciphertext, int associated_data);
+    Header HEADER(int dh_pair, int pn, int n);
+    int CONCAT(int ad, const Header &header);
+};
+
 class DoubleRatchet {
     static const int MAX_SKIP = 10;
 
    private:
-    int _DHs;    // DH Ratchet key pair (the “sending” or “self” ratchet key)
+    ExternalAdapter ext;
+    DHPair _DHs;    // DH Ratchet key pair (the “sending” or “self” ratchet key)
     int _DHr;    // DH Ratchet public key (the “received” or “remote” key)
     int _RK;           // 32-byte Root Key
     int _CKs, _CKr;    // 32-byte Chain Keys for sending and receiving
@@ -41,15 +66,7 @@ class DoubleRatchet {
         _MKSKIPPED;    // Dictionary of skipped-over message keys, indexed
                        // byratchet public key and message number. Raises an
                        // exception if too manyelements are stored
-    int GENERATE_DH();
-    int DH(int dh_pair, int dh_pub);
-    std::pair<int, int> KDF_RK(int rk, int dh_out);
-    std::pair<int, int> KDF_CK(int ck);
-    int ENCRYPT(int mk, int plaintext, int associated_data);
-    int DECRYPT(int mk, int ciphertext, int associated_data);
-    Header HEADER(int dh_pair, int pn, int n);
-    int CONCAT(int ad, const Header &header);
-    
+
     int TrySkippedMessageKeys(const Header &header, int ciphertext, int AD);
     int SkipMessageKeys(int until);
     void DHRatchet(const Header &header);
