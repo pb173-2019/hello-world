@@ -172,4 +172,6 @@ TEST_CASE("Messages exchange - two users online, establish the X3DH shared secre
     registerUserRoutine(server, alice);
     Client bob("bob", "alice_priv.pem", "hunter2");
     registerUserRoutine(server, bob);
+
+    server.dropDatabase();
 }
