@@ -20,7 +20,7 @@ TEST_CASE("Create key for alice") {
 TEST_CASE("Scenario 1: create, logout, login, delete.") {
     Server server;
 
-    Client client("alice", "server_pub.pem", "alice_priv.pem", "hunter2");
+    Client client("alice", "alice_priv.pem", "hunter2");
     client.createAccount("alice_pub.pem");
 
     std::cout << "server receives request\n";
@@ -95,22 +95,22 @@ bool checkContains(const std::vector<inner>& values, const inner& value) {
 TEST_CASE("Scenario 2: getting users from database.") {
     Server server;
 
-    Client alice("alice", "server_pub.pem", "alice_priv.pem", "hunter2");
+    Client alice("alice", "alice_priv.pem", "hunter2");
     registerUserRoutine(server, alice);
 
-    Client bob("bob", "server_pub.pem", "alice_priv.pem", "hunter2");
+    Client bob("bob", "alice_priv.pem", "hunter2");
     registerUserRoutine(server, bob);
 
-    Client emily("emily", "server_pub.pem", "alice_priv.pem", "hunter2");
+    Client emily("emily","alice_priv.pem", "hunter2");
     registerUserRoutine(server, emily);
 
-    Client lila("lila", "server_pub.pem", "alice_priv.pem", "hunter2");
+    Client lila("lila", "alice_priv.pem", "hunter2");
     registerUserRoutine(server, lila);
 
-    Client borek("borek", "server_pub.pem", "alice_priv.pem", "hunter2");
+    Client borek("borek", "alice_priv.pem", "hunter2");
     registerUserRoutine(server, borek);
 
-    Client lylibo("lylibo", "server_pub.pem", "alice_priv.pem", "hunter2");
+    Client lylibo("lylibo", "alice_priv.pem", "hunter2");
     registerUserRoutine(server, lylibo);
 
     borek.sendGetOnline();
@@ -133,12 +133,12 @@ TEST_CASE("Scenario 2: getting users from database.") {
 
 TEST_CASE("Incorrect authentications") {
     Server server;
-    Client alice("alice", "server_pub.pem", "alice_priv.pem", "hunter2");
+    Client alice("alice", "alice_priv.pem", "hunter2");
     registerUserRoutine(server, alice);
-    Client bob("bob", "server_pub.pem", "alice_priv.pem", "hunter2");
+    Client bob("bob", "alice_priv.pem", "hunter2");
     registerUserRoutine(server, bob);
 
-    Client client1("alice", "server_pub.pem", "alice_priv.pem", "hunter2");
+    Client client1("alice", "alice_priv.pem", "hunter2");
     //registrates when user logged with that exact username
     server.simulateNewChannel("alice");
     client1.createAccount("alice_pub.pem");
@@ -157,7 +157,7 @@ TEST_CASE("Incorrect authentications") {
     CHECK_THROWS(client1.getResponse());
 
     server.simulateNewChannel("bob");
-    Client client2("bob", "server_pub.pem", "alice_priv.pem", "hunter2");
+    Client client2("bob", "alice_priv.pem", "hunter2");
     client2.login();
     // server receives request //TODO fails
     server.getRequest();
@@ -166,6 +166,10 @@ TEST_CASE("Incorrect authentications") {
     server.dropDatabase();
 }
 
-TEST_CASE("Data storage") {
-    //todo first implement ID supporting message exchange
+TEST_CASE("Messages exchange - two users online, establish the X3DH shared secret connection") {
+    Server server;
+    Client alice("alice", "alice_priv.pem", "hunter2");
+    registerUserRoutine(server, alice);
+    Client bob("bob", "alice_priv.pem", "hunter2");
+    registerUserRoutine(server, bob);
 }

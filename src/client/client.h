@@ -39,7 +39,7 @@ class Client : public Callable<void, std::stringstream &&> {
     static constexpr int SYMMETRIC_KEY_SIZE = 16;
 
    public:
-    Client(std::string username, const std::string &serverPubKeyFilename,
+    Client(std::string username,
            const std::string &clientPrivKeyFilename,
            const std::string &password);
 
@@ -131,6 +131,21 @@ class Client : public Callable<void, std::stringstream &&> {
      */
     void sendInitialMessage(uint32_t receiverId, const Response& bundle);
 
+    /**
+     * Receive data from user, decides whether treat as X3DH protocol or just
+     * process using double ratchet
+     *
+     * @param response response obtained by user
+     */
+    void receiveData(const Response& response);
+
+    /**
+     * Receive data from other user using X3Dh protocol
+     * called from receiveData
+     *
+     * @param response response to parse
+     */
+    SendData receiveInitialMessage(const Response& response);
 
     //
     // TESTING PURPOSE METHODS SECTION

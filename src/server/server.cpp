@@ -106,7 +106,7 @@ Response Server::completeAuthentication(const Request &request, bool newUser) {
 
     Response r;
     if (newUser)
-        r = {{Response::Type::BUNDLE_UPDATE_NEEDED, 0, generatedId},{}};
+        r = {{Response::Type::USER_REGISTERED, 0, generatedId},{}};
     else
         r = checkEvent(request);
 

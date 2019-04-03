@@ -13,8 +13,8 @@ TEST_CASE("X3DH process test") {
     //X3DH assumes the files with public key saved in identityKey.key, identityKey.pub
 
     C25519KeyGen keyGen; //alice's identity keys
-    keyGen.savePrivateKeyPassword("identityKey.key", "1234");
-    keyGen.savePublicKey("identityKey.pub");
+    keyGen.savePrivateKeyPassword("alice" + idC25519priv, "1234");
+    keyGen.savePublicKey("alice" + idC25519pub);
 
     C25519KeyGen bobIdentity;
     C25519KeyGen bobPreKey;
@@ -39,7 +39,7 @@ TEST_CASE("X3DH process test") {
     SendData transfered;
 
     X3DH x3dh;
-    std::string shared = x3dh.out("1234", bundle, toSend, toFill);
+    std::string shared = x3dh.out("alice", "1234", bundle, toSend, toFill);
 
     std::cout << shared << "\n";
 
@@ -95,16 +95,16 @@ TEST_CASE("X3DH process test") {
     SECTION("ACTUAL receiver") {
         Response r{{Response::Type::RECEIVE, 0, 0}, toFill.serialize()};
 
-        bobIdentity.savePublicKey("identityKey.pub");
-        bobIdentity.savePrivateKeyPassword("identityKey.key", "1234");
+        bobIdentity.savePublicKey("bob" + idC25519pub);
+        bobIdentity.savePrivateKeyPassword("bob" + idC25519priv, "1234");
 
-        bobPreKey.savePublicKey("preKey.pub");
-        bobPreKey.savePrivateKeyPassword("preKey.key", "1234");
+        bobPreKey.savePublicKey("bob" + preC25519pub);
+        bobPreKey.savePrivateKeyPassword("bob" + preC25519priv, "1234");
 
-        bobOneTime2.savePublicKey("oneTime" + std::to_string(toFill.opKeyId) + ".pub");
-        bobOneTime2.savePrivateKeyPassword("oneTime" + std::to_string(toFill.opKeyId) + ".key", "1234");
+        bobOneTime2.savePublicKey("bob" + std::to_string(toFill.opKeyId) + oneTimeC25519pub);
+        bobOneTime2.savePrivateKeyPassword("bob" + std::to_string(toFill.opKeyId) + oneTimeC25519priv, "1234");
 
-        CHECK(x3dh.in("1234", transfered, r) == shared);
+        CHECK(x3dh.in("bob", "1234", transfered, r) == shared);
     }
 
     CHECK(transfered.from == toSend.from);

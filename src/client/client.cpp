@@ -1,21 +1,23 @@
+#include "client.h"
 #include <ctime>
 #include <chrono>
-#include "client.h"
+
+#include "config.h"
+
 #include "../shared/responses.h"
 #include "../shared/curve_25519.h"
-
 #include "../shared/X3DH.h"
 
 
 namespace helloworld {
 
-Client::Client(std::string username, const std::string &serverPubKeyFilename,
+Client::Client(std::string username,
                const std::string &clientPrivKeyFilename,
                const std::string &password)
         : _username(std::move(username)),
           _sessionKey(to_hex(Random().get(SYMMETRIC_KEY_SIZE))),
           _transmission(std::make_unique<ClientFiles>(this, _username)),
-          _serverPubKey(serverPubKeyFilename),
+          _serverPubKey(serverPub),
           _password(password) {
     _rsa.loadPrivateKey(clientPrivKeyFilename, password);
 }
@@ -34,9 +36,9 @@ void Client::callback(std::stringstream &&data) {
             return;
         case Response::Type::USER_REGISTERED:
             _userId = response.header.userId;
+            sendKeysBundle();
             return;
         case Response::Type::BUNDLE_UPDATE_NEEDED:
-            _userId = response.header.userId;
             sendKeysBundle();
             return;
         case Response::Type::RECEIVER_BUNDLE:
@@ -92,7 +94,7 @@ KeyBundle<C25519> Client::updateKeys() {
 
     KeyBundle<C25519> newKeybundle;
 
-    std::ifstream temp("identityKey.pub", std::ios::binary | std::ios::in);
+    std::ifstream temp(_username + idC25519pub, std::ios::binary | std::ios::in);
 
     if (temp.is_open()) {
         if (!temp)  throw Error("cannot access identity key file");
@@ -101,41 +103,41 @@ KeyBundle<C25519> Client::updateKeys() {
         temp.close();
     } else {
         C25519KeyGen identityKeyGen{};
-        identityKeyGen.savePrivateKeyPassword("identityKey.key", _password);
-        identityKeyGen.savePublicKey("identityKey.pub");
+        identityKeyGen.savePrivateKeyPassword(_username + idC25519priv, _password);
+        identityKeyGen.savePublicKey(_username + idC25519pub);
         newKeybundle.identityKey = identityKeyGen.getPublicKey();
     }
 
-    temp.open("preKey.pub", std::ios::binary | std::ios::in);
+    temp.open(_username + preC25519pub, std::ios::binary | std::ios::in);
 
     if (temp.is_open()) {
         if (!temp)  throw Error("cannot access old public pre key file");
-        std::ofstream oldpublic("preKey.pub.old", std::ios::binary | std::ios::out);
+        std::ofstream oldpublic(_username + preC25519pub + ".old", std::ios::binary | std::ios::out);
         oldpublic << temp.rdbuf();
 
         temp.close();
-        temp.open("preKey.key", std::ios::binary | std::ios::in);
+        temp.open(_username + preC25519pub, std::ios::binary | std::ios::in);
         if (!temp)  throw Error("cannot access old public pre key file");
-        std::ofstream oldprivate("preKey.pub.old", std::ios::binary | std::ios::out);
+        std::ofstream oldprivate(_username + preC25519pub + ".old", std::ios::binary | std::ios::out);
         oldprivate << temp.rdbuf();
         temp.close();
     }
     C25519KeyGen preKeyGen{};
-    preKeyGen.savePrivateKeyPassword("preKey.key", _password);
-    preKeyGen.savePublicKey("preKey.pub");
+    preKeyGen.savePrivateKeyPassword(_username + preC25519priv, _password);
+    preKeyGen.savePublicKey(_username + preC25519pub);
 
     newKeybundle.preKey = preKeyGen.getPublicKey();
 
     C25519 identity{};
-    identity.loadPrivateKey("identityKey.key", _password);
-    identity.loadPublicKey("identityKey.pub");
+    identity.loadPrivateKey(_username + idC25519priv, _password);
+    identity.loadPublicKey(_username + idC25519pub);
     newKeybundle.preKeySingiture = identity.sign(newKeybundle.preKey);
 
     for (int i = 0; i < numberOfOneTimeKeys; ++i) {
         C25519KeyGen oneTimeKeygen{};
         std::vector<unsigned char> onetimeKey = oneTimeKeygen.getPublicKey();
-        oneTimeKeygen.savePublicKey("oneTime" + std::to_string(i) + ".pub");
-        oneTimeKeygen.savePrivateKeyPassword("oneTime" + std::to_string(i) + ".key", _password);
+        oneTimeKeygen.savePublicKey(_username + std::to_string(i) + oneTimeC25519pub);
+        oneTimeKeygen.savePrivateKeyPassword(_username + std::to_string(i) + oneTimeC25519priv, _password);
         newKeybundle.oneTimeKeys.emplace_back(std::move(onetimeKey));
     }
 
@@ -170,7 +172,8 @@ void Client::sendData(uint32_t receiverId, const std::vector<unsigned char> &dat
 void Client::sendInitialMessage(uint32_t receiverId, const Response& response) {
     KeyBundle<C25519> bundle = KeyBundle<C25519>::deserialize(response.payload);
 
-    std::ifstream in {std::to_string(receiverId) + ".msg", std::ios::binary};
+    std::string file = std::to_string(receiverId) + ".msg";
+    std::ifstream in {file, std::ios::binary};
     if (!in)
         throw Error("There are no messages to be send.");
     size_t size = getSize(in);
@@ -183,9 +186,31 @@ void Client::sendInitialMessage(uint32_t receiverId, const Response& response) {
 
     X3DH protocol;
     X3DHRequest<C25519> request;
-    std::string key = protocol.out(_password, bundle, toSend, request);
+
+    //todo use ratchet key
+    std::string key = protocol.out(_username, _password, bundle, toSend, request);
 
     sendRequest({{Request::Type::SEND, 0, receiverId}, request.serialize()});
+    remove(file.c_str());
+}
+
+void Client::receiveData(const Response& response) {
+    if (_usersSession->running()) {
+        //todo double ratchet
+    } else {
+        //todo somehow return the value
+        SendData received = receiveInitialMessage(response);
+    }
+}
+
+SendData Client::receiveInitialMessage(const Response& response) {
+
+    X3DH protocol;
+    SendData received;
+
+    //todo use ratchet key
+    std::string key = protocol.in(_username, _password, received, response);
+    return received;
 }
 
 void Client::parseUsers(const helloworld::Response &response) {
