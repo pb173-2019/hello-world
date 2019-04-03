@@ -107,9 +107,9 @@ class Client : public Callable<void, std::stringstream &&> {
      * Request key bundle for user with id given.
      * The id should be obtained in user-getting methods
      *
-     * @param userId
+     * @param receiverId id of user that owns the bundle (message receiver)
      */
-    void requestKeyBundle(uint32_t userId);
+    void requestKeyBundle(uint32_t receiverId);
 
     /**
      * Send data to other user

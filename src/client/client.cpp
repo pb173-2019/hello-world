@@ -149,8 +149,8 @@ void Client::sendKeysBundle() {
     sendRequest({{Request::Type::KEY_BUNDLE_UPDATE, 0, _userId}, bundle.serialize()});
 }
 
-void Client::requestKeyBundle(uint32_t userId) {
-    sendRequest({Request::Type::GET_RECEIVERS_BUNDLE});
+void Client::requestKeyBundle(uint32_t receiverId) {
+    sendRequest({{Request::Type::GET_RECEIVERS_BUNDLE, 0, receiverId}, {}});
 }
 
 void Client::sendData(uint32_t receiverId, const std::vector<unsigned char> &data) {
