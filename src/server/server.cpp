@@ -1,10 +1,12 @@
 #include <utility>
 
 #include "server.h"
-#include "../shared/serializable_error.h"
 #include "sqlite_database.h"
+
+#include "../shared/serializable_error.h"
 #include "../shared/requests.h"
 #include "../shared/responses.h"
+#include "../shared/curve_25519.h"
 
 namespace helloworld {
 
@@ -36,7 +38,9 @@ Response Server::handleUserRequest(const Request &request) {
             return logOut(request);
         case Request::Type::KEY_BUNDLE_UPDATE:
             return updateKeyBundle(request);
-            default:
+        case Request::Type::GET_RECEIVERS_BUNDLE:
+            return sendKeyBundle(request);
+        default:
             throw Error("Invalid operation.");
     }
 }
@@ -46,7 +50,7 @@ Response Server::registerUser(const Request &request) {
             AuthenticateRequest::deserialize(request.payload);
 
     UserData userData(0, registerRequest.name, "", registerRequest.publicKey);
-    if (!_database->select(userData).empty()) {
+    if (!_database->select(userData).name.empty()) {
         throw Error("User " + userData.name + " is already registered.");
     }
 
@@ -78,16 +82,12 @@ Response Server::completeAuthentication(const Request &request, bool newUser) {
 
     if (!newUser) {
         UserData user{0, curRequest.name, "", {}};
-        auto &resultList = _database->select(user);
-        if (resultList.empty()) {
+        UserData result = std::move(_database->select(user));
+        if (result.name.empty()) {
             throw Error("User with given name is not registered.");
         }
-        for (auto &item : resultList) {
-            if (item->name == curRequest.name) {
-                rsa.setPublicKey(item->publicKey);
-                break;
-            }
-        }
+        rsa.setPublicKey(result.publicKey);
+
     } else {
         rsa.setPublicKey(registration->second->userData.publicKey);
     }
@@ -106,13 +106,11 @@ Response Server::completeAuthentication(const Request &request, bool newUser) {
 
     Response r;
     if (newUser)
-        r = {{Response::Type::BUNDLE_UPDATE_NEEDED, 0, generatedId},{}};
+        r = {{Response::Type::USER_REGISTERED, 0, generatedId},{}};
     else
         r = checkEvent(request);
 
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
-
-
     return r;
 }
 
@@ -121,9 +119,9 @@ Response Server::authenticateUser(const Request &request) {
             AuthenticateRequest::deserialize(request.payload);
 
     UserData userData(0, authenticateRequest.name, "", {});
-    auto &resultList = _database->select(userData);
+    UserData result = _database->select(userData);
 
-    if (resultList.empty())
+    if (result.name.empty())
         throw Error("User with given name is not registered.");
     if (_connections.find(authenticateRequest.name) != _connections.end())
         throw Error("User is online.");
@@ -149,9 +147,15 @@ Response Server::authenticateUser(const Request &request) {
 Response Server::getOnline(const Request &request) {
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
 
-    const std::set <std::string> &users = _transmission->getOpenConnections();
+    const std::set<std::string> &users = _transmission->getOpenConnections();
+    std::vector<uint32_t> ids;
+    for (const auto& user : users) {
+        UserData data = _database->select(user);
+        ids.push_back(data.id);
+    }
+
     Response r = {{Response::Type::USERLIST, request.header.messageNumber, request.header.userId},
-                  UserListReponse{{users.begin(), users.end()}}.serialize()};
+                  UserListReponse{{users.begin(), users.end()}, ids}.serialize()};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }
@@ -191,7 +195,7 @@ void Server::logout(const std::string &name) {
 
 void Server::dropDatabase() { _database->drop(); }
 
-std::vector <std::string> Server::getUsers(const std::string &query) {
+std::vector<std::string> Server::getUsers(const std::string &query) {
     const auto &users = _database->selectLike({0, query, "", {}});
     std::vector <std::string> names{};
     for (const auto &user : users) {
@@ -203,7 +207,11 @@ std::vector <std::string> Server::getUsers(const std::string &query) {
 Response Server::findUsers(const Request &request) {
     GetUsers curRequest = GetUsers::deserialize(request.payload);
     UserListReponse response;
-    response.online = getUsers(curRequest.query);
+    const auto &users = _database->selectLike({0, curRequest.query, "", {}});
+    for (const auto &user : users) {
+        response.online.push_back(user->name);
+        response.ids.push_back(user->id);
+    }
     Response r = {{Response::Type::USERLIST, 0, 0}, response.serialize()};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
@@ -213,7 +221,9 @@ Response Server::forward(const Request &request) {
     Response r = checkEvent(request);
 
     //get receiver's name from database
-    std::string receiver = (_database->select({request.header.userId, "", "", {}}))[0]->name;
+    std::string receiver = _database->select(request.header.userId).name;
+    if (receiver.empty())
+        throw Error("Invalid receiver.");
     const std::set<std::string> &users = _transmission->getOpenConnections();
     if (users.find(receiver) != users.end())  {
         //todo message id?
@@ -225,6 +235,24 @@ Response Server::forward(const Request &request) {
     return r;
 }
 
+Response Server::sendKeyBundle(const Request &request) {
+    //todo remove all the Generic requests when implementing the network, it's just sending usernames
+    //for file transmission manager to use it to sent it back
+    GenericRequest curRequest = GenericRequest::deserialize(request.payload);
+
+    std::vector<unsigned char> bundle = _database->selectBundle(request.header.userId);
+    if (bundle.empty())
+        throw Error("Could not find bundle for user " + std::to_string(request.header.userId));
+
+    Response r{{Response::Type::RECEIVER_BUNDLE_SENT, 0, request.header.userId}, bundle};
+    sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
+
+    KeyBundle<C25519> keys = KeyBundle<C25519>::deserialize(bundle);
+    keys.oneTimeKeys.erase(keys.oneTimeKeys.end() - 1);
+    bundle = keys.serialize();
+    _database->updateBundle(request.header.userId, bundle);
+    return r;
+}
 
 Response Server::checkEvent(const Request& request) {
     //todo check for keys that should be updated
@@ -259,7 +287,6 @@ void Server::sendReponse(const std::string &username, const Response &response, 
     _transmission->send(username, result);
 }
 
-
 void Server::sendReponse(const std::string &username, const Response &response, const std::string &sessionKey) {
     std::stringstream result;
     if (sessionKey.length() != AESGCM::key_size * 2) {
@@ -275,7 +302,6 @@ void Server::sendReponse(const std::string &username, const Response &response, 
 Response Server::updateKeyBundle(const Request &request) {
     Response r = {{Response::Type::KEY_BUNDLE_UPDATED, 0, request.header.userId}, {}};
     _database->insertBundle(request.header.userId, request.payload);
-
      return r;
     }
 

@@ -39,7 +39,7 @@ class Client : public Callable<void, std::stringstream &&> {
     static constexpr int SYMMETRIC_KEY_SIZE = 16;
 
    public:
-    Client(std::string username, const std::string &serverPubKeyFilename,
+    Client(std::string username,
            const std::string &clientPrivKeyFilename,
            const std::string &password);
 
@@ -92,7 +92,7 @@ class Client : public Callable<void, std::stringstream &&> {
     /**
      * Returns the userlist requested in send*()
      */
-     const std::vector<std::string>& getUsers() {
+     const std::map<uint32_t, std::string>& getUsers() {
         return _userList;
      }
 
@@ -107,9 +107,9 @@ class Client : public Callable<void, std::stringstream &&> {
      * Request key bundle for user with id given.
      * The id should be obtained in user-getting methods
      *
-     * @param userId
+     * @param receiverId id of user that owns the bundle (message receiver)
      */
-    void requestKeyBundle(uint32_t userId);
+    void requestKeyBundle(uint32_t receiverId);
 
     /**
      * Send data to other user
@@ -126,11 +126,34 @@ class Client : public Callable<void, std::stringstream &&> {
      * called on server response RECEIVER_BUNDLE which was invoked by sendData()
      *
      * @param receiverId user id - the user that is supposed to receive the data
-     * @param bundle keys bundle of the receiver
+     * @param response keys bundle of the receiver downloaded from server
      * @param data data to send
      */
-    void sendInitialMessage(uint32_t receiverId, const Response& bundle);
+    void sendInitialMessage(uint32_t receiverId, const Response& response);
 
+    /**
+     * Receive data from user, decides whether treat as X3DH protocol or just
+     * process using double ratchet
+     *
+     * @param response response obtained by user
+     */
+    void receiveData(const Response& response);
+
+    /**
+     * Get the message parsed by x3dh or ratchet
+     * @return last message received
+     */
+    SendData getMessage() {
+        return _incomming;
+    }
+
+    /**
+     * Receive data from other user using X3Dh protocol
+     * called from receiveData
+     *
+     * @param response response to parse
+     */
+    SendData receiveInitialMessage(const Response& response);
 
     //
     // TESTING PURPOSE METHODS SECTION
@@ -142,21 +165,21 @@ class Client : public Callable<void, std::stringstream &&> {
 
 private:
     const std::string _username;
-    const std::string _pwd;
+    std::string _password;
     uint32_t _userId = 0;
-    //todo config file with all constants
-    const std::string _clientPubKeyFilename;
+
+    //todo think of better way to get incomming message
+    SendData _incomming;
+
     //todo move to connection manager, now its only sent to manager anyway
     const std::string _sessionKey;
     std::unique_ptr<DoubleRatchet> _usersSession;
     std::unique_ptr<UserTransmissionManager> _transmission;
     std::unique_ptr<ClientToServerManager> _connection = nullptr;
-    std::vector<std::string> _userList;
-    //todo config file
-    const std::string _serverPubKey;
-    std::string _password;
 
+    std::map<uint32_t, std::string> _userList;
     RSA2048 _rsa;
+
 
     KeyBundle<C25519> updateKeys();
 

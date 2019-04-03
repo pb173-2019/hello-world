@@ -186,8 +186,7 @@ public:
     /**
      * @brief Initialize with keys from files
      *
-     * @param pubkeyFilename rsa public key of the receiver filename path
-     * @param privkeyFilename rsa private key of the owner filename path
+     * @param pubkeyFilename rsa public key of the receiver (server) filename path
      * @param pwd password to decrypt private key
      */
     explicit ClientToServerManager(const std::string &sessionKey, const std::string &pubkeyFilename);
@@ -196,7 +195,6 @@ public:
      * @brief Initialize with public key from buffer
      *
      * @param publicKeyData buffer with public key in pem format (e.g. pem file loaded into buffer)
-     * @param privkeyFilename rsa private key of the owner filename path
      * @param pwd password to decrypt private key
      */
     explicit ClientToServerManager(const std::string &sessionKey, const std::vector<unsigned char> &publicKeyData);

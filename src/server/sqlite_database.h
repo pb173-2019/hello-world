@@ -53,8 +53,11 @@ public:
      * WORKING WITH USERDATA (table users)
      */
     uint32_t insert(const UserData &data, bool autoIncrement) override;
-    const std::vector<std::unique_ptr<UserData>>& select(const UserData &query) override;
+    UserData select(const UserData &query) override;
+    UserData select(uint32_t id) override;
+    UserData select(const std::string& username) override;
     const std::vector<std::unique_ptr<UserData>>& selectLike(const UserData &query) override;
+    const std::vector<std::unique_ptr<UserData>> &selectLike(const std::string& username) override;
     bool remove(const UserData& data) override;
 
     /*

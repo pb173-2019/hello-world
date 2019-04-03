@@ -20,21 +20,26 @@
 namespace helloworld {
 
 struct UserListReponse : public Serializable<UserListReponse> {
+    std::vector<uint32_t> ids;
     std::vector<std::string> online;
 
     UserListReponse() = default;
 
-    explicit UserListReponse(std::vector<std::string> users) : online(std::move(users)) {}
+    UserListReponse(std::vector<std::string> users, std::vector<uint32_t> ids) :
+            ids(std::move(ids)), online(std::move(users)) {}
 
     std::vector<unsigned char> serialize() const override {
         std::vector<unsigned char> result;
+        Serializable::addContainer<std::vector<uint32_t >>(result, ids);
         Serializable::addNestedContainer<std::vector<std::string>, std::string>(result, online);
         return result;
     }
 
     static UserListReponse deserialize(const std::vector<unsigned char> &data) {
         UserListReponse result;
-        Serializable::getNestedContainer<std::vector<std::string>, std::string>(data, 0, result.online);
+        uint64_t position = 0;
+        position += Serializable::getContainer<std::vector<uint32_t >>(data, position, result.ids);
+        position += Serializable::getNestedContainer<std::vector<std::string>, std::string>(data, position, result.online);
         return result;
     }
 };

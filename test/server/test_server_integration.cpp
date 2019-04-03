@@ -75,15 +75,18 @@ public:
                 CHECK(data.online.size() == 3);
                 std::string names{"alicebobcyril"};
                 CHECK(names.find(data.online[1]) != std::string::npos);
+                CHECK(names.find(data.online[2]) != std::string::npos);
+                return;
+            }
+            case Response::Type::USER_REGISTERED: {
+                registered = true;
+                uid = response.header.userId;
+
+                std::stringstream buffer = _connection->parseOutgoing({{Request::Type::KEY_BUNDLE_UPDATE, 0, uid}, {0}});
+                _transmission->send(buffer);
                 return;
             }
             case Response::Type::BUNDLE_UPDATE_NEEDED: {
-
-                if (!registered) {
-                    registered = true;
-                    uid = response.header.userId;
-                }
-                CHECK(true);
                 std::stringstream buffer = _connection->parseOutgoing({{Request::Type::KEY_BUNDLE_UPDATE, 0, uid}, {0}});
                 _transmission->send(buffer);
                 return;

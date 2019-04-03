@@ -1,23 +1,23 @@
+#include "client.h"
 #include <ctime>
 #include <chrono>
-#include "client.h"
+
+#include "config.h"
+
 #include "../shared/responses.h"
 #include "../shared/curve_25519.h"
-
 #include "../shared/X3DH.h"
 
 
 namespace helloworld {
 
-Client::Client(std::string username, const std::string &serverPubKeyFilename,
+Client::Client(std::string username,
                const std::string &clientPrivKeyFilename,
                const std::string &password)
         : _username(std::move(username)),
-          _pwd(password),
+          _password(password),
           _sessionKey(to_hex(Random().get(SYMMETRIC_KEY_SIZE))),
-          _transmission(std::make_unique<ClientFiles>(this, _username)),
-          _serverPubKey(serverPubKeyFilename),
-          _password(password) {
+          _transmission(std::make_unique<ClientFiles>(this, _username)) {
     _rsa.loadPrivateKey(clientPrivKeyFilename, password);
 }
 
@@ -35,15 +35,19 @@ void Client::callback(std::stringstream &&data) {
             return;
         case Response::Type::USER_REGISTERED:
             _userId = response.header.userId;
-            return;
-        case Response::Type::BUNDLE_UPDATE_NEEDED:
-            _userId = response.header.userId;
             sendKeysBundle();
             return;
-        case Response::Type::RECEIVER_BUNDLE:
+        case Response::Type::BUNDLE_UPDATE_NEEDED:
+            sendKeysBundle();
+            return;
+        case Response::Type::RECEIVER_BUNDLE_SENT:
             //todo attrib only response as the response contains id, for now just to emphasize
             //todo that response has receiver's (to whom we send message) id in header
             sendInitialMessage(response.header.userId, response);
+            return;
+        case Response::Type::RECEIVE:
+        case Response::Type::RECEIVE_OLD:
+            receiveData(response); //the difference between dereve/receive old is decided in
             return;
         default:
             throw Error("Unknown response type.");
@@ -51,7 +55,7 @@ void Client::callback(std::stringstream &&data) {
 }
 
 void Client::login() {
-    _connection = std::make_unique<ClientToServerManager>(_sessionKey, _serverPubKey);
+    _connection = std::make_unique<ClientToServerManager>(_sessionKey, serverPub);
     AuthenticateRequest request(_username, {});
     sendRequest({{Request::Type::LOGIN, 1, _userId}, request.serialize()});
 }
@@ -62,7 +66,7 @@ void Client::logout() {
 }
 
 void Client::createAccount(const std::string &pubKeyFilename) {
-    _connection = std::make_unique<ClientToServerManager>(_sessionKey, _serverPubKey);
+    _connection = std::make_unique<ClientToServerManager>(_sessionKey, serverPub);
     std::ifstream input(pubKeyFilename);
     std::string publicKey((std::istreambuf_iterator<char>(input)),
                           std::istreambuf_iterator<char>());
@@ -93,7 +97,7 @@ KeyBundle<C25519> Client::updateKeys() {
 
     KeyBundle<C25519> newKeybundle;
 
-    std::ifstream temp("identityKey.pub", std::ios::binary | std::ios::in);
+    std::ifstream temp(_username + idC25519pub, std::ios::binary | std::ios::in);
 
     if (temp.is_open()) {
         if (!temp)  throw Error("cannot access identity key file");
@@ -102,43 +106,41 @@ KeyBundle<C25519> Client::updateKeys() {
         temp.close();
     } else {
         C25519KeyGen identityKeyGen{};
-        identityKeyGen.savePrivateKeyPassword("identityKey.key", _password);
-        identityKeyGen.savePublicKey("identityKey.pub");
+        identityKeyGen.savePrivateKeyPassword(_username + idC25519priv, _password);
+        identityKeyGen.savePublicKey(_username + idC25519pub);
         newKeybundle.identityKey = identityKeyGen.getPublicKey();
     }
 
-    C25519 identity{};
-    identity.loadPrivateKey("identityKey.key", _password);
-    identity.loadPublicKey("identityKey.pub");
-
-
-    temp.open("preKey.pub", std::ios::binary | std::ios::in);
+    temp.open(_username + preC25519pub, std::ios::binary | std::ios::in);
 
     if (temp.is_open()) {
         if (!temp)  throw Error("cannot access old public pre key file");
-        std::ofstream oldpublic("preKey.pub.old", std::ios::binary | std::ios::out);
+        std::ofstream oldpublic(_username + preC25519pub + ".old", std::ios::binary | std::ios::out);
         oldpublic << temp.rdbuf();
 
         temp.close();
-        temp.open("preKey.key", std::ios::binary | std::ios::in);
-        if (!temp)  throw Error("cannot access old public pre key file");
-        std::ofstream oldprivate("preKey.pub.old", std::ios::binary | std::ios::out);
+        temp.open(_username + preC25519priv, std::ios::binary | std::ios::in);
+        if (!temp)  throw Error("cannot access old private pre key file");
+        std::ofstream oldprivate(_username + preC25519priv + ".old", std::ios::binary | std::ios::out);
         oldprivate << temp.rdbuf();
         temp.close();
     }
     C25519KeyGen preKeyGen{};
-    preKeyGen.savePrivateKeyPassword("preKey.key", _password);
-    preKeyGen.savePublicKey("preKey.pub");
+    preKeyGen.savePrivateKeyPassword(_username + preC25519priv, _password);
+    preKeyGen.savePublicKey(_username + preC25519pub);
 
     newKeybundle.preKey = preKeyGen.getPublicKey();
 
+    C25519 identity{};
+    identity.loadPrivateKey(_username + idC25519priv, _password);
+    identity.loadPublicKey(_username + idC25519pub);
     newKeybundle.preKeySingiture = identity.sign(newKeybundle.preKey);
 
     for (int i = 0; i < numberOfOneTimeKeys; ++i) {
         C25519KeyGen oneTimeKeygen{};
         std::vector<unsigned char> onetimeKey = oneTimeKeygen.getPublicKey();
-        oneTimeKeygen.savePublicKey("oneTime" + std::to_string(i) + ".pub");
-        oneTimeKeygen.savePrivateKeyPassword("oneTime" + std::to_string(i) + ".key", _password);
+        oneTimeKeygen.savePublicKey(_username + std::to_string(i) + oneTimeC25519pub);
+        oneTimeKeygen.savePrivateKeyPassword(_username + std::to_string(i) + oneTimeC25519priv, _password);
         newKeybundle.oneTimeKeys.emplace_back(std::move(onetimeKey));
     }
 
@@ -151,9 +153,8 @@ void Client::sendKeysBundle() {
     sendRequest({{Request::Type::KEY_BUNDLE_UPDATE, 0, _userId}, bundle.serialize()});
 }
 
-void Client::requestKeyBundle(uint32_t userId) {
-    //todo
-    sendRequest({});
+void Client::requestKeyBundle(uint32_t receiverId) {
+    sendRequest({{Request::Type::GET_RECEIVERS_BUNDLE, 0, receiverId}, GenericRequest{_userId, _username}.serialize()});
 }
 
 void Client::sendData(uint32_t receiverId, const std::vector<unsigned char> &data) {
@@ -173,7 +174,8 @@ void Client::sendData(uint32_t receiverId, const std::vector<unsigned char> &dat
 void Client::sendInitialMessage(uint32_t receiverId, const Response& response) {
     KeyBundle<C25519> bundle = KeyBundle<C25519>::deserialize(response.payload);
 
-    std::ifstream in {std::to_string(receiverId) + ".msg", std::ios::binary};
+    std::string file = std::to_string(receiverId) + ".msg";
+    std::ifstream in {file, std::ios::binary};
     if (!in)
         throw Error("There are no messages to be send.");
     size_t size = getSize(in);
@@ -186,14 +188,38 @@ void Client::sendInitialMessage(uint32_t receiverId, const Response& response) {
 
     X3DH protocol;
     X3DHRequest<C25519> request;
-    std::string key = protocol.out(_pwd, bundle, toSend, request);
+
+    //todo use ratchet key
+    std::string key = protocol.out(_username, _password, bundle, toSend, request);
 
     sendRequest({{Request::Type::SEND, 0, receiverId}, request.serialize()});
+    remove(file.c_str());
+}
+
+void Client::receiveData(const Response& response) {
+    if (_usersSession->running()) {
+        //todo double ratchet
+    } else {
+        //todo somehow better return the value
+        _incomming = receiveInitialMessage(response);
+    }
+}
+
+SendData Client::receiveInitialMessage(const Response& response) {
+    X3DH protocol;
+    SendData received;
+
+    //todo use ratchet key
+    std::string key = protocol.in(_username, _password, received, response);
+    return received;
 }
 
 void Client::parseUsers(const helloworld::Response &response) {
+    _userList.clear();
     UserListReponse online = UserListReponse::deserialize(response.payload);
-    _userList = online.online;
+    for (size_t i = 0; i < online.ids.size(); i++) {
+        _userList[online.ids[i]] = online.online[i];
+    }
 }
 
 void Client::sendRequest(const Request &request) {
