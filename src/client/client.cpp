@@ -139,6 +139,7 @@ KeyBundle<C25519> Client::updateKeys() {
         newKeybundle.oneTimeKeys.emplace_back(std::move(onetimeKey));
     }
 
+    newKeybundle.generateTimeStamp();
     return std::move(newKeybundle);
 }
 
