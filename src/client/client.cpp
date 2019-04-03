@@ -45,6 +45,10 @@ void Client::callback(std::stringstream &&data) {
             //todo that response has receiver's (to whom we send message) id in header
             sendInitialMessage(response.header.userId, response);
             return;
+        case Response::Type::RECEIVE:
+        case Response::Type::RECEIVE_OLD:
+            receiveData(response); //the difference between dereve/receive old is decided in
+            return;
         default:
             throw Error("Unknown response type.");
     }
@@ -150,7 +154,7 @@ void Client::sendKeysBundle() {
 }
 
 void Client::requestKeyBundle(uint32_t receiverId) {
-    sendRequest({{Request::Type::GET_RECEIVERS_BUNDLE, 0, receiverId}, {}});
+    sendRequest({{Request::Type::GET_RECEIVERS_BUNDLE, 0, receiverId}, GenericRequest{_userId, _username}.serialize()});
 }
 
 void Client::sendData(uint32_t receiverId, const std::vector<unsigned char> &data) {
@@ -196,13 +200,12 @@ void Client::receiveData(const Response& response) {
     if (_usersSession->running()) {
         //todo double ratchet
     } else {
-        //todo somehow return the value
-        SendData received = receiveInitialMessage(response);
+        //todo somehow better return the value
+        _incomming = receiveInitialMessage(response);
     }
 }
 
 SendData Client::receiveInitialMessage(const Response& response) {
-
     X3DH protocol;
     SendData received;
 

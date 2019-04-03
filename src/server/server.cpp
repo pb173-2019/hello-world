@@ -1,10 +1,12 @@
 #include <utility>
 
 #include "server.h"
-#include "../shared/serializable_error.h"
 #include "sqlite_database.h"
+
+#include "../shared/serializable_error.h"
 #include "../shared/requests.h"
 #include "../shared/responses.h"
+#include "../shared/curve_25519.h"
 
 namespace helloworld {
 
@@ -37,7 +39,7 @@ Response Server::handleUserRequest(const Request &request) {
         case Request::Type::KEY_BUNDLE_UPDATE:
             return updateKeyBundle(request);
         case Request::Type::GET_RECEIVERS_BUNDLE:
-            return updateKeyBundle(request);
+            return sendKeyBundle(request);
         default:
             throw Error("Invalid operation.");
     }
@@ -234,11 +236,21 @@ Response Server::forward(const Request &request) {
 }
 
 Response Server::sendKeyBundle(const Request &request) {
+    //todo remove all the Generic requests when implementing the network, it's just sending usernames
+    //for file transmission manager to use it to sent it back
+    GenericRequest curRequest = GenericRequest::deserialize(request.payload);
+
     std::vector<unsigned char> bundle = _database->selectBundle(request.header.userId);
     if (bundle.empty())
         throw Error("Could not find bundle for user " + std::to_string(request.header.userId));
 
-    Response r{{Response::Type::RECEIVER_BUNDLE_SENT, 0, request.header.userId}, {}};
+    Response r{{Response::Type::RECEIVER_BUNDLE_SENT, 0, request.header.userId}, bundle};
+    sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
+
+    KeyBundle<C25519> keys = KeyBundle<C25519>::deserialize(bundle);
+    keys.oneTimeKeys.erase(keys.oneTimeKeys.end() - 1);
+    bundle = keys.serialize();
+    _database->updateBundle(request.header.userId, bundle);
     return r;
 }
 

@@ -140,6 +140,14 @@ class Client : public Callable<void, std::stringstream &&> {
     void receiveData(const Response& response);
 
     /**
+     * Get the message parsed by x3dh or ratchet
+     * @return last message received
+     */
+    SendData getMessage() {
+        return _incomming;
+    }
+
+    /**
      * Receive data from other user using X3Dh protocol
      * called from receiveData
      *
@@ -159,6 +167,9 @@ private:
     const std::string _username;
     std::string _password;
     uint32_t _userId = 0;
+
+    //todo think of better way to get incomming message
+    SendData _incomming;
 
     //todo move to connection manager, now its only sent to manager anyway
     const std::string _sessionKey;
