@@ -126,10 +126,10 @@ class Client : public Callable<void, std::stringstream &&> {
      * called on server response RECEIVER_BUNDLE which was invoked by sendData()
      *
      * @param receiverId user id - the user that is supposed to receive the data
-     * @param bundle keys bundle of the receiver
+     * @param response keys bundle of the receiver downloaded from server
      * @param data data to send
      */
-    void sendInitialMessage(uint32_t receiverId, const Response& bundle);
+    void sendInitialMessage(uint32_t receiverId, const Response& response);
 
     /**
      * Receive data from user, decides whether treat as X3DH protocol or just

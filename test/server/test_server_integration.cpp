@@ -76,7 +76,6 @@ public:
                 std::string names{"alicebobcyril"};
                 CHECK(names.find(data.online[1]) != std::string::npos);
                 CHECK(names.find(data.online[2]) != std::string::npos);
-                CHECK(names.find(data.online[3]) != std::string::npos);
                 return;
             }
             case Response::Type::USER_REGISTERED: {

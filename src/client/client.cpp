@@ -40,7 +40,7 @@ void Client::callback(std::stringstream &&data) {
         case Response::Type::BUNDLE_UPDATE_NEEDED:
             sendKeysBundle();
             return;
-        case Response::Type::RECEIVER_BUNDLE:
+        case Response::Type::RECEIVER_BUNDLE_SENT:
             //todo attrib only response as the response contains id, for now just to emphasize
             //todo that response has receiver's (to whom we send message) id in header
             sendInitialMessage(response.header.userId, response);
@@ -150,8 +150,7 @@ void Client::sendKeysBundle() {
 }
 
 void Client::requestKeyBundle(uint32_t userId) {
-    //todo
-    sendRequest({});
+    sendRequest({Request::Type::GET_RECEIVERS_BUNDLE});
 }
 
 void Client::sendData(uint32_t receiverId, const std::vector<unsigned char> &data) {

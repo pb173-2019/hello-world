@@ -107,8 +107,6 @@ Response Server::completeAuthentication(const Request &request, bool newUser) {
         r = checkEvent(request);
 
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
-
-
     return r;
 }
 

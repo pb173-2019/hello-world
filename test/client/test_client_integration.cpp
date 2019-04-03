@@ -179,6 +179,23 @@ TEST_CASE("Messages exchange - two users online, establish the X3DH shared secre
     //client obtains the online users
     alice.getResponse();
 
+    uint32_t id;
+    //get bob id, maybe reverse map and make it name -> id
+    for (auto it : alice.getUsers())
+        if (it.second == "bob")
+            id = it.first;
+
+    //national secret message!
+    alice.sendData(id, std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
+
+    //server receives get bob bundle request
+    server.getRequest();
+    //alice receives bundle and actually sends data
+    alice.getResponse();
+    //server forwards as bob is online
+    server.getRequest();
+    //bob gets message
+    bob.getResponse();
 
 
     server.dropDatabase();

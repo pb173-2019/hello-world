@@ -39,7 +39,7 @@ public:
 struct Request {
     enum class Type {
         LOGIN, LOGIN_COMPLETE, LOGOUT, CREATE, CREATE_COMPLETE,
-        REMOVE, SEND, GET_ONLINE, FIND_USERS, KEY_BUNDLE_UPDATE
+        REMOVE, SEND, GET_ONLINE, FIND_USERS, KEY_BUNDLE_UPDATE, GET_RECEIVERS_BUNDLE
     };
 
     struct Header : Serializable<Request::Header> {
@@ -68,7 +68,7 @@ struct Response {
         USERLIST,
         RECEIVE_OLD,
         RECEIVE,
-        RECEIVER_BUNDLE,
+        RECEIVER_BUNDLE_SENT,
         DATABASE_NOT_FOUD,
         USERNAME_NOT_VALID,
         FAILED_TO_DELETE_USER,
