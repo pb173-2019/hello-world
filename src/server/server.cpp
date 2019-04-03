@@ -36,7 +36,9 @@ Response Server::handleUserRequest(const Request &request) {
             return logOut(request);
         case Request::Type::KEY_BUNDLE_UPDATE:
             return updateKeyBundle(request);
-            default:
+        case Request::Type::GET_RECEIVERS_BUNDLE:
+            return updateKeyBundle(request);
+        default:
             throw Error("Invalid operation.");
     }
 }
@@ -231,6 +233,14 @@ Response Server::forward(const Request &request) {
     return r;
 }
 
+Response Server::sendKeyBundle(const Request &request) {
+    std::vector<unsigned char> bundle = _database->selectBundle(request.header.userId);
+    if (bundle.empty())
+        throw Error("Could not find bundle for user " + std::to_string(request.header.userId));
+
+    Response r{{Response::Type::RECEIVER_BUNDLE_SENT, 0, request.header.userId}, {}};
+    return r;
+}
 
 Response Server::checkEvent(const Request& request) {
     //todo check for keys that should be updated

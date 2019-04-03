@@ -208,7 +208,23 @@ private:
      */
     Response forward(const Request &request);
 
+    /**
+     * Uploads to the database new key bundle
+     *
+     * @param request request containing key bundle
+     * @return OK if nothing needed, specific server response on event
+     */
     Response updateKeyBundle(const Request &request);
+
+    /**
+     * Sends the key bundle to anyone who requests it
+     * deletes the last key from one time keys if present
+     *
+     * @param request request containing receiver's id in header, instead of the user
+     *        who requested it
+     * @return bundled keys response
+     */
+    Response sendKeyBundle(const Request &request);
 
     /**
      * @brief Called when OK reponse should be sent
