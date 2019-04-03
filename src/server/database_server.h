@@ -43,9 +43,25 @@ public:
      * Select from database data by query
      *
      * @param query search request
-     * @return std::vector<std::unique_ptr<UserData>>& data matching the query
+     * @return userData - user that matches the query given (exactly)
      */
-    virtual const std::vector<std::unique_ptr<UserData>> &select(const UserData &query) = 0;
+    virtual UserData select(const UserData &query) = 0;
+
+    /**
+     * Select from database by userId
+     *
+     * @param id id to select
+     * @return user with id provided
+     */
+    virtual UserData select(uint32_t id) = 0;
+
+    /**
+     * Select from database user by name
+     *
+     * @param username user name
+     * @return user with name provided
+     */
+    virtual UserData select(const std::string& username) = 0;
 
     /**
      * Select from database data by query
@@ -54,6 +70,14 @@ public:
      * @return std::vector<std::unique_ptr<UserData>>& data matching the query
      */
     virtual const std::vector<std::unique_ptr<UserData>> &selectLike(const UserData &query) = 0;
+
+    /**
+     * Select from database data by query
+     *
+     * @param username search by name
+     * @return std::vector<std::unique_ptr<UserData>>& data matching the query
+     */
+    virtual const std::vector<std::unique_ptr<UserData>> &selectLike(const std::string& username) = 0;
 
     /**
      * Delete user from database

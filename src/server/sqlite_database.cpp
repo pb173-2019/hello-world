@@ -44,29 +44,76 @@ namespace helloworld {
         uint32_t id = static_cast<uint32_t>(sqlite3_last_insert_rowid(_handler));
         return id;
     }
+
     const std::vector<std::unique_ptr<UserData>> &ServerSQLite::selectLike(const UserData &query) {
+        return selectLike(query.name);
+    }
+
+    const std::vector<std::unique_ptr<UserData>> &ServerSQLite::selectLike(const std::string& username) {
         _cache.clear();
-        int res = _execute("SELECT * FROM users WHERE username LIKE '%" + _sCheck(query.name) + "%' ORDER BY id DESC;",
+        int res = _execute("SELECT * FROM users WHERE username LIKE '%" + _sCheck(username) + "%' ORDER BY id DESC;",
                            _fillData, &_cache);
         if (res != SQLITE_OK)
             throw Error("Select command failed: " + _getErrorMsgByReturnType(res));
         return _cache;
     }
 
-    const std::vector<std::unique_ptr<UserData>> &ServerSQLite::select(const UserData &query) {
-        _cache.clear();
-        int res;
-        if (query.id == 0 && query.name.empty()) {
-            res = _execute("SELECT * FROM users;", _fillData, &_cache);
-        } else if (query.id == 0) {
-            res = _execute("SELECT * FROM users WHERE username='" + _sCheck(query.name) + "' ORDER BY id DESC;",
-                           _fillData, &_cache);
-        } else {
-            res = _execute("SELECT * FROM users WHERE id=" + std::to_string(query.id) + ";", _fillData, &_cache);
+    UserData ServerSQLite::select(const UserData &query) {
+        if (query.id == 0 && query.name.empty())
+            return {};
+
+        if (query.id == 0)
+            return select(query.name);
+
+        return select(query.id);
+    }
+
+    UserData ServerSQLite::select(uint32_t id)  {
+        sqlite3_stmt *statement = nullptr;
+        sqlite3_prepare_v2(_handler, "SELECT * FROM users WHERE id = ? LIMIT 1;", -1, &statement, nullptr);
+        sqlite3_bind_int(statement, 1, id);
+
+        UserData data;
+        if (sqlite3_step(statement) == SQLITE_ROW) {
+            data.id = static_cast<uint32_t>(sqlite3_column_int64(statement, 0));
+
+            size_t size = (static_cast<size_t>(
+                    sqlite3_column_bytes(statement, 1) / static_cast<int>(sizeof(char))));
+            const char *ptr = reinterpret_cast<const char*>(sqlite3_column_text(statement, 1));
+            data.name = std::string(ptr, ptr + size);
+
+            size = (static_cast<size_t>(
+                    sqlite3_column_bytes(statement, 2) / static_cast<int>(sizeof(unsigned char))));
+            const unsigned char* ptr2 = sqlite3_column_text(statement, 2);
+            data.publicKey = std::vector<unsigned char>(ptr2, ptr2 + size);
         }
-        if (res != SQLITE_OK)
-            throw Error("Select command failed: " + _getErrorMsgByReturnType(res));
-        return _cache;
+        sqlite3_finalize(statement);
+        return data;
+    }
+
+    UserData ServerSQLite::select(const std::string& username)  {
+        sqlite3_stmt *statement = nullptr;
+        std::string query = "SELECT * FROM users WHERE username = ? LIMIT 1;";
+        sqlite3_prepare_v2(_handler, query.c_str(), -1, &statement, nullptr);
+        //4th param: length of string in bytes or -1 to first null terminator
+        sqlite3_bind_text(statement, 1, username.c_str(), -1, SQLITE_STATIC);
+
+        UserData data;
+        if (sqlite3_step(statement) == SQLITE_ROW) {
+            data.id = static_cast<uint32_t>(sqlite3_column_int64(statement, 0));
+
+            size_t size = (static_cast<size_t>(
+                    sqlite3_column_bytes(statement, 1) / static_cast<int>(sizeof(char))));
+            const char *ptr = reinterpret_cast<const char*>(sqlite3_column_text(statement, 1));
+            data.name = std::string(ptr, ptr + size);
+
+            size = (static_cast<size_t>(
+                    sqlite3_column_bytes(statement, 2) / static_cast<int>(sizeof(unsigned char))));
+            const unsigned char* ptr2 = sqlite3_column_text(statement, 2);
+            data.publicKey = std::vector<unsigned char>(ptr2, ptr2 + size);
+        }
+        sqlite3_finalize(statement);
+        return data;
     }
 
     bool ServerSQLite::remove(const UserData &data) {

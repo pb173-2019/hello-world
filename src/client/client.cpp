@@ -15,10 +15,9 @@ Client::Client(std::string username,
                const std::string &clientPrivKeyFilename,
                const std::string &password)
         : _username(std::move(username)),
+          _password(password),
           _sessionKey(to_hex(Random().get(SYMMETRIC_KEY_SIZE))),
-          _transmission(std::make_unique<ClientFiles>(this, _username)),
-          _serverPubKey(serverPub),
-          _password(password) {
+          _transmission(std::make_unique<ClientFiles>(this, _username)) {
     _rsa.loadPrivateKey(clientPrivKeyFilename, password);
 }
 
@@ -52,7 +51,7 @@ void Client::callback(std::stringstream &&data) {
 }
 
 void Client::login() {
-    _connection = std::make_unique<ClientToServerManager>(_sessionKey, _serverPubKey);
+    _connection = std::make_unique<ClientToServerManager>(_sessionKey, serverPub);
     AuthenticateRequest request(_username, {});
     sendRequest({{Request::Type::LOGIN, 1, _userId}, request.serialize()});
 }
@@ -63,7 +62,7 @@ void Client::logout() {
 }
 
 void Client::createAccount(const std::string &pubKeyFilename) {
-    _connection = std::make_unique<ClientToServerManager>(_sessionKey, _serverPubKey);
+    _connection = std::make_unique<ClientToServerManager>(_sessionKey, serverPub);
     std::ifstream input(pubKeyFilename);
     std::string publicKey((std::istreambuf_iterator<char>(input)),
                           std::istreambuf_iterator<char>());
@@ -116,9 +115,9 @@ KeyBundle<C25519> Client::updateKeys() {
         oldpublic << temp.rdbuf();
 
         temp.close();
-        temp.open(_username + preC25519pub, std::ios::binary | std::ios::in);
-        if (!temp)  throw Error("cannot access old public pre key file");
-        std::ofstream oldprivate(_username + preC25519pub + ".old", std::ios::binary | std::ios::out);
+        temp.open(_username + preC25519priv, std::ios::binary | std::ios::in);
+        if (!temp)  throw Error("cannot access old private pre key file");
+        std::ofstream oldprivate(_username + preC25519priv + ".old", std::ios::binary | std::ios::out);
         oldprivate << temp.rdbuf();
         temp.close();
     }
@@ -214,8 +213,11 @@ SendData Client::receiveInitialMessage(const Response& response) {
 }
 
 void Client::parseUsers(const helloworld::Response &response) {
+    _userList.clear();
     UserListReponse online = UserListReponse::deserialize(response.payload);
-    _userList = online.online;
+    for (size_t i = 0; i < online.ids.size(); i++) {
+        _userList[online.ids[i]] = online.online[i];
+    }
 }
 
 void Client::sendRequest(const Request &request) {

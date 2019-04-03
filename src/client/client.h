@@ -92,7 +92,7 @@ class Client : public Callable<void, std::stringstream &&> {
     /**
      * Returns the userlist requested in send*()
      */
-     const std::vector<std::string>& getUsers() {
+     const std::map<uint32_t, std::string>& getUsers() {
         return _userList;
      }
 
@@ -157,20 +157,18 @@ class Client : public Callable<void, std::stringstream &&> {
 
 private:
     const std::string _username;
+    std::string _password;
     uint32_t _userId = 0;
-    //todo config file with all constants
-    const std::string _clientPubKeyFilename;
+
     //todo move to connection manager, now its only sent to manager anyway
     const std::string _sessionKey;
     std::unique_ptr<DoubleRatchet> _usersSession;
     std::unique_ptr<UserTransmissionManager> _transmission;
     std::unique_ptr<ClientToServerManager> _connection = nullptr;
-    std::vector<std::string> _userList;
-    //todo config file
-    const std::string _serverPubKey;
-    std::string _password;
 
+    std::map<uint32_t, std::string> _userList;
     RSA2048 _rsa;
+
 
     KeyBundle<C25519> updateKeys();
 

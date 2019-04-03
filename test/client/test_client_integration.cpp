@@ -35,7 +35,6 @@ TEST_CASE("Scenario 1: create, logout, login, delete.") {
     // server verifies challenge and asks for keys
     server.getRequest();
 
-
     std::cout << "client recieves Key Init Response\n";
     // client recieves Key Init Request
     client.getResponse();
@@ -83,10 +82,10 @@ void registerUserRoutine(Server& server, Client& client) {
     client.getResponse();
 }
 
-template <typename inner>
-bool checkContains(const std::vector<inner>& values, const inner& value) {
+
+bool checkContains(const std::map<uint32_t, std::string>& values, const std::string& value) {
     for (const auto& item : values) {
-        if (item == value)
+        if (item.second == value)
             return true;
     }
     return false;
@@ -123,11 +122,11 @@ TEST_CASE("Scenario 2: getting users from database.") {
     server.getRequest();
     borek.getResponse();
 
-    CHECK(checkContains<std::string>(borek.getUsers(), "alice"));
-    CHECK(checkContains<std::string>(borek.getUsers(), "lylibo"));
-    CHECK(checkContains<std::string>(borek.getUsers(), "lila"));
-    CHECK(!checkContains<std::string>(borek.getUsers(), "emily"));
-    CHECK(!checkContains<std::string>(borek.getUsers(), "bob"));
+    CHECK(checkContains(borek.getUsers(), "alice"));
+    CHECK(checkContains(borek.getUsers(), "lylibo"));
+    CHECK(checkContains(borek.getUsers(), "lila"));
+    CHECK(!checkContains(borek.getUsers(), "emily"));
+    CHECK(!checkContains(borek.getUsers(), "bob"));
     server.dropDatabase();
 }
 
@@ -172,6 +171,15 @@ TEST_CASE("Messages exchange - two users online, establish the X3DH shared secre
     registerUserRoutine(server, alice);
     Client bob("bob", "alice_priv.pem", "hunter2");
     registerUserRoutine(server, bob);
+
+    alice.sendGetOnline();
+
+    //server receives request
+    server.getRequest();
+    //client obtains the online users
+    alice.getResponse();
+
+
 
     server.dropDatabase();
 }

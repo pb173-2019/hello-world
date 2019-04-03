@@ -46,7 +46,7 @@ Response Server::registerUser(const Request &request) {
             AuthenticateRequest::deserialize(request.payload);
 
     UserData userData(0, registerRequest.name, "", registerRequest.publicKey);
-    if (!_database->select(userData).empty()) {
+    if (!_database->select(userData).name.empty()) {
         throw Error("User " + userData.name + " is already registered.");
     }
 
@@ -78,16 +78,12 @@ Response Server::completeAuthentication(const Request &request, bool newUser) {
 
     if (!newUser) {
         UserData user{0, curRequest.name, "", {}};
-        auto &resultList = _database->select(user);
-        if (resultList.empty()) {
+        UserData result = std::move(_database->select(user));
+        if (result.name.empty()) {
             throw Error("User with given name is not registered.");
         }
-        for (auto &item : resultList) {
-            if (item->name == curRequest.name) {
-                rsa.setPublicKey(item->publicKey);
-                break;
-            }
-        }
+        rsa.setPublicKey(result.publicKey);
+
     } else {
         rsa.setPublicKey(registration->second->userData.publicKey);
     }
@@ -121,9 +117,9 @@ Response Server::authenticateUser(const Request &request) {
             AuthenticateRequest::deserialize(request.payload);
 
     UserData userData(0, authenticateRequest.name, "", {});
-    auto &resultList = _database->select(userData);
+    UserData result = _database->select(userData);
 
-    if (resultList.empty())
+    if (result.name.empty())
         throw Error("User with given name is not registered.");
     if (_connections.find(authenticateRequest.name) != _connections.end())
         throw Error("User is online.");
@@ -149,9 +145,15 @@ Response Server::authenticateUser(const Request &request) {
 Response Server::getOnline(const Request &request) {
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
 
-    const std::set <std::string> &users = _transmission->getOpenConnections();
+    const std::set<std::string> &users = _transmission->getOpenConnections();
+    std::vector<uint32_t> ids;
+    for (const auto& user : users) {
+        UserData data = _database->select(user);
+        ids.push_back(data.id);
+    }
+
     Response r = {{Response::Type::USERLIST, request.header.messageNumber, request.header.userId},
-                  UserListReponse{{users.begin(), users.end()}}.serialize()};
+                  UserListReponse{{users.begin(), users.end()}, ids}.serialize()};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }
@@ -191,7 +193,7 @@ void Server::logout(const std::string &name) {
 
 void Server::dropDatabase() { _database->drop(); }
 
-std::vector <std::string> Server::getUsers(const std::string &query) {
+std::vector<std::string> Server::getUsers(const std::string &query) {
     const auto &users = _database->selectLike({0, query, "", {}});
     std::vector <std::string> names{};
     for (const auto &user : users) {
@@ -203,7 +205,11 @@ std::vector <std::string> Server::getUsers(const std::string &query) {
 Response Server::findUsers(const Request &request) {
     GetUsers curRequest = GetUsers::deserialize(request.payload);
     UserListReponse response;
-    response.online = getUsers(curRequest.query);
+    const auto &users = _database->selectLike({0, curRequest.query, "", {}});
+    for (const auto &user : users) {
+        response.online.push_back(user->name);
+        response.ids.push_back(user->id);
+    }
     Response r = {{Response::Type::USERLIST, 0, 0}, response.serialize()};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
@@ -213,7 +219,9 @@ Response Server::forward(const Request &request) {
     Response r = checkEvent(request);
 
     //get receiver's name from database
-    std::string receiver = (_database->select({request.header.userId, "", "", {}}))[0]->name;
+    std::string receiver = _database->select(request.header.userId).name;
+    if (receiver.empty())
+        throw Error("Invalid receiver.");
     const std::set<std::string> &users = _transmission->getOpenConnections();
     if (users.find(receiver) != users.end())  {
         //todo message id?

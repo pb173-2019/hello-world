@@ -178,7 +178,7 @@ struct Serializable {
             output.push_back(data.value);
         }
 
-        return len + metadata;
+        return len * sizeof(value_type) + metadata;
     }
 
     /**
@@ -215,7 +215,7 @@ struct Serializable {
             *outputBegin = data.value;
         }
 
-        return len + metadata;
+        return len * sizeof(value_type) + metadata;
     }
     /**
      * Save nested containers into buffer output, the inner container must be

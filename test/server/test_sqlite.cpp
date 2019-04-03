@@ -16,8 +16,17 @@ TEST_CASE("SQLITE Database test") {
     UserData data{555, "Pepa", "", strToVec("My sercret key")};
     db.insert(data, false);
 
-    const auto &res = db.select(data);
+    UserData pepa = db.select("Pepa");
+    CHECK(pepa.name == "Pepa");
+    CHECK(pepa.publicKey == strToVec("My sercret key"));
 
+    pepa = db.select("pepa");
+    CHECK(pepa.name.empty());
+
+    pepa = db.select(555);
+    CHECK(pepa.name == "Pepa");
+
+    const auto &res = db.selectLike(data);
     CHECK(res[0]->name == "Pepa");
     CHECK(res[0]->id == 555);
 }
@@ -50,23 +59,39 @@ TEST_CASE("SQLITE Database test multiple data") {
     db.insert(d5, false);
     db.insert(d6, false);
 
-    UserData query1{0, "user", "", {}};
-    const auto &res1 = db.selectLike(query1);
-    CHECK(res1[0]->name == "user666");
-    CHECK(res1[0]->id == 53);
+    SECTION("Select like") {
+        UserData query1{0, "user", "", {}};
+        const auto &res1 = db.selectLike(query1);
+        CHECK(res1[0]->name == "user666");
+        CHECK(res1[0]->id == 53);
 
-    UserData query2{0, "no", "", {}};
-    const auto &res2 = db.selectLike(query2);
-    REQUIRE(res2.size() == 2);
-    CHECK(res2[0]->name == "Penopa");
-    CHECK(res2[0]->id == 245);
-    CHECK(res2[1]->name == "novere");
-    CHECK(res2[1]->id == 34);
-    CHECK(res2[1]->publicKey == strToVec(realPublicKey));
+        UserData query2{0, "no", "", {}};
+        const auto &res2 = db.selectLike(query2);
+        REQUIRE(res2.size() == 2);
+        CHECK(res2[0]->name == "Penopa");
+        CHECK(res2[0]->id == 245);
+        CHECK(res2[1]->name == "novere");
+        CHECK(res2[1]->id == 34);
+        CHECK(res2[1]->publicKey == strToVec(realPublicKey));
+    }
 
-    UserData query3{8752, "", "", {}};
-    const auto &res3 = db.select(query3);
-    CHECK(res3[0]->name == "mybestnick");
+    SECTION("Select") {
+        UserData res = db.select("user666");
+        CHECK(res.name == "user666");
+        CHECK(res.id == 53);
+
+        res = db.select("no");
+        CHECK(res.name.empty());
+        CHECK(res.publicKey.empty());
+
+        UserData query3{34, "no", "", {}};
+        res = db.select(query3);
+        CHECK(res.name == "novere");
+
+        UserData query4{8752, "", "", {}};
+        res = db.select(query4);
+        CHECK(res.name == "mybestnick");
+    }
 }
 
 TEST_CASE("SQLITE Database no data") {
@@ -75,6 +100,9 @@ TEST_CASE("SQLITE Database no data") {
     CHECK(db.selectLike(query1).empty());
     UserData query2{0, "", "", {}};
     CHECK(db.selectLike(query2).empty());
+
+    CHECK(db.select("user").name.empty());
+    CHECK(db.select("").name.empty());
 }
 
 TEST_CASE("SQLITE Database no matching query") {
@@ -88,7 +116,7 @@ TEST_CASE("SQLITE Database no matching query") {
     db.insert(d3, false);
 
     UserData query1{0, "nowhere", "", {}};
-    const auto &res1 = db.select(query1);
+    const auto &res1 = db.selectLike(query1);
     CHECK(res1.empty());
 }
 
@@ -108,7 +136,7 @@ TEST_CASE("SQLITE Database delete users") {
     UserData query2{55535, "nowhere", "", {}};
     CHECK(db.remove(query2));
     UserData query3{22, "kkarel", "", {}};
-    CHECK(db.select(d2)[0]->name == "karel");
+    CHECK(db.selectLike(d2)[0]->name == "karel");
 }
 
 TEST_CASE("SQLITE basic operations messages / bundles table simple") {
