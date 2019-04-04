@@ -137,6 +137,25 @@ protected:
             throw Error("Wrong input file.");
     }
 
+    void _process(const std::vector<unsigned char> &in, std::vector<unsigned char> &out, size_t inputOffset = 0 ) {
+
+        out.resize(in.size() - inputOffset + IV_SIZE);
+        size_t out_len;
+        if (mbedtls_cipher_update(&_context, in.data() + inputOffset, in.size() - inputOffset, out.data(), &out_len) != 0) {
+            throw Error("Failed to update cipher.");
+        }
+
+
+        unsigned char fin[IV_SIZE];
+        out.resize(out_len + IV_SIZE);
+        size_t fin_len;
+        if (mbedtls_cipher_finish(&_context, out.data() + out_len, &fin_len) != 0) {
+            throw Error("Failed to finish cipher.");
+        }
+        out.resize(out_len + fin_len);
+
+    }
+
 public:
     static constexpr unsigned key_size = KEY_SIZE;
     static constexpr unsigned iv_size = IV_SIZE;
