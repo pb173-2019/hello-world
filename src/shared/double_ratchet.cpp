@@ -4,12 +4,6 @@
 
 namespace helloworld {
 
-/**
- * @brief Create DoubleRatchetObject (RatchetInitAlice)
- *
- * @param SK shared key from X3DH exchange
- * @param other_dh_public_key Curve25519 public key from the other client
- */
 DoubleRatchet::DoubleRatchet(const std::vector<unsigned char> &SK,
                              std::vector<unsigned char> other_dh_public_key)
     : _DHs(ext.GENERATE_DH()),
@@ -22,13 +16,6 @@ DoubleRatchet::DoubleRatchet(const std::vector<unsigned char> &SK,
     std::tie(_RK, _CKs) = ext.KDF_RK(SK, ext.DH(_DHs, _DHr));
 }
 
-/**
- * @brief Create DoubleRatchetObject (RatchetInitBob)
- *
- * @param SK shared key from X3DH exchange
- * @param dh_public_key own Curve25519 public key
- * @param dh_private_key own Curve25519 public key
- */
 DoubleRatchet::DoubleRatchet(std::vector<unsigned char> SK,
                              std::vector<unsigned char> dh_public_key,
                              std::vector<unsigned char> dh_private_key)
@@ -42,13 +29,6 @@ DoubleRatchet::DoubleRatchet(std::vector<unsigned char> SK,
       _PN(0),
       _MKSKIPPED({}) {}
 
-/**
- * @brief Encrypts message using Double Ratchet algorithm.
- *
- * @param plaintext original message
- * @param AD additional data
- * @return Message message struct with header, hmac and ciphertext
- */
 Message DoubleRatchet::RatchetEncrypt(
     const std::vector<unsigned char> &plaintext,
     const std::vector<unsigned char> &AD) {
@@ -60,13 +40,6 @@ Message DoubleRatchet::RatchetEncrypt(
     return Message(header, ext.ENCRYPT(mk, plaintext, ext.CONCAT(AD, header)));
 }
 
-/**
- * @brief Decrypts message using Double Ratchet algorithm
- *
- * @param message encrypted message
- * @param AD additional data
- * @return vector decrypted data
- */
 std::vector<unsigned char> DoubleRatchet::RatchetDecrypt(
     const Message &message, const std::vector<unsigned char> &AD) {
     auto header = message.header;
@@ -85,7 +58,7 @@ std::vector<unsigned char> DoubleRatchet::RatchetDecrypt(
 
     SkipMessageKeys(header.n);
     key mk;
-    std::tie(_CKr, mk) = ext.KDF_CK(_CKr, 0x01);
+    std::tie(_CKr, mk) = ext.KDF_CK(_CKr, 0x01); // TODO magic constant
     ++_Nr;
 
     return ext.DECRYPT(mk, ciphertext, ext.CONCAT(AD, header));

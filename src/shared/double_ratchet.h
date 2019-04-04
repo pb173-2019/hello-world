@@ -38,14 +38,45 @@ class DoubleRatchet {
     void DHRatchet(const Header &header);
 
    public:
+    /**
+     * @brief Create DoubleRatchetObject (RatchetInitAlice)
+     *
+     * @param SK shared key from X3DH exchange
+     * @param other_dh_public_key Curve25519 public key from the other client
+     */
     DoubleRatchet(
         const std::vector<unsigned char> &sk,
         std::vector<unsigned char> other_dh_public_key);    // RatchetInitAlice
-    DoubleRatchet(
-        std::vector<unsigned char> sk, std::vector<unsigned char> dh_public_key,
-        std::vector<unsigned char> dh_private_key);    // RatchetInitBob
+
+    /**
+     * @brief Create DoubleRatchetObject (RatchetInitBob)
+     *
+     * @param SK shared key from X3DH exchange
+     * @param dh_public_key own Curve25519 public key
+     * @param dh_private_key own Curve25519 public key
+     */
+    DoubleRatchet(std::vector<unsigned char> sk,
+                  std::vector<unsigned char> dh_public_key,
+                  std::vector<unsigned char> dh_private_key);
+
+    /**
+     * @brief Encrypts message using Double Ratchet algorithm.
+     *
+     * @param plaintext original message
+     * @param AD additional data (output from X3DH)
+     * @return Message message struct with header, hmac and ciphertext
+     */
     Message RatchetEncrypt(const std::vector<unsigned char> &plaintext,
+
                            const std::vector<unsigned char> &AD);
+
+    /**
+     * @brief Decrypts message using Double Ratchet algorithm
+     *
+     * @param message encrypted message
+     * @param AD additional data (output from X3DH)
+     * @return vector decrypted data
+     */
     std::vector<unsigned char> RatchetDecrypt(
         const Message &message, const std::vector<unsigned char> &AD);
 };
