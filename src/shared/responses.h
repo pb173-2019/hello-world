@@ -33,7 +33,7 @@ struct UserListReponse : public Serializable<UserListReponse> {
         serialize::serialize(online, result);
         return result;
     }
-    serialize::structure serialize() const {
+    serialize::structure serialize() const override {
         serialize::structure result;
         return serialize(result);
     }

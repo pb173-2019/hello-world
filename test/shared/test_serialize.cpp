@@ -14,9 +14,17 @@ struct X : Serializable<X> {
         result.push_back(0);
         return result;
     }
+    serialize::structure serialize() const override {
+        serialize::structure result;
+        return serialize(result);
+    }
     static X deserialize(const std::vector<unsigned char>& data, uint64_t& from) {
         ++from;
         return {};
+    }
+    static X deserialize(const serialize::structure& data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
     }
     friend bool operator==(const X& a, const X& b) {
         return true;
@@ -45,12 +53,22 @@ struct Y : Serializable<Y> {
         serialize::serialize(v, result);
         return result;
     }
+    serialize::structure serialize() const override {
+        serialize::structure result;
+        return serialize(result);
+    }
+
+
     static Y deserialize(const std::vector<unsigned char>& data, uint64_t& from) {
         Y res;
         res.s = serialize::deserialize<decltype(s)>(data, from);
         res.i = serialize::deserialize<decltype(i)>(data, from);
         res.v = serialize::deserialize<decltype(v)>(data, from);
         return res;
+    }
+    static Y deserialize(const serialize::structure& data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
     }
     friend bool operator==(const Y& a, const Y& b) {
         return a.i == b.i && a.s == b.s && std::equal(a.v.begin(), a.v.end(), b.v.begin(), b.v.end());

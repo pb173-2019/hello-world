@@ -41,7 +41,7 @@ struct UserData : public Serializable<UserData> {
 
         return result;
     }
-    serialize::structure serialize() const {
+    serialize::structure serialize() const override {
         serialize::structure result;
         return serialize(result);
     }

@@ -53,7 +53,7 @@ struct Request {
                 : type(type), messageNumber(messageNumber), userId(userId) {}
 
         serialize::structure& serialize(serialize::structure& result) const override;
-        serialize::structure serialize() const {
+        serialize::structure serialize() const override {
             serialize::structure result;
             return serialize(result);
         }
@@ -101,7 +101,7 @@ struct Response {
                 : type(type), messageNumber(messageNumber), userId(userId) {}
 
         serialize::structure& serialize(serialize::structure& result) const override;
-        serialize::structure serialize() const {
+        serialize::structure serialize() const override {
             serialize::structure result;
             return serialize(result);
         }

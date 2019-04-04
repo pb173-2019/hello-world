@@ -46,7 +46,7 @@ struct KeyBundle : Serializable<KeyBundle<Asymmetric> > {
         serialize::serialize(oneTimeKeys, result);
         return result;
     }
-    serialize::structure serialize() const {
+    serialize::structure serialize() const override {
         serialize::structure result;
         return serialize(result);
     }
@@ -89,7 +89,7 @@ struct AuthenticateRequest : public Serializable<AuthenticateRequest> {
         serialize::serialize(publicKey, result);
         return result;
     }
-    serialize::structure serialize() const {
+    serialize::structure serialize() const override {
         serialize::structure result;
         return serialize(result);
     }
@@ -128,7 +128,7 @@ struct CompleteAuthRequest : public Serializable<CompleteAuthRequest> {
 
         return result;
     }
-    serialize::structure serialize() const {
+    serialize::structure serialize() const override {
         serialize::structure result;
         return serialize(result);
     }
@@ -160,7 +160,7 @@ struct GenericRequest : public Serializable<AuthenticateRequest> {
         serialize::serialize(name, result);
         return result;
     }
-    serialize::structure serialize() const {
+    serialize::structure serialize() const override {
         serialize::structure result;
         return serialize(result);
     }
@@ -197,7 +197,7 @@ struct GetUsers : public Serializable<GetUsers> {
         serialize::serialize(query, result);
         return result;
     }
-    serialize::structure serialize() const {
+    serialize::structure serialize() const override {
         serialize::structure result;
         return serialize(result);
     }
@@ -232,7 +232,7 @@ struct SendData : public Serializable<SendData> {
         serialize::serialize(data, result);
         return result;
     }
-    serialize::structure serialize() const {
+    serialize::structure serialize() const override {
         serialize::structure result;
         return serialize(result);
     }
@@ -278,7 +278,7 @@ struct X3DHRequest : public Serializable<X3DHRequest<Asymmetric>> {
         serialize::serialize(AEADenrypted, result);
         return result;
     }
-    serialize::structure serialize() const {
+    serialize::structure serialize() const override {
         serialize::structure result;
         return serialize(result);
     }

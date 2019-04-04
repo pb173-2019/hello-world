@@ -51,7 +51,7 @@ struct Header : public Serializable<Header> {
         serialize::serialize(n, result);
         return result;
     }
-    serialize::structure serialize() const {
+    serialize::structure serialize() const override {
         serialize::structure result;
         return serialize(result);
     }
@@ -96,7 +96,7 @@ struct Message : public Serializable<Message> {
         serialize::serialize(hmac, result);
         return result;
     }
-    serialize::structure serialize() const {
+    serialize::structure serialize() const override {
         serialize::structure result;
         return serialize(result);
     }
