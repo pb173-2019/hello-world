@@ -44,22 +44,33 @@ struct Header : public Serializable<Header> {
 
     Header(key dh, size_t pn, size_t n) : dh(std::move(dh)), pn(pn), n(n) {}
 
-    std::vector<unsigned char> serialize() const override {
-        std::vector<unsigned char> result;
-        Serializable::addContainer(result, dh);
-        Serializable::addNumeric(result, pn);
-        Serializable::addNumeric(result, n);
+
+    serialize::structure& serialize(serialize::structure& result) const override {
+        serialize::serialize(dh, result);
+        serialize::serialize(pn, result);
+        serialize::serialize(n, result);
         return result;
     }
-
-    static Header deserialize(const key &data) {
-        Header header;
-        uint64_t position = 0;
-        position += Serializable::getContainer(data, position, header.dh);
-        position += Serializable::getNumeric(data, position, header.pn);
-        position += Serializable::getNumeric(data, position, header.n);
-        return header;
+    serialize::structure serialize() const {
+        serialize::structure result;
+        return serialize(result);
     }
+
+    static Header deserialize(const serialize::structure  &data, uint64_t& from) {
+        Header result;
+        result.dh =
+                serialize::deserialize<decltype(result.dh)>(data, from);
+        result.pn =
+                serialize::deserialize<decltype(result.pn)>(data, from);
+        result.n =
+                serialize::deserialize<decltype(result.n)>(data, from);
+        return result;
+    }
+    static Header deserialize(const serialize::structure& data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
+    }
+
 };
 
 struct CipherHMAC {
@@ -79,24 +90,29 @@ struct Message : public Serializable<Message> {
           ciphertext(cipherHMAC.ciphertext),
           hmac(cipherHMAC.hmac) {}
 
-    std::vector<unsigned char> serialize() const override {
-        std::vector<unsigned char> result;
-        Serializable::addContainer(result, header.serialize());
-        Serializable::addContainer(result, ciphertext);
-        Serializable::addContainer(result, hmac);
+    serialize::structure& serialize(serialize::structure& result) const override {
+        serialize::serialize(header.serialize(), result);
+        serialize::serialize(ciphertext, result);
+        serialize::serialize(hmac, result);
         return result;
     }
+    serialize::structure serialize() const {
+        serialize::structure result;
+        return serialize(result);
+    }
 
-    static Message deserialize(const key &data) {
+    static Message deserialize(const serialize::structure& data, uint64_t& from) {
         Message message;
-        uint64_t position = 0;
-        std::vector<unsigned char> serialized;
-        position += Serializable::getContainer(data, position, serialized);
-        message.header = Header::deserialize(serialized);
-        position +=
-            Serializable::getContainer(data, position, message.ciphertext);
-        position += Serializable::getContainer(data, position, message.hmac);
+        message.header = serialize::deserialize<Header>(data, from);
+        message.ciphertext =
+                serialize::deserialize<decltype(message.ciphertext)>(data, from);
+        message.hmac =
+                serialize::deserialize<decltype(message.hmac)>(data, from);
         return message;
+    }
+    static Message deserialize(const serialize::structure& data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
     }
 };
 

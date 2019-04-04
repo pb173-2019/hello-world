@@ -38,26 +38,38 @@ struct KeyBundle : Serializable<KeyBundle<Asymmetric> > {
         timestamp = lt->tm_year * 366 * 24 + lt->tm_yday * 24 + lt->tm_hour;
     }
 
-    std::vector<unsigned char> serialize() const override {
-        std::vector<unsigned char> result;
-        Serializable<KeyBundle<Asymmetric> >::addNumeric(result, timestamp);
-        Serializable<KeyBundle<Asymmetric> >::addContainer(result, identityKey);
-        Serializable<KeyBundle<Asymmetric> >::addContainer(result, preKey);
-        Serializable<KeyBundle<Asymmetric> >::addContainer(result, preKeySingiture);
-        Serializable<KeyBundle<Asymmetric> >::addNestedContainer(result, oneTimeKeys);
+    serialize::structure& serialize(serialize::structure& result) const override {
+        serialize::serialize(timestamp, result);
+        serialize::serialize(identityKey, result);
+        serialize::serialize(preKey, result);
+        serialize::serialize(preKeySingiture, result);
+        serialize::serialize(oneTimeKeys, result);
         return result;
+    }
+    serialize::structure serialize() const {
+        serialize::structure result;
+        return serialize(result);
     }
 
-    static KeyBundle deserialize(const std::vector<unsigned char> &data) {
+    static KeyBundle deserialize(const serialize::structure  &data, uint64_t& from) {
         KeyBundle result;
-        uint64_t offset = 0;
-        offset += Serializable<KeyBundle<Asymmetric> >::getNumeric(data, offset, result.timestamp);
-        offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.identityKey);
-        offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.preKey);
-        offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.preKeySingiture);
-        offset += Serializable<KeyBundle<Asymmetric> >::getNestedContainer(data, offset, result.oneTimeKeys);
+        result.timestamp =
+                serialize::deserialize<decltype(result.timestamp)>(data, from);
+        result.identityKey =
+                serialize::deserialize<decltype(result.identityKey)>(data, from);
+        result.preKey =
+                serialize::deserialize<decltype(result.preKey)>(data, from);
+        result.preKeySingiture =
+                serialize::deserialize<decltype(result.preKeySingiture)>(data, from);
+        result.oneTimeKeys =
+                serialize::deserialize<decltype(result.oneTimeKeys)>(data, from);
         return result;
     }
+    static KeyBundle deserialize(const serialize::structure& data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
+    }
+
 };
 
 
@@ -71,25 +83,30 @@ struct AuthenticateRequest : public Serializable<AuthenticateRequest> {
     AuthenticateRequest(std::string name, std::vector<unsigned char> publicKey)
             : name(std::move(name)), publicKey(std::move(publicKey)) {}
 
-    std::vector<unsigned char> serialize() const override {
-        std::vector<unsigned char> result;
-        Serializable::addContainer<std::string>(result, name);
-        Serializable::addContainer<std::string>(result, sessionKey);
-        Serializable::addContainer<std::vector<unsigned char>>(result, publicKey);
-
+    serialize::structure& serialize(serialize::structure& result) const override {
+        serialize::serialize(name, result);
+        serialize::serialize(sessionKey, result);
+        serialize::serialize(publicKey, result);
         return result;
     }
+    serialize::structure serialize() const {
+        serialize::structure result;
+        return serialize(result);
+    }
 
-    static AuthenticateRequest deserialize(const std::vector<unsigned char> &data) {
+    static AuthenticateRequest deserialize(const serialize::structure  &data, uint64_t& from) {
         AuthenticateRequest result;
-        uint64_t position = 0;
-        position += Serializable::getContainer<std::string>(data, position,
-                                                            result.name);
-        position += Serializable::getContainer<std::string>(data, position,
-                                                            result.sessionKey);
-        Serializable::getContainer<std::vector<unsigned char>>(data, position,
-                                                               result.publicKey);
+        result.name =
+                serialize::deserialize<decltype(result.name)>(data, from);
+        result.sessionKey =
+                serialize::deserialize<decltype(result.sessionKey)>(data, from);
+        result.publicKey =
+                serialize::deserialize<decltype(result.publicKey)>(data, from);
         return result;
+    }
+    static AuthenticateRequest deserialize(const serialize::structure& data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
     }
 };
 
@@ -105,23 +122,29 @@ struct CompleteAuthRequest : public Serializable<CompleteAuthRequest> {
     CompleteAuthRequest(std::vector<unsigned char> secret, std::string name)
             : secret(std::move(secret)), name(std::move(name)) {}
 
-    std::vector<unsigned char> serialize() const override {
-        std::vector<unsigned char> result;
-        Serializable::addContainer<std::vector<unsigned char>>(result, secret);
-        Serializable::addContainer<std::string>(result, name);
+    serialize::structure& serialize(serialize::structure& result) const override {
+        serialize::serialize(secret, result);
+        serialize::serialize(name, result);
 
         return result;
     }
+    serialize::structure serialize() const {
+        serialize::structure result;
+        return serialize(result);
+    }
 
-    static CompleteAuthRequest deserialize(const std::vector<unsigned char> &data) {
+    static CompleteAuthRequest deserialize(const serialize::structure &data, uint64_t& from) {
         CompleteAuthRequest result;
-        uint64_t position = 0;
-        position += Serializable::getContainer<std::vector<unsigned char>>(
-                data, position, result.secret);
-        position += Serializable::getContainer<std::string>(data, position,
-                                                            result.name);
+        result.secret = serialize::deserialize<std::vector<unsigned char>>(data, from);
+        result.name = serialize::deserialize<std::string>(data, from);
         return result;
     }
+
+    static CompleteAuthRequest deserialize(const serialize::structure& data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
+    }
+
 };
 
 struct GenericRequest : public Serializable<AuthenticateRequest> {
@@ -132,21 +155,28 @@ struct GenericRequest : public Serializable<AuthenticateRequest> {
 
     GenericRequest(uint32_t id, std::string name) : id(id), name(std::move(name)) {}
 
-    std::vector<unsigned char> serialize() const override {
-        std::vector<unsigned char> result;
-        Serializable::addNumeric<uint32_t>(result, id);
-        Serializable::addContainer<std::string>(result, name);
+    serialize::structure& serialize(serialize::structure& result) const override {
+        serialize::serialize(id, result);
+        serialize::serialize(name, result);
+        return result;
+    }
+    serialize::structure serialize() const {
+        serialize::structure result;
+        return serialize(result);
+    }
+
+    static GenericRequest deserialize(const serialize::structure &data, uint64_t& from) {
+        GenericRequest result;
+        result.id = serialize::deserialize<uint32_t>(data, from);
+        result.name = serialize::deserialize<std::string>(data, from);
         return result;
     }
 
-    static GenericRequest deserialize(
-            const std::vector<unsigned char> &data) {
-        GenericRequest result;
-        uint64_t position = 0;
-        position += Serializable::getNumeric<uint32_t>(data, position, result.id);
-        position += Serializable::getContainer<std::string>(data, position, result.name);
-        return result;
+    static GenericRequest deserialize(const serialize::structure& data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
     }
+
 };
 
 struct GetUsers : public Serializable<GetUsers> {
@@ -161,21 +191,28 @@ struct GetUsers : public Serializable<GetUsers> {
             name(std::move(name)),
             query(std::move(query)) {}
 
-    std::vector<unsigned char> serialize() const override {
-        std::vector<unsigned char> result;
-        Serializable::addNumeric<uint32_t>(result, id);
-        Serializable::addContainer<std::string>(result, name);
-        Serializable::addContainer<std::string>(result, query);
+    serialize::structure& serialize(serialize::structure& result) const override {
+        serialize::serialize(id, result);
+        serialize::serialize(name, result);
+        serialize::serialize(query, result);
         return result;
     }
+    serialize::structure serialize() const {
+        serialize::structure result;
+        return serialize(result);
+    }
 
-    static GetUsers deserialize(const std::vector<unsigned char> &data) {
+    static GetUsers deserialize(const serialize::structure &data, uint64_t& from) {
         GetUsers result;
-        uint64_t position = 0;
-        position += Serializable::getNumeric<uint32_t>(data, position, result.id);
-        position += Serializable::getContainer<std::string>(data, position, result.name);
-        position += Serializable::getContainer<std::string>(data, position, result.query);
+
+        result.id = serialize::deserialize<uint32_t>(data, from);
+        result.name = serialize::deserialize<std::string>(data, from);
+        result.query = serialize::deserialize<std::string>(data, from);
         return result;
+    }
+    static GetUsers deserialize(const serialize::structure& data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
     }
 };
 
@@ -189,21 +226,29 @@ struct SendData : public Serializable<SendData> {
     SendData(std::string date, std::string from, std::vector<unsigned char> data) :
             date(std::move(date)), from(std::move(from)), data(std::move(data)) {}
 
-    std::vector<unsigned char> serialize() const override {
-        std::vector<unsigned char> result;
-        Serializable::addContainer<std::string>(result, date);
-        Serializable::addContainer<std::string>(result, from);
-        Serializable::addContainer<std::vector<unsigned char>>(result, data);
+    serialize::structure& serialize(serialize::structure& result) const override {
+        serialize::serialize(date, result);
+        serialize::serialize(from, result);
+        serialize::serialize(data, result);
+        return result;
+    }
+    serialize::structure serialize() const {
+        serialize::structure result;
+        return serialize(result);
+    }
+
+    static SendData deserialize(const serialize::structure &data, uint64_t& from) {
+        SendData result;
+        result.date = serialize::deserialize<std::string>(data, from);
+        result.from = serialize::deserialize<std::string>(data, from);
+        result.data = serialize::deserialize<decltype(result.data)>(data, from);
+
         return result;
     }
 
-    static SendData deserialize(const std::vector<unsigned char> &data) {
-        SendData result;
-        uint64_t position = 0;
-        position += Serializable::getContainer<std::string>(data, position, result.date);
-        position += Serializable::getContainer<std::string>(data, position, result.from);
-        position += Serializable::getContainer<std::vector<unsigned char>>(data, position, result.data);
-        return result;
+    static SendData deserialize(const serialize::structure& data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
     }
 };
 
@@ -224,27 +269,39 @@ struct X3DHRequest : public Serializable<X3DHRequest<Asymmetric>> {
 
     X3DHRequest() = default;
 
-    std::vector<unsigned char> serialize() const override {
-        std::vector<unsigned char> result;
-        Serializable<X3DHRequest<Asymmetric> >::addNumeric(result, timestamp);
-        Serializable<X3DHRequest<Asymmetric> >::addContainer(result, senderIdPubKey);
-        Serializable<X3DHRequest<Asymmetric> >::addContainer(result, senderEphermalPubKey);
-        Serializable<X3DHRequest<Asymmetric> >::addNumeric(result, opKeyUsed);
-        Serializable<X3DHRequest<Asymmetric> >::addNumeric(result, opKeyId);
-        Serializable<X3DHRequest<Asymmetric> >::addContainer(result, AEADenrypted);
+    serialize::structure& serialize(serialize::structure& result) const override {
+        serialize::serialize(timestamp, result);
+        serialize::serialize(senderIdPubKey, result);
+        serialize::serialize(senderEphermalPubKey, result);
+        serialize::serialize(opKeyUsed, result);
+        serialize::serialize(opKeyId, result);
+        serialize::serialize(AEADenrypted, result);
         return result;
     }
+    serialize::structure serialize() const {
+        serialize::structure result;
+        return serialize(result);
+    }
 
-    static X3DHRequest deserialize(const std::vector<unsigned char> &data) {
+    static X3DHRequest deserialize(const serialize::structure &data, uint64_t& from) {
         X3DHRequest result;
-        uint64_t offset = 0;
-        offset += Serializable<X3DHRequest<Asymmetric> >::getNumeric(data, offset, result.timestamp);
-        offset += Serializable<X3DHRequest<Asymmetric> >::getContainer(data, offset, result.senderIdPubKey);
-        offset += Serializable<X3DHRequest<Asymmetric> >::getContainer(data, offset, result.senderEphermalPubKey);
-        offset += Serializable<X3DHRequest<Asymmetric> >::getNumeric(data, offset, result.opKeyUsed);
-        offset += Serializable<X3DHRequest<Asymmetric> >::getNumeric(data, offset, result.opKeyId);
-        offset += Serializable<X3DHRequest<Asymmetric> >::getContainer(data, offset, result.AEADenrypted);
+        result.timestamp =
+                serialize::deserialize<decltype(result.timestamp)>(data, from);
+        result.senderIdPubKey =
+                serialize::deserialize<decltype(result.senderIdPubKey)>(data, from);
+        result.senderEphermalPubKey =
+                serialize::deserialize<decltype(result.senderEphermalPubKey)>(data, from);
+        result.opKeyUsed =
+                serialize::deserialize<decltype(result.opKeyUsed)>(data, from);
+        result.opKeyId =
+                serialize::deserialize<decltype(result.opKeyId)>(data, from);
+        result.AEADenrypted =
+                serialize::deserialize<decltype(result.AEADenrypted)>(data, from);
         return result;
+    }
+    static X3DHRequest deserialize(const serialize::structure& data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
     }
 };
 

@@ -28,19 +28,27 @@ struct UserListReponse : public Serializable<UserListReponse> {
     UserListReponse(std::vector<std::string> users, std::vector<uint32_t> ids) :
             ids(std::move(ids)), online(std::move(users)) {}
 
-    std::vector<unsigned char> serialize() const override {
-        std::vector<unsigned char> result;
-        Serializable::addContainer<std::vector<uint32_t >>(result, ids);
-        Serializable::addNestedContainer<std::vector<std::string>, std::string>(result, online);
+    serialize::structure& serialize(serialize::structure& result) const override {
+        serialize::serialize(ids, result);
+        serialize::serialize(online, result);
         return result;
     }
+    serialize::structure serialize() const {
+        serialize::structure result;
+        return serialize(result);
+    }
 
-    static UserListReponse deserialize(const std::vector<unsigned char> &data) {
+    static UserListReponse deserialize(const serialize::structure  &data, uint64_t& from) {
         UserListReponse result;
-        uint64_t position = 0;
-        position += Serializable::getContainer<std::vector<uint32_t >>(data, position, result.ids);
-        position += Serializable::getNestedContainer<std::vector<std::string>, std::string>(data, position, result.online);
+        result.ids =
+                serialize::deserialize<decltype(result.ids)>(data, from);
+        result.online =
+                serialize::deserialize<decltype(result.online)>(data, from);
         return result;
+    }
+    static UserListReponse deserialize(const serialize::structure& data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
     }
 };
 

@@ -28,18 +28,24 @@ struct Error : public std::exception, public Serializable<Error> {
 
     const char *what() const noexcept override { return message.c_str(); }
 
-    std::vector<unsigned char> serialize() const override {
-        std::vector<unsigned char> result;
-        Serializable::addContainer<std::string>(result, message);
+    serialize::structure& serialize(serialize::structure& result) const override {
+        serialize::serialize(message, result);
         return result;
     }
+    serialize::structure serialize() const {
+        serialize::structure result;
+        return serialize(result);
+    }
 
-    static Error deserialize(const std::vector<unsigned char> &data) {
+    static Error deserialize(const serialize::structure  &data, uint64_t& from) {
         Error result;
-        uint64_t position = 0;
-        position += Serializable::getContainer<std::string>(data, position,
-                                                            result.message);
+        result.message =
+                serialize::deserialize<decltype(result.message)>(data, from);
         return result;
+    }
+    static Error deserialize(const serialize::structure& data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
     }
 };
 
