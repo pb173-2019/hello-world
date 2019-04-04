@@ -101,6 +101,11 @@ public:
         _setup(KeyType::PRIVATE_KEY);
     }
 
+    void setPrivateKey(const std::vector<unsigned char> &key) {
+        _buffer_private = key;
+        _setup(KeyType::PRIVATE_KEY);
+    }
+
     /**
      * X3DH purpose easy setter
      */

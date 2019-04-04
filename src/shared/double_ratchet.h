@@ -12,70 +12,42 @@
 #ifndef HELLOWORLD_SHARED_DOUBLE_RATCHET_H_
 #define HELLOWORLD_SHARED_DOUBLE_RATCHET_H_
 
-#include <map>
-#include <vector>
-#include "curve_25519.h"
+#include "double_ratchet_utils.h"
 
 namespace helloworld {
-
-struct Header {
-    int dh;
-    int pn;
-    int n;
-};
-
-struct Message {
-    Header header;
-    int payload;
-};
-
-struct DHPair {
-    std::vector<unsigned char> pub;
-    std::vector<unsigned char> priv;
-};
-
-class ExternalAdapter {
-   public:
-    DHPair GENERATE_DH() {
-        C25519KeyGen c25519generator;
-        return {c25519generator.getPublicKey(),
-                c25519generator.getPrivateKey()};
-    }
-
-    int DH(int dh_pair, int dh_pub);
-    std::pair<int, int> KDF_RK(int rk, int dh_out);
-    std::pair<int, int> KDF_CK(int ck);
-    int ENCRYPT(int mk, int plaintext, int associated_data);
-    int DECRYPT(int mk, int ciphertext, int associated_data);
-    Header HEADER(int dh_pair, int pn, int n);
-    int CONCAT(int ad, const Header &header);
-};
 
 class DoubleRatchet {
     static const int MAX_SKIP = 10;
 
    private:
-    ExternalAdapter ext;
+    DoubleRatchetAdapter ext;
     DHPair _DHs;    // DH Ratchet key pair (the “sending” or “self” ratchet key)
-    int _DHr;    // DH Ratchet public key (the “received” or “remote” key)
-    int _RK;           // 32-byte Root Key
-    int _CKs, _CKr;    // 32-byte Chain Keys for sending and receiving
-    int _Ns, _Nr;      // Message numbers for sending and receiving
-    int _PN;           // Number of messages in previous sending chain
-    std::map<std::pair<int, int>, int>
+    key _DHr;    // DH Ratchet public key (the “received” or “remote” key)
+    key _RK;            // 32-byte Root Key
+    key _CKs, _CKr;     // 32-byte Chain Keys for sending and receiving
+    size_t _Ns, _Nr;    // Message numbers for sending and receiving
+    size_t _PN;         // Number of messages in previous sending chain
+    std::map<std::pair<key, size_t>, key>
         _MKSKIPPED;    // Dictionary of skipped-over message keys, indexed
-                       // byratchet public key and message number. Raises an
-                       // exception if too manyelements are stored
+                       // by ratchet public key and message number. Raises an
+                       // exception if too many elements are stored
 
-    int TrySkippedMessageKeys(const Header &header, int ciphertext, int AD);
-    int SkipMessageKeys(int until);
+    key TrySkippedMessageKeys(const Header &header, const key &ciphertext,
+                              const key &AD);
+    void SkipMessageKeys(size_t until);
     void DHRatchet(const Header &header);
 
    public:
-    DoubleRatchet(int sk, int bob_dh_public_key);     // RatchetInitAlice
-    DoubleRatchet(int sk, size_t bob_dh_key_pair);    // RatchetInitBob
-    Message RatchetEncrypt(int plaintext, int AD);
-    int RatchetDecrypt(const Header &header, int ciphertext, int AD);
+    DoubleRatchet(
+        const std::vector<unsigned char> &sk,
+        std::vector<unsigned char> other_dh_public_key);    // RatchetInitAlice
+    DoubleRatchet(
+        std::vector<unsigned char> sk, std::vector<unsigned char> dh_public_key,
+        std::vector<unsigned char> dh_private_key);    // RatchetInitBob
+    Message RatchetEncrypt(const std::vector<unsigned char> &plaintext,
+                           const std::vector<unsigned char> &AD);
+    std::vector<unsigned char> RatchetDecrypt(
+        const Message &message, const std::vector<unsigned char> &AD);
 };
 
 }    // namespace helloworld

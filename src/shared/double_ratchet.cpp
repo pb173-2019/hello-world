@@ -4,42 +4,77 @@
 
 namespace helloworld {
 
-DoubleRatchet::DoubleRatchet(int SK, int bob_dh_public_key) {
-    _DHs = ext.GENERATE_DH();
-    _DHr = bob_dh_public_key;
+/**
+ * @brief Create DoubleRatchetObject (RatchetInitAlice)
+ *
+ * @param SK shared key from X3DH exchange
+ * @param other_dh_public_key Curve25519 public key from the other client
+ */
+DoubleRatchet::DoubleRatchet(const std::vector<unsigned char> &SK,
+                             std::vector<unsigned char> other_dh_public_key)
+    : _DHs(ext.GENERATE_DH()),
+      _DHr(std::move(other_dh_public_key)),
+      _CKr({}),
+      _Ns(0),
+      _Nr(0),
+      _PN(0),
+      _MKSKIPPED({}) {
     std::tie(_RK, _CKs) = ext.KDF_RK(SK, ext.DH(_DHs, _DHr));
-    _CKr = {};
-    _Ns = 0;
-    _Nr = 0;
-    _PN = 0;
-    _MKSKIPPED = {};
 }
 
-DoubleRatchet::DoubleRatchet(int SK, size_t bob_dh_key_pair) {
-    _DHs = bob_dh_key_pair;
-    _DHr = {};
-    _RK = SK;
-    _CKs = {};
-    _CKr = {};
-    _Ns = 0;
-    _Nr = 0;
-    _PN = 0;
-    _MKSKIPPED = {};
-}
+/**
+ * @brief Create DoubleRatchetObject (RatchetInitBob)
+ *
+ * @param SK shared key from X3DH exchange
+ * @param dh_public_key own Curve25519 public key
+ * @param dh_private_key own Curve25519 public key
+ */
+DoubleRatchet::DoubleRatchet(std::vector<unsigned char> SK,
+                             std::vector<unsigned char> dh_public_key,
+                             std::vector<unsigned char> dh_private_key)
+    : _DHs({std::move(dh_public_key), std::move(dh_private_key)}),
+      _DHr({}),
+      _RK(std::move(SK)),
+      _CKs({}),
+      _CKr({}),
+      _Ns(0),
+      _Nr(0),
+      _PN(0),
+      _MKSKIPPED({}) {}
 
-Message DoubleRatchet::RatchetEncrypt(int plaintext, int AD) {
-    int mk;
-    std::tie(_CKs, mk) = ext.KDF_CK(_CKs);
+/**
+ * @brief Encrypts message using Double Ratchet algorithm.
+ *
+ * @param plaintext original message
+ * @param AD additional data
+ * @return Message message struct with header, hmac and ciphertext
+ */
+Message DoubleRatchet::RatchetEncrypt(
+    const std::vector<unsigned char> &plaintext,
+    const std::vector<unsigned char> &AD) {
+    key mk;
+    std::tie(_CKs, mk) = ext.KDF_CK(_CKs, 0x01);
     Header header = ext.HEADER(_DHs, _PN, _Ns);
     ++_Ns;
 
-    return {header, ext.ENCRYPT(mk, plaintext, ext.CONCAT(AD, header))};
+    return Message(header, ext.ENCRYPT(mk, plaintext, ext.CONCAT(AD, header)));
 }
 
-int DoubleRatchet::RatchetDecrypt(const Header &header, int ciphertext,
-                                  int AD) {
-    auto plaintext = TrySkippedMessageKeys(header, ciphertext, AD);
-    if (plaintext) {
+/**
+ * @brief Decrypts message using Double Ratchet algorithm
+ *
+ * @param message encrypted message
+ * @param AD additional data
+ * @return vector decrypted data
+ */
+std::vector<unsigned char> DoubleRatchet::RatchetDecrypt(
+    const Message &message, const std::vector<unsigned char> &AD) {
+    auto header = message.header;
+    auto ciphertext = message.ciphertext;
+    auto hmac = message.hmac;
+
+    key plaintext = TrySkippedMessageKeys(header, ciphertext, AD);
+    if (!plaintext.empty()) {
         return plaintext;
     }
 
@@ -49,36 +84,36 @@ int DoubleRatchet::RatchetDecrypt(const Header &header, int ciphertext,
     }
 
     SkipMessageKeys(header.n);
-    int mk;
-    std::tie(_CKr, mk) = ext.KDF_CK(_CKr);
+    key mk;
+    std::tie(_CKr, mk) = ext.KDF_CK(_CKr, 0x01);
     ++_Nr;
 
     return ext.DECRYPT(mk, ciphertext, ext.CONCAT(AD, header));
 }
 
-int DoubleRatchet::TrySkippedMessageKeys(const Header &header, int ciphertext,
-                                         int AD) {
+key DoubleRatchet::TrySkippedMessageKeys(const Header &header,
+                                         const key &ciphertext, const key &AD) {
     auto found = _MKSKIPPED.find({header.dh, header.n});
     if (found == _MKSKIPPED.end()) {
-        return 0; /* None */
+        return {};
     }
 
-    int mk = found->second;
+    key mk = found->second;
     _MKSKIPPED.erase(found);
 
     return ext.DECRYPT(mk, ciphertext, ext.CONCAT(AD, header));
 }
 
-int DoubleRatchet::SkipMessageKeys(int until) {
+void DoubleRatchet::SkipMessageKeys(size_t until) {
     if (_Nr + MAX_SKIP < until) {
         throw std::runtime_error(
             "skipped more than MAX_SKIP messages in double ratchet");
     }
 
-    if (_CKr) {
+    if (!_CKr.empty()) {
         while (_Nr < until) {
-            int mk;
-            std::tie(_CKr, mk) = ext.KDF_CK(_CKr);
+            key mk;
+            std::tie(_CKr, mk) = ext.KDF_CK(_CKr, 0x01);
             _MKSKIPPED.emplace(std::make_pair(_DHr, _Nr), mk);
             ++_Nr;
         }
@@ -93,6 +128,103 @@ void DoubleRatchet::DHRatchet(const Header &header) {
     std::tie(_RK, _CKr) = ext.KDF_RK(_RK, ext.DH(_DHs, _DHr));
     _DHs = ext.GENERATE_DH();
     std::tie(_RK, _CKs) = ext.KDF_RK(_RK, ext.DH(_DHs, _DHr));
+}
+
+std::vector<unsigned char> DoubleRatchetAdapter::to_vector(std::istream &in,
+                                                           size_t size) {
+    std::vector<unsigned char> result(size);
+    size_t read = read_n(in, result.data(), size);
+    if (read != size) {
+        throw Error("DR: Could not read AEAD encrypted stream.");
+    }
+    return result;
+}
+
+DHPair DoubleRatchetAdapter::GENERATE_DH() const {
+    C25519KeyGen c25519generator;
+    return {c25519generator.getPublicKey(), c25519generator.getPrivateKey()};
+}
+
+key DoubleRatchetAdapter::DH(const DHPair &dh_pair, const key &dh_pub) {
+    C25519 c25519;
+    c25519.setPrivateKey(dh_pair.priv);
+    c25519.setPublicKey(dh_pub);
+    return c25519.getShared();
+}
+
+std::pair<key, key> DoubleRatchetAdapter::KDF_RK(const key &rk,
+                                                 const key &dh_out) {
+    _hkdf_rk.setSalt(to_hex(rk));
+    return split(from_hex(_hkdf_rk.generate(to_hex(dh_out), KDF_RK_SIZE)));
+}
+
+std::pair<key, key> DoubleRatchetAdapter::KDF_CK(const key &ck,
+                                                 unsigned char input) {
+    _hmac.setKey(to_hex(ck));
+    return split(_hmac.generate({input}));
+}
+
+CipherHMAC DoubleRatchetAdapter::ENCRYPT(const key &mk, const key &plaintext,
+                                         const key &associated_data) {
+    auto keys = from_hex(_hkdf_encrypt.generate(to_hex(mk), 60));
+    key encryptionKey, authenticationKey, iv;
+    std::tie(encryptionKey, keys) = split(keys, 16);
+    std::tie(authenticationKey, iv) = split(keys, 32);
+    assert(iv.size() == 12);
+
+    AESGCM gcm;
+    gcm.setKey(to_hex(encryptionKey));
+    gcm.setIv(to_hex(iv));
+
+    std::stringstream out;
+    auto plaintextStream = stream_from_vector(plaintext);
+    auto adStream = stream_from_vector(associated_data);
+    gcm.encryptWithAd(plaintextStream, adStream, out);
+
+    auto ciphertext = vector_from_stream(out);
+
+    auto hmacInput = associated_data;
+    hmacInput.insert(hmacInput.end(), ciphertext.begin(), ciphertext.end());
+
+    return {ciphertext, _hmac.generate(hmacInput)};
+}
+
+std::vector<unsigned char> DoubleRatchetAdapter::DECRYPT(
+    const key &mk, const key &ciphertext, const key &associated_data) {
+    std::vector<unsigned char> keys =
+        from_hex(_hkdf_encrypt.generate(to_hex(mk), 60));
+    key encryptionKey, authenticationKey, iv;
+    std::tie(encryptionKey, keys) = split(keys, 16);
+    std::tie(authenticationKey, iv) = split(keys, 32);
+    assert(iv.size() == 12);
+
+    AESGCM gcm;
+    gcm.setKey(to_hex(encryptionKey));
+    gcm.setIv(to_hex(iv));
+
+    std::stringstream out;
+    auto ciphertextStream = stream_from_vector(ciphertext);
+    auto adStream = stream_from_vector(associated_data);
+    gcm.decryptWithAd(ciphertextStream, adStream, out);
+
+    // todo check hmac
+    auto plaintext = vector_from_stream(out);
+    return plaintext;
+}
+
+Header DoubleRatchetAdapter::HEADER(const DHPair &dh_pair, size_t pn,
+                                    size_t n) {
+    return Header(dh_pair.pub, pn, n);
+}
+
+std::vector<unsigned char> DoubleRatchetAdapter::CONCAT(const key &ad,
+                                                        const Header &header) {
+    auto result = ad;
+    auto serializedHeader = header.serialize();
+    result.insert(result.end(), serializedHeader.begin(),
+                  serializedHeader.end());
+
+    return result;
 }
 
 }    // namespace helloworld
