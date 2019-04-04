@@ -56,6 +56,10 @@ std::vector<unsigned char> C25519KeyGen::getPublicKey() const {
     return _buffer_public;
 }
 
+std::vector<unsigned char> C25519KeyGen::getPrivateKey() const {
+    return _buffer_private;
+}
+
 C25519::C25519() = default;
 
 void C25519::setPublicKey(const std::vector<unsigned char> &key) {

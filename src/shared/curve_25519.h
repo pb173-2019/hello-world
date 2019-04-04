@@ -56,6 +56,8 @@ public:
 
     std::vector<unsigned char> getPublicKey() const override;
 
+    std::vector<unsigned char> getPrivateKey() const;
+
     static std::string getHexPwd(const std::string &pwd) {
         return SHA512{}.getHex(pwd).substr(0, 32);
     }
@@ -96,6 +98,11 @@ public:
      */
     void setPrivateKey(const C25519KeyGen &keys) {
         _buffer_private = keys._buffer_private;
+        _setup(KeyType::PRIVATE_KEY);
+    }
+
+    void setPrivateKey(const std::vector<unsigned char> &key) {
+        _buffer_private = key;
         _setup(KeyType::PRIVATE_KEY);
     }
 

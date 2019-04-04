@@ -12,16 +12,17 @@
 #ifndef HELLOWORLD_SHARED_UTILS_H_
 #define HELLOWORLD_SHARED_UTILS_H_
 
-#include <vector>
+#include <mbedtls/include/mbedtls/bignum.h>
 #include <cstring>
 #include <iostream>
-#include <mbedtls/include/mbedtls/bignum.h>
+#include <sstream>
+#include <vector>
 
 #include "serializable_error.h"
 
 namespace helloworld {
 
-template<typename returnType, typename ... Args>
+template <typename returnType, typename... Args>
 struct Callable {
     virtual ~Callable() = default;
 
@@ -30,7 +31,7 @@ struct Callable {
      * @param args argumens for method
      * @return <returnType> type value
      */
-    virtual returnType callback(Args ... args) = 0;
+    virtual returnType callback(Args... args) = 0;
 
     /**
      * Allows call on class pointer
@@ -45,11 +46,9 @@ struct Callable {
 
 class safe_mpi {
     mbedtls_mpi obj;
-public:
 
-    safe_mpi() {
-        mbedtls_mpi_init(&obj);
-    }
+   public:
+    safe_mpi() { mbedtls_mpi_init(&obj); }
 
     void reset() {
         mbedtls_mpi_free(&obj);
@@ -60,22 +59,20 @@ public:
 
     safe_mpi &operator=(const safe_mpi &o) = default;
 
-    mbedtls_mpi *operator&() {
-        return &obj;
-    }
+    mbedtls_mpi *operator&() { return &obj; }
 
-    ~safe_mpi() {
-        mbedtls_mpi_free(&obj);
-    }
+    ~safe_mpi() { mbedtls_mpi_free(&obj); }
 
-    static void mpiToByteArray(const mbedtls_mpi *bigInt, unsigned char *buffer, size_t len) {
-        //big integer saved as int.n times value on int.p pointer
+    static void mpiToByteArray(const mbedtls_mpi *bigInt, unsigned char *buffer,
+                               size_t len) {
+        // big integer saved as int.n times value on int.p pointer
         if (mbedtls_mpi_write_binary(bigInt, buffer, len) != 0) {
             throw Error("Failed to write big integer value into buffer.");
         }
     }
 
-    static void mpiFromByteArray(mbedtls_mpi *bigInt, const unsigned char *buffer, size_t len) {
+    static void mpiFromByteArray(mbedtls_mpi *bigInt,
+                                 const unsigned char *buffer, size_t len) {
         if (mbedtls_mpi_read_binary(bigInt, buffer, len) != 0) {
             throw Error("Failed to read big integer value from buffer.");
         }
@@ -83,7 +80,6 @@ public:
 };
 
 std::ostream &operator<<(std::ostream &out, safe_mpi &mpi);
-
 
 /**
  * @brief Compute file size
@@ -147,11 +143,34 @@ std::string to_string(const std::vector<unsigned char> &input);
  * @param array pointer to array first element to rewrite (format)
  * @param length length of array in bytes
  */
-template<typename T>
+template <typename T>
 void clear(T *array, size_t length) {
     std::memset(array, 0, length * sizeof(T));
 }
 
+/**
+ * @brief Splits vector into two vector of half the size of the original vector
+ *
+ * @param vector vector
+ * @return std::pair<vector, vector> pair of vectors
+ */
+template <class T>
+std::pair<std::vector<T>, std::vector<T>> split(std::vector<T> first, size_t index) {
+    std::vector<T> second(first.begin() + index, first.end());
+    first.resize(first.size() - second.size());
+
+    return std::make_pair(first, second);
 }
 
-#endif //HELLOWORLD_SHARED_UTILS_H_
+template <class T>
+std::pair<std::vector<T>, std::vector<T>> split(const std::vector<T> &input) {
+    return split(input, input.size() / 2);
+}
+
+std::stringstream stream_from_vector(const std::vector<unsigned char> &vector);
+
+std::vector<unsigned char> vector_from_stream(std::istream &stream);
+
+}    // namespace helloworld
+
+#endif    // HELLOWORLD_SHARED_UTILS_H_

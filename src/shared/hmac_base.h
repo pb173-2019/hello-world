@@ -30,6 +30,8 @@ namespace helloworld {
 
         hmac_base() = default;
 
+        hmac_base(std::vector<unsigned char> key) : key_(std::move(key)) {}
+
         // Copying is not available
         hmac_base(const hmac &) = delete;
 

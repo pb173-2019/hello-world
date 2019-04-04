@@ -101,4 +101,20 @@ std::string to_string(const std::vector<unsigned char> &input) {
     return std::string(input.begin(), input.end());
 }
 
+std::stringstream stream_from_vector(const std::vector<unsigned char> &vector) {
+    std::stringstream stream;
+    write_n(stream, vector);
+    return stream;
+}
+
+std::vector<unsigned char> vector_from_stream(std::istream &stream) {
+    size_t size = getSize(stream);
+    std::vector<unsigned char> result(size);
+    size_t read = read_n(stream, result.data(), size);
+    if (read != size) {
+        throw Error("Could not read stream.");
+    }
+    return result;
+}
+
 } //namespace helloworld
