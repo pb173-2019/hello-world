@@ -27,8 +27,17 @@ namespace helloworld {
 using key = std::vector<unsigned char>;
 
 struct Header : public Serializable<Header> {
+    /**
+     * @brief DH ratchet public key
+     */
     key dh;
+    /**
+     * @brief previous chain length
+     */
     size_t pn;
+    /**
+     * @brief message number
+     */
     size_t n;
 
     Header() = default;

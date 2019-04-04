@@ -49,13 +49,8 @@ CipherHMAC DoubleRatchetAdapter::ENCRYPT(const key &mk, const key &plaintext,
     AESGCM gcm;
     gcm.setKey(to_hex(encryptionKey));
     gcm.setIv(to_hex(iv));
-
-    std::stringstream out;
-    auto plaintextStream = stream_from_vector(plaintext);
-    auto adStream = stream_from_vector(associated_data);
-    gcm.encryptWithAd(plaintextStream, adStream, out);
-
-    auto ciphertext = vector_from_stream(out);
+    std::vector<unsigned char> ciphertext;
+    gcm.encryptWithAd(plaintext, associated_data, ciphertext);
 
     auto hmacInput = associated_data;
     hmacInput.insert(hmacInput.end(), ciphertext.begin(), ciphertext.end());
@@ -76,13 +71,10 @@ std::vector<unsigned char> DoubleRatchetAdapter::DECRYPT(
     gcm.setKey(to_hex(encryptionKey));
     gcm.setIv(to_hex(iv));
 
-    std::stringstream out;
-    auto ciphertextStream = stream_from_vector(ciphertext);
-    auto adStream = stream_from_vector(associated_data);
-    gcm.decryptWithAd(ciphertextStream, adStream, out);
+    std::vector<unsigned char> plaintext;
+    gcm.decryptWithAd(ciphertext, associated_data, plaintext);
 
     // todo check hmac
-    auto plaintext = vector_from_stream(out);
     return plaintext;
 }
 
