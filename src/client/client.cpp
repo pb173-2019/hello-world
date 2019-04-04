@@ -6,8 +6,6 @@
 
 #include "../shared/responses.h"
 #include "../shared/curve_25519.h"
-#include "../shared/X3DH.h"
-
 
 namespace helloworld {
 
@@ -17,6 +15,7 @@ Client::Client(std::string username,
         : _username(std::move(username)),
           _password(password),
           _sessionKey(to_hex(Random().get(SYMMETRIC_KEY_SIZE))),
+          _x3dh(std::make_unique<X3DH>(_username, _password)),
           _transmission(std::make_unique<ClientFiles>(this, _username)) {
     _rsa.loadPrivateKey(clientPrivKeyFilename, password);
 }
@@ -145,6 +144,7 @@ KeyBundle<C25519> Client::updateKeys() {
     }
 
     newKeybundle.generateTimeStamp();
+    _x3dh->setTimestamp(newKeybundle.timestamp);
     return std::move(newKeybundle);
 }
 
@@ -186,11 +186,10 @@ void Client::sendInitialMessage(uint32_t receiverId, const Response& response) {
     std::string time = std::ctime(&now);
     SendData toSend(time, _username, data);
 
-    X3DH protocol;
     X3DHRequest<C25519> request;
 
     //todo use ratchet key
-    std::string key = protocol.out(_username, _password, bundle, toSend, request);
+    std::string key = _x3dh->out(bundle, toSend, request);
 
     sendRequest({{Request::Type::SEND, 0, receiverId}, request.serialize()});
     remove(file.c_str());
@@ -206,11 +205,10 @@ void Client::receiveData(const Response& response) {
 }
 
 SendData Client::receiveInitialMessage(const Response& response) {
-    X3DH protocol;
     SendData received;
 
     //todo use ratchet key
-    std::string key = protocol.in(_username, _password, received, response);
+    std::string key = _x3dh->in(received, response);
     return received;
 }
 

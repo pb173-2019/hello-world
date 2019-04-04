@@ -17,48 +17,48 @@
 
 namespace helloworld {
 
-    template <typename Asymmetric>
-    struct KeyBundle : Serializable<KeyBundle<Asymmetric> > {
-        static constexpr int key_len = Asymmetric::KEY_BYTES_LEN;
-        static constexpr int signiture_len = Asymmetric::SIGN_BYTES_LEN;
+template<typename Asymmetric>
+struct KeyBundle : Serializable<KeyBundle<Asymmetric> > {
+    static constexpr int key_len = Asymmetric::KEY_BYTES_LEN;
+    static constexpr int signiture_len = Asymmetric::SIGN_BYTES_LEN;
 
-        // can be changed to fixed storage container for length checking in the future
-        using key_t = std::vector<unsigned char>;
-        using signiture_t = std::vector<unsigned char>;
+    // can be changed to fixed storage container for length checking in the future
+    using key_t = std::vector<unsigned char>;
+    using signiture_t = std::vector<unsigned char>;
 
-        uint64_t timestamp;
-        key_t identityKey;
-        key_t preKey;
-        signiture_t preKeySingiture;
-        std::vector<key_t > oneTimeKeys;
+    uint64_t timestamp;
+    key_t identityKey;
+    key_t preKey;
+    signiture_t preKeySingiture;
+    std::vector<key_t> oneTimeKeys;
 
-        void generateTimeStamp() {
-            std::time_t t = std::time(nullptr);
-            std::tm *lt = std::localtime(&t);
-            timestamp = lt->tm_year * 366 * 24 + lt->tm_yday * 24 + lt->tm_hour;
-        }
+    void generateTimeStamp() {
+        std::time_t t = std::time(nullptr);
+        std::tm *lt = std::localtime(&t);
+        timestamp = lt->tm_year * 366 * 24 + lt->tm_yday * 24 + lt->tm_hour;
+    }
 
-        std::vector<unsigned char> serialize() const override {
-            std::vector<unsigned char> result;
-            Serializable<KeyBundle<Asymmetric> >::addNumeric(result, timestamp);
-            Serializable<KeyBundle<Asymmetric> >::addContainer(result, identityKey);
-            Serializable<KeyBundle<Asymmetric> >::addContainer(result, preKey);
-            Serializable<KeyBundle<Asymmetric> >::addContainer(result, preKeySingiture);
-            Serializable<KeyBundle<Asymmetric> >::addNestedContainer(result, oneTimeKeys);
-            return result;
-        }
+    std::vector<unsigned char> serialize() const override {
+        std::vector<unsigned char> result;
+        Serializable<KeyBundle<Asymmetric> >::addNumeric(result, timestamp);
+        Serializable<KeyBundle<Asymmetric> >::addContainer(result, identityKey);
+        Serializable<KeyBundle<Asymmetric> >::addContainer(result, preKey);
+        Serializable<KeyBundle<Asymmetric> >::addContainer(result, preKeySingiture);
+        Serializable<KeyBundle<Asymmetric> >::addNestedContainer(result, oneTimeKeys);
+        return result;
+    }
 
-        static KeyBundle deserialize(const std::vector<unsigned char >& data) {
-            KeyBundle result;
-            uint64_t offset = 0;
-            offset += Serializable<KeyBundle<Asymmetric> >::getNumeric(data, offset, result.timestamp);
-            offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.identityKey);
-            offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.preKey);
-            offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.preKeySingiture);
-            offset += Serializable<KeyBundle<Asymmetric> >::getNestedContainer(data, offset, result.oneTimeKeys);
-            return result;
-        }
-    };
+    static KeyBundle deserialize(const std::vector<unsigned char> &data) {
+        KeyBundle result;
+        uint64_t offset = 0;
+        offset += Serializable<KeyBundle<Asymmetric> >::getNumeric(data, offset, result.timestamp);
+        offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.identityKey);
+        offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.preKey);
+        offset += Serializable<KeyBundle<Asymmetric> >::getContainer(data, offset, result.preKeySingiture);
+        offset += Serializable<KeyBundle<Asymmetric> >::getNestedContainer(data, offset, result.oneTimeKeys);
+        return result;
+    }
+};
 
 
 struct AuthenticateRequest : public Serializable<AuthenticateRequest> {
@@ -207,43 +207,46 @@ struct SendData : public Serializable<SendData> {
     }
 };
 
-    template <typename Asymmetric>
-    struct X3DHRequest : public Serializable<X3DHRequest<Asymmetric>> {
-        using key_t = typename KeyBundle<Asymmetric>::key_t;
+template<typename Asymmetric>
+struct X3DHRequest : public Serializable<X3DHRequest<Asymmetric>> {
+    using key_t = typename KeyBundle<Asymmetric>::key_t;
 
-        static constexpr unsigned char OP_KEY_NONE = 0x00;
-        static constexpr unsigned char OP_KEY_USED = 0x01;
+    static constexpr unsigned char OP_KEY_NONE = 0x00;
+    static constexpr unsigned char OP_KEY_USED = 0x01;
 
-        key_t senderIdPubKey;
-        key_t senderEphermalPubKey;
-        //todo add key bundle version identifier
-        unsigned char opKeyUsed = OP_KEY_NONE;
-        size_t opKeyId;
-        std::vector<unsigned char> AEADenrypted;
+    uint64_t timestamp;
 
-        X3DHRequest() = default;
+    key_t senderIdPubKey;
+    key_t senderEphermalPubKey;
+    unsigned char opKeyUsed = OP_KEY_NONE;
+    size_t opKeyId;
+    std::vector<unsigned char> AEADenrypted;
 
-        std::vector<unsigned char> serialize() const override {
-            std::vector<unsigned char> result;
-            Serializable<X3DHRequest<Asymmetric> >::addContainer(result, senderIdPubKey);
-            Serializable<X3DHRequest<Asymmetric> >::addContainer(result, senderEphermalPubKey);
-            Serializable<X3DHRequest<Asymmetric> >::addNumeric(result, opKeyUsed);
-            Serializable<X3DHRequest<Asymmetric> >::addNumeric(result, opKeyId);
-            Serializable<X3DHRequest<Asymmetric> >::addContainer(result, AEADenrypted);
-            return result;
-        }
+    X3DHRequest() = default;
 
-        static X3DHRequest deserialize(const std::vector<unsigned char> &data) {
-            X3DHRequest result;
-            uint64_t offset = 0;
-            offset += Serializable<X3DHRequest<Asymmetric> >::getContainer(data, offset, result.senderIdPubKey);
-            offset += Serializable<X3DHRequest<Asymmetric> >::getContainer(data, offset, result.senderEphermalPubKey);
-            offset += Serializable<X3DHRequest<Asymmetric> >::getNumeric(data, offset, result.opKeyUsed);
-            offset += Serializable<X3DHRequest<Asymmetric> >::getNumeric(data, offset, result.opKeyId);
-            offset += Serializable<X3DHRequest<Asymmetric> >::getContainer(data, offset, result.AEADenrypted);
-            return result;
-        }
-    };
+    std::vector<unsigned char> serialize() const override {
+        std::vector<unsigned char> result;
+        Serializable<X3DHRequest<Asymmetric> >::addNumeric(result, timestamp);
+        Serializable<X3DHRequest<Asymmetric> >::addContainer(result, senderIdPubKey);
+        Serializable<X3DHRequest<Asymmetric> >::addContainer(result, senderEphermalPubKey);
+        Serializable<X3DHRequest<Asymmetric> >::addNumeric(result, opKeyUsed);
+        Serializable<X3DHRequest<Asymmetric> >::addNumeric(result, opKeyId);
+        Serializable<X3DHRequest<Asymmetric> >::addContainer(result, AEADenrypted);
+        return result;
+    }
+
+    static X3DHRequest deserialize(const std::vector<unsigned char> &data) {
+        X3DHRequest result;
+        uint64_t offset = 0;
+        offset += Serializable<X3DHRequest<Asymmetric> >::getNumeric(data, offset, result.timestamp);
+        offset += Serializable<X3DHRequest<Asymmetric> >::getContainer(data, offset, result.senderIdPubKey);
+        offset += Serializable<X3DHRequest<Asymmetric> >::getContainer(data, offset, result.senderEphermalPubKey);
+        offset += Serializable<X3DHRequest<Asymmetric> >::getNumeric(data, offset, result.opKeyUsed);
+        offset += Serializable<X3DHRequest<Asymmetric> >::getNumeric(data, offset, result.opKeyId);
+        offset += Serializable<X3DHRequest<Asymmetric> >::getContainer(data, offset, result.AEADenrypted);
+        return result;
+    }
+};
 
 }    // namespace helloworld
 
