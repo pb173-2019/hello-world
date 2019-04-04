@@ -9,12 +9,15 @@ void appendVector(std::vector<unsigned char>& to, const std::vector<unsigned cha
 
 using namespace helloworld;
 
-TEST_CASE("X3DH process test") {
+TEST_CASE("X3DH process test one-time keys present") {
     //X3DH assumes the files with public key saved in identityKey.key, identityKey.pub
 
+    std::string alice = "alice";
+    std::string alice_pwd = "1234";
+
     C25519KeyGen keyGen; //alice's identity keys
-    keyGen.savePrivateKeyPassword("alice" + idC25519priv, "1234");
-    keyGen.savePublicKey("alice" + idC25519pub);
+    keyGen.savePrivateKeyPassword(alice + idC25519priv, alice_pwd);
+    keyGen.savePublicKey(alice + idC25519pub);
 
     C25519KeyGen bobIdentity;
     C25519KeyGen bobPreKey;
@@ -25,6 +28,7 @@ TEST_CASE("X3DH process test") {
     identity.setPrivateKey(bobIdentity);
 
     KeyBundle<C25519> bundle;
+    bundle.generateTimeStamp();
     bundle.identityKey = bobIdentity.getPublicKey();
     bundle.preKey = bobPreKey.getPublicKey();
     bundle.preKeySingiture = identity.sign(bundle.preKey);
@@ -38,8 +42,9 @@ TEST_CASE("X3DH process test") {
     SendData toSend{"1.3.2013", "user", {1, 2, 3, 4}};
     SendData transfered;
 
-    X3DH x3dh;
-    std::string shared = x3dh.out("alice", "1234", bundle, toSend, toFill);
+    X3DH x3dh_alice(alice, alice_pwd);
+    //setTimestamp() not needed in x3dh_alice as alice is not using .in()
+    std::string shared = x3dh_alice.out(bundle, toSend, toFill);
 
     std::cout << shared << "\n";
 
@@ -92,25 +97,167 @@ TEST_CASE("X3DH process test") {
         transfered = SendData::deserialize(resultBytes);
     }
 
-    SECTION("ACTUAL receiver") {
+    SECTION("ACTUAL receiver current pwdSet") {
+        std::string bob = "bob";
+        std::string bob_pwd = "bob je svaloun";
+
         Response r{{Response::Type::RECEIVE, 0, 0}, toFill.serialize()};
 
-        bobIdentity.savePublicKey("bob" + idC25519pub);
-        bobIdentity.savePrivateKeyPassword("bob" + idC25519priv, "1234");
+        bobIdentity.savePublicKey(bob + idC25519pub);
+        bobIdentity.savePrivateKeyPassword(bob + idC25519priv, bob_pwd);
 
-        bobPreKey.savePublicKey("bob" + preC25519pub);
-        bobPreKey.savePrivateKeyPassword("bob" + preC25519priv, "1234");
+        bobPreKey.savePublicKey(bob + preC25519pub);
+        bobPreKey.savePrivateKeyPassword(bob + preC25519priv, bob_pwd);
 
-        bobOneTime2.savePublicKey("bob" + std::to_string(toFill.opKeyId) + oneTimeC25519pub);
-        bobOneTime2.savePrivateKeyPassword("bob" + std::to_string(toFill.opKeyId) + oneTimeC25519priv, "1234");
+        bobOneTime2.savePublicKey(bob + std::to_string(toFill.opKeyId) + oneTimeC25519pub);
+        bobOneTime2.savePrivateKeyPassword(bob + std::to_string(toFill.opKeyId) + oneTimeC25519priv, bob_pwd);
 
-        CHECK(x3dh.in("bob", "1234", transfered, r) == shared);
+        X3DH x3dh_bob(bob, bob_pwd);
+        x3dh_bob.setTimestamp(bundle.timestamp);
+        CHECK(x3dh_bob.in(transfered, r) == shared);
+    }
+
+    SECTION("ACTUAL receiver old pwdSet") {
+        std::string bob = "bob";
+        std::string bob_pwd = "bob je svaloun";
+
+        Response r{{Response::Type::RECEIVE, 0, 0}, toFill.serialize()};
+
+        bobIdentity.savePublicKey(bob + idC25519pub + ".old");
+        bobIdentity.savePrivateKeyPassword(bob + idC25519priv + ".old", bob_pwd);
+
+        bobPreKey.savePublicKey(bob + preC25519pub + ".old");
+        bobPreKey.savePrivateKeyPassword(bob + preC25519priv + ".old", bob_pwd);
+
+        bobOneTime2.savePublicKey(bob + std::to_string(toFill.opKeyId) + oneTimeC25519pub + ".old");
+        bobOneTime2.savePrivateKeyPassword(bob + std::to_string(toFill.opKeyId) + oneTimeC25519priv + ".old", bob_pwd);
+
+        X3DH x3dh_bob(bob, bob_pwd);
+        x3dh_bob.setTimestamp(bundle.timestamp + 1); //different timestamp!
+        CHECK(x3dh_bob.in(transfered, r) == shared);
     }
 
     CHECK(transfered.from == toSend.from);
     CHECK(transfered.data == toSend.data);
     CHECK(transfered.date == toSend.date);
 }
+
+TEST_CASE("X3DH process test no one time keys") {
+    //X3DH assumes the files with public key saved in identityKey.key, identityKey.pub
+
+    std::string alice = "alice";
+    std::string alice_pwd = "1234";
+
+    C25519KeyGen keyGen; //alice's identity keys
+    keyGen.savePrivateKeyPassword(alice + idC25519priv, alice_pwd);
+    keyGen.savePublicKey(alice + idC25519pub);
+
+    C25519KeyGen bobIdentity;
+    C25519KeyGen bobPreKey;
+
+    C25519 identity;
+    identity.setPrivateKey(bobIdentity);
+
+    KeyBundle<C25519> bundle;
+    bundle.generateTimeStamp();
+    bundle.identityKey = bobIdentity.getPublicKey();
+    bundle.preKey = bobPreKey.getPublicKey();
+    bundle.preKeySingiture = identity.sign(bundle.preKey);
+
+    X3DHRequest<C25519> toFill;
+
+    SendData toSend{"1.3.2013", "user", {1, 2, 3, 4}};
+    SendData transfered;
+
+    X3DH x3dh_alice(alice, alice_pwd);
+    //setTimestamp() not needed in x3dh_alice as alice is not using .in()
+    std::string shared = x3dh_alice.out(bundle, toSend, toFill);
+
+    std::cout << shared << "\n";
+
+    SECTION("SIMULATE receiver") {
+        CHECK(shared.size() == 32);
+        REQUIRE(toFill.opKeyUsed == 0x00);
+
+        std::vector <unsigned char> dhs;
+
+        // DH1 step
+        C25519 dhcurve;
+        dhcurve.setPrivateKey(bobPreKey);
+        dhcurve.setPublicKey(toFill.senderIdPubKey);
+        dhs = dhcurve.getShared();
+
+        //DH2 step
+        identity.setPublicKey(toFill.senderEphermalPubKey);
+        appendVector(dhs, identity.getShared());
+
+        //DH3
+        dhcurve.setPublicKey(toFill.senderEphermalPubKey);
+        appendVector(dhs, dhcurve.getShared());
+
+        hkdf kdf;
+        std::string sk = kdf.generate(to_hex(dhs), 16);
+
+        CHECK(sk == shared);
+
+        AESGCM gcm;
+        gcm.setKey(sk);
+        gcm.setIv(to_hex(toFill.senderEphermalPubKey).substr(0, 24));
+
+        std::stringstream toDecrypt{};
+        std::stringstream result{};
+        std::stringstream ad{to_hex(toFill.senderIdPubKey) + to_hex(bundle.identityKey)};
+        write_n(toDecrypt, toFill.AEADenrypted);
+
+        gcm.decryptWithAd(toDecrypt, ad, result);
+
+        size_t size = getSize(result);
+        std::vector<unsigned char> resultBytes(size);
+        size_t read = read_n(result, resultBytes.data(), size);
+        CHECK(read == size);
+
+        transfered = SendData::deserialize(resultBytes);
+    }
+
+    SECTION("ACTUAL receiver current pwdSet") {
+        std::string bob = "bob";
+        std::string bob_pwd = "bob je svaloun";
+
+        Response r{{Response::Type::RECEIVE, 0, 0}, toFill.serialize()};
+
+        bobIdentity.savePublicKey(bob + idC25519pub);
+        bobIdentity.savePrivateKeyPassword(bob + idC25519priv, bob_pwd);
+
+        bobPreKey.savePublicKey(bob + preC25519pub);
+        bobPreKey.savePrivateKeyPassword(bob + preC25519priv, bob_pwd);
+
+        X3DH x3dh_bob(bob, bob_pwd);
+        x3dh_bob.setTimestamp(bundle.timestamp);
+        CHECK(x3dh_bob.in(transfered, r) == shared);
+    }
+
+    SECTION("ACTUAL receiver old pwdSet") {
+        std::string bob = "bob";
+        std::string bob_pwd = "bob je svaloun";
+
+        Response r{{Response::Type::RECEIVE, 0, 0}, toFill.serialize()};
+
+        bobIdentity.savePublicKey(bob + idC25519pub + ".old");
+        bobIdentity.savePrivateKeyPassword(bob + idC25519priv + ".old", bob_pwd);
+
+        bobPreKey.savePublicKey(bob + preC25519pub + ".old");
+        bobPreKey.savePrivateKeyPassword(bob + preC25519priv + ".old", bob_pwd);
+
+        X3DH x3dh_bob(bob, bob_pwd);
+        x3dh_bob.setTimestamp(bundle.timestamp + 1); //different timestamp!
+        CHECK(x3dh_bob.in(transfered, r) == shared);
+    }
+
+    CHECK(transfered.from == toSend.from);
+    CHECK(transfered.data == toSend.data);
+    CHECK(transfered.date == toSend.date);
+}
+
 
 
 

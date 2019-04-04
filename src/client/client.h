@@ -20,7 +20,7 @@
 #include "../shared/request_response.h"
 #include "../shared/user_data.h"
 #include "../shared/rsa_2048.h"
-#include "../shared/curve_25519.h"
+#include "../shared/X3DH.h"
 #include "../shared/requests.h"
 #include "secure_channel.h"
 #include "transmission_file_client.h"
@@ -165,30 +165,54 @@ class Client : public Callable<void, std::stringstream &&> {
 
 private:
     const std::string _username;
-    std::string _password;
+    const std::string _password;
     uint32_t _userId = 0;
 
     //todo think of better way to get incomming message
     SendData _incomming;
+    std::map<uint32_t, std::string> _userList;
 
     //todo move to connection manager, now its only sent to manager anyway
     const std::string _sessionKey;
+    RSA2048 _rsa;
+    std::unique_ptr<X3DH> _x3dh;
     std::unique_ptr<DoubleRatchet> _usersSession;
     std::unique_ptr<UserTransmissionManager> _transmission;
     std::unique_ptr<ClientToServerManager> _connection = nullptr;
 
-    std::map<uint32_t, std::string> _userList;
-    RSA2048 _rsa;
-
-
+    /**
+     * Generates new keyset and possibly moves the old set into
+     * files that equals with filename to previous files except .old add-on
+     *
+     * @return new keyBundle for X3DH
+     */
     KeyBundle<C25519> updateKeys();
 
-    Request completeAuth(const std::vector<unsigned char> &secret,
-                         Request::Type type);
+    /**
+     * Performs server challenge
+     * @param secret secret to prove the identity over
+     * @param type type of authentication (on registration / login)
+     * @return request to server to verify the challenge sent in this request payload
+     */
+    Request completeAuth(const std::vector<unsigned char> &secret, Request::Type type);
+
+    /**
+     * Generic request sender
+     * @param request request to send
+     */
     void sendRequest(const Request &request);
 
+    /**
+     * Obtains UserList response and parses it
+     * @param response response obtained on get-users like methods
+     */
     void parseUsers(const Response& response);
 
+    /**
+     * Generic request sender, sends request with header only
+     *
+     * @param type request type
+     */
     void sendGenericRequest(Request::Type type);
 };
 
