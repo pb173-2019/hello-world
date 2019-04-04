@@ -20,12 +20,20 @@
 namespace helloworld {
 
 class AESGCM : public SymmetricCipherBase<MBEDTLS_CIPHER_AES_128_GCM, 16, 12> {
+    static constexpr size_t TAG_LEN = 16;
     /**
      * @brief Processes additional data
      *
      * @param ad additional data stream to process
      */
     void _additional(std::istream &ad);
+
+    /**
+     * @brief Processes additional data
+     *
+     * @param ad additional data vector to process
+     */
+    void _additional(const std::vector<unsigned char> &ad);
 
 public:
     AESGCM() {
@@ -57,6 +65,17 @@ public:
     void encryptWithAd(std::istream &in, std::istream &ad, std::ostream &out);
 
     /**
+     * @brief Encrypts and authenticates with additional data (additional data are not written into output)
+     *
+     * @param in input vector
+     * @param ad additional data vector
+     * @param out output vector
+     */
+    void encryptWithAd(const std::vector<unsigned char> &in, const std::vector<unsigned char> &ad, std::vector<unsigned char> &out);
+
+
+
+    /**
      * @brief Decrypts and authenticates
      *
      * @param in input stream
@@ -72,6 +91,15 @@ public:
      * @param out output stream
      */
     void decryptWithAd(std::istream &in, std::istream &ad, std::ostream &out);
+
+    /**
+    * @brief Decrypts and authenticates with additional data (additional data must be supplied separately)
+     *
+     * @param in input vector
+     * @param ad additional data vector
+     * @param out output vector
+     */
+    void decryptWithAd(const std::vector<unsigned char> &in, const std::vector<unsigned char> &ad, std::vector<unsigned char> &out);
 };
 
 } //namespace helloworld
