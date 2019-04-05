@@ -33,23 +33,34 @@ struct UserData : public Serializable<UserData> {
              sessionKey(std::move(sessionKey)),
              publicKey(std::move(publicKey)) {}
 
-    std::vector<unsigned char> serialize() const override {
-        std::vector<unsigned char> result;
-        Serializable::addNumeric<uint32_t>(result, id);
-        Serializable::addContainer<std::string>(result, name);
-        Serializable::addContainer<std::string>(result, sessionKey);
-        Serializable::addContainer<std::vector<unsigned char>>(result, publicKey);
+    serialize::structure& serialize(serialize::structure& result) const override {
+        serialize::serialize(id, result);
+        serialize::serialize(name, result);
+        serialize::serialize(sessionKey, result);
+        serialize::serialize(publicKey, result);
+
         return result;
     }
+    serialize::structure serialize() const override {
+        serialize::structure result;
+        return serialize(result);
+    }
 
-    static UserData deserialize(const std::vector<unsigned char>& data) {
+    static UserData deserialize(const serialize::structure  &data, uint64_t& from) {
         UserData userData;
-        uint64_t position = 0;
-        position += Serializable::getNumeric<uint32_t>(data, 0, userData.id);
-        position += Serializable::getContainer<std::string>(data, position, userData.name);
-        position += Serializable::getContainer<std::string>(data, position, userData.sessionKey);
-        Serializable::getContainer<std::vector<unsigned char>>(data, position, userData.publicKey);
+        userData.id =
+                serialize::deserialize<decltype(userData.id)>(data, from);
+        userData.name =
+                serialize::deserialize<decltype(userData.name)>(data, from);
+        userData.sessionKey =
+                serialize::deserialize<decltype(userData.sessionKey)>(data, from);
+        userData.publicKey =
+                serialize::deserialize<decltype(userData.publicKey)>(data, from);
         return userData;
+    }
+    static UserData deserialize(const serialize::structure& data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
     }
 };
 

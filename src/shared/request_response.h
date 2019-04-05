@@ -42,7 +42,7 @@ struct Request {
         REMOVE, SEND, GET_ONLINE, FIND_USERS, KEY_BUNDLE_UPDATE, GET_RECEIVERS_BUNDLE
     };
 
-    struct Header : Serializable<Request::Header> {
+    struct Header : public Serializable<Request::Header> {
         Type type{};
         uint32_t messageNumber{};
         uint32_t userId{};
@@ -52,9 +52,17 @@ struct Request {
         Header(Type type, uint32_t messageNumber, uint32_t userId)
                 : type(type), messageNumber(messageNumber), userId(userId) {}
 
-        std::vector<unsigned char> serialize() const override;
+        serialize::structure& serialize(serialize::structure& result) const override;
+        serialize::structure serialize() const override {
+            serialize::structure result;
+            return serialize(result);
+        }
 
-        static Request::Header deserialize(const std::vector<unsigned char> &data);
+        static Header deserialize(const serialize::structure &data, uint64_t& from);
+        static Header deserialize(const std::vector<unsigned char> &data) {
+            uint64_t from = 0;
+            return deserialize(data, from);
+        };
     };
 
     Header header;
@@ -81,7 +89,7 @@ struct Response {
         FAILED_TO_UPDATE_BUNDLE
     };
 
-    struct Header : Serializable<Response::Header> {
+    struct Header : public Serializable<Response::Header> {
         Type type{};
         uint32_t messageNumber{};
         uint32_t userId{};
@@ -91,9 +99,17 @@ struct Response {
         Header(Type type, uint32_t messageNumber, uint32_t userId)
                 : type(type), messageNumber(messageNumber), userId(userId) {}
 
-        std::vector<unsigned char> serialize() const override;
+        serialize::structure& serialize(serialize::structure& result) const override;
+        serialize::structure serialize() const override {
+            serialize::structure result;
+            return serialize(result);
+        }
 
-        static Response::Header deserialize(const std::vector<unsigned char> &data);
+        static Header deserialize(const serialize::structure &data, uint64_t& from);
+        static Header deserialize(const std::vector<unsigned char> &data) {
+            uint64_t from = 0;
+            return deserialize(data, from);
+        };
     };
 
     Header header;
