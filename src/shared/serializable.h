@@ -27,6 +27,7 @@ namespace helloworld {
         template<typename T, typename = void>
         struct is_container : public std::false_type {};
 
+        // std::void_t availible since c++17
         template<typename ... Args>
         struct container_helper {};
 
@@ -44,13 +45,41 @@ namespace helloworld {
 
     } // detail
 
+    /**
+     *  Interface for serializable objects
+     * @tparam Obj inheritting class
+     */
     template<typename Obj>
     struct Serializable {
+        /**
+         * serializes object
+         * @param result where serialized object will be stored
+         * @return reference to serialized object
+         */
         virtual serialize::structure& serialize(serialize::structure& result) const = 0;
-        virtual serialize::structure serialize() const = 0;
+
+        /**
+         * deseriliazes object from byte vector
+         * @param data containing object
+         * @param from position, where object starts (in data)
+         * @return deserialized objec
+         */
         static Obj deserialize(const serialize::structure& data, uint64_t& from) {
             return Obj::deserialize(data, from);
         }
+
+        /**
+         * seriliazes object to byte vector
+         * (mainly for backward compatibility)
+         * @return  serialized object
+         */
+        virtual serialize::structure serialize() const = 0;
+        /**
+         * deseriliazes object from byte vector
+         * (mainly for backward compatibility)
+         * @param data containing object
+         * @return deserialized object
+         */
         static Obj deserialize(const serialize::structure& data) {
             uint64_t from = 0;
             return Obj::deserialize(data, from);
@@ -60,17 +89,35 @@ namespace helloworld {
 
     namespace serialize {
 
+        /**
+         * typetrait allowing to use SFINAE for serializable object
+         * if T is serializable contains value true otherwise false
+         * @tparam T type of object to check
+         */
         template<typename T>
         struct is_serializable : std::is_base_of<Serializable<T>, T> {
         };
 
-
+        /**
+         * serializes object, which inherits from Serializable
+         * @tparam T type of object to serialize
+         * @param obj object to serialize
+         * @param result structure to store serialized object
+         * @return reference to structure holding serialized object
+         */
         template<typename T>
-        auto serialize(const T &obj,
-                       serialize::structure &result) -> typename std::enable_if<is_serializable<T>::value, serialize::structure>::type {
+        auto serialize(const T &obj, serialize::structure &result)
+        -> typename std::enable_if<is_serializable<T>::value, serialize::structure>::type {
             return obj.serialize(result);
         }
 
+        /**
+        * serializes object, which is a scalar type
+        * @tparam T type of object to serialize
+        * @param obj object to serialize
+        * @param result structure to store serialized object
+        * @return reference to structure holding serialized object
+        */
         template<typename T>
         auto serialize(const T &obj, serialize::structure &result)
         -> typename std::enable_if<std::is_scalar<T>::value, serialize::structure>::type {
@@ -85,7 +132,13 @@ namespace helloworld {
             return result;
         }
 
-
+        /**
+        * serializes object, which is container
+        * @tparam T type of object to serialize
+        * @param obj object to serialize
+        * @param result structure to store serialized object
+        * @return reference to structure holding serialized object
+        */
         template<typename T>
         auto serialize(const T &obj, serialize::structure &result)
         -> typename std::enable_if<detail::is_container<T>::value, serialize::structure>::type {
@@ -98,9 +151,16 @@ namespace helloworld {
             return result;
         }
 
+        /**
+         * deserializes object, which is of scalar type
+         * @tparam T type of object to deserialize
+         * @param input structure holding serialized object
+         * @param from offset where object starts in the structure
+         * @return deserialized object
+         */
         template<typename T>
         auto
-        deserialize(const std::vector<unsigned char> &input, uint64_t &from)
+        deserialize(const serialize::structure &input, uint64_t &from)
         -> typename std::enable_if<std::is_scalar<T>::value, T>::type {
             union {
                 unsigned char bytes[sizeof(T)];
@@ -112,16 +172,30 @@ namespace helloworld {
             return helper.value;
         }
 
+        /**
+         * deserializes object, which inherits from serializable
+         * @tparam T type of object to deserialize
+         * @param input structure holding serialized object
+         * @param from offset where object starts in the structure
+         * @return deserialized object
+         */
         template<typename T>
         auto
-        deserialize(const std::vector<unsigned char> &input, uint64_t &from)
+        deserialize(const serialize::structure &input, uint64_t &from)
         -> typename std::enable_if<is_serializable<T>::value, T>::type {
             return Serializable<T>::deserialize(input, from);
         }
 
+        /**
+         * deserializes object, which is container
+         * @tparam T type of object to deserialize
+         * @param input structure holding serialized object
+         * @param from offset where object starts in the structure
+         * @return deserialized object
+         */
         template<typename T, typename value_type = typename T::value_type>
         auto
-        deserialize(const std::vector<unsigned char> &input, uint64_t &from)
+        deserialize(const serialize::structure &input, uint64_t &from)
         -> typename std::enable_if<detail::is_container<T>::value, T>::type {
             T result;
             uint64_t size = deserialize<uint64_t>(input, from);
@@ -132,7 +206,7 @@ namespace helloworld {
             return result;
         }
 
-    }
-}
+    } // serialize
+} // helloworld
 
 #endif //HELLOWORLD_SHARED_SERIALIZABLE_H_

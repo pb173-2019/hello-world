@@ -130,10 +130,10 @@ TEST_CASE("numberic types") {
         testint.run(0l);
         testint.run(SIZE_MAX);
     }
-    SECTION("ssize_t") {
-        test<ssize_t> testint;
+    SECTION("long") {
+        test<long> testint;
         testint.run(0l);
-        testint.run(SSIZE_MAX);
+        testint.run(LONG_MAX);
         testint.run(LONG_MIN);
     }
 }
