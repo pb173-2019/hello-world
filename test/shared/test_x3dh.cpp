@@ -82,19 +82,12 @@ TEST_CASE("X3DH process test one-time keys present") {
         gcm.setKey(sk);
         gcm.setIv(to_hex(toFill.senderEphermalPubKey).substr(0, 24));
 
-        std::stringstream toDecrypt{};
-        std::stringstream result{};
-        std::stringstream ad{to_hex(toFill.senderIdPubKey) + to_hex(bundle.identityKey)};
-        write_n(toDecrypt, toFill.AEADenrypted);
+        std::vector<unsigned char> result;
+        std::vector<unsigned char> ad = toFill.senderIdPubKey;
+        ad.insert(ad.end(), bundle.identityKey.begin(), bundle.identityKey.end());
 
-        gcm.decryptWithAd(toDecrypt, ad, result);
-
-        size_t size = getSize(result);
-        std::vector<unsigned char> resultBytes(size);
-        size_t read = read_n(result, resultBytes.data(), size);
-        CHECK(read == size);
-
-        transfered = SendData::deserialize(resultBytes);
+        gcm.decryptWithAd(toFill.AEADenrypted, ad, result);
+        transfered = SendData::deserialize(result);
     }
 
     SECTION("ACTUAL receiver current pwdSet") {
@@ -204,19 +197,12 @@ TEST_CASE("X3DH process test no one time keys") {
         gcm.setKey(sk);
         gcm.setIv(to_hex(toFill.senderEphermalPubKey).substr(0, 24));
 
-        std::stringstream toDecrypt{};
-        std::stringstream result{};
-        std::stringstream ad{to_hex(toFill.senderIdPubKey) + to_hex(bundle.identityKey)};
-        write_n(toDecrypt, toFill.AEADenrypted);
+        std::vector<unsigned char> result;
+        std::vector<unsigned char> ad = toFill.senderIdPubKey;
+        ad.insert(ad.end(), bundle.identityKey.begin(), bundle.identityKey.end());
 
-        gcm.decryptWithAd(toDecrypt, ad, result);
-
-        size_t size = getSize(result);
-        std::vector<unsigned char> resultBytes(size);
-        size_t read = read_n(result, resultBytes.data(), size);
-        CHECK(read == size);
-
-        transfered = SendData::deserialize(resultBytes);
+        gcm.decryptWithAd(toFill.AEADenrypted, ad, result);
+        transfered = SendData::deserialize(result);
     }
 
     SECTION("ACTUAL receiver current pwdSet") {

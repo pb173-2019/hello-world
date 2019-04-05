@@ -78,8 +78,7 @@ struct Response {
         FAILED_TO_CLOSE_CONNECTION,
         CHALLENGE_RESPONSE_NEEDED,
         BUNDLE_UPDATE_NEEDED,
-        FAILED_TO_UPDATE_BUNDLE,
-        KEY_BUNDLE_UPDATED
+        FAILED_TO_UPDATE_BUNDLE
     };
 
     struct Header : Serializable<Response::Header> {

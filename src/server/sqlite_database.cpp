@@ -161,7 +161,8 @@ namespace helloworld {
 
     void ServerSQLite::insertBundle(uint32_t userId, const std::vector<unsigned char>& blob) {
         sqlite3_stmt *statement = nullptr;
-        std::string query = "INSERT INTO bundles VALUES (?, ?)";
+        //todo needs to be checked, also replaces all the data
+        std::string query = "INSERT OR REPLACE INTO bundles VALUES (?, ?)";
         sqlite3_prepare_v2(_handler, query.c_str(), -1, &statement, nullptr);
         sqlite3_bind_int(statement, 1, userId);
         sqlite3_bind_blob64(statement, 2, blob.data(), blob.size() * sizeof(unsigned char), SQLITE_STATIC);

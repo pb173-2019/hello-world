@@ -165,6 +165,13 @@ TEST_CASE("Incorrect authentications") {
     server.dropDatabase();
 }
 
+void emptyOneTimeKeysRoutine(Server& server, Client& client, uint32_t id) {
+    client.requestKeyBundle(id);
+    server.getRequest();
+    //no message, the client attempts to send no existing data (file) with the key bundle
+    CHECK_THROWS(client.getResponse());
+}
+
 TEST_CASE("Messages exchange - two users online, establish the X3DH shared secret connection") {
     Server server;
     Client alice("alice", "alice_priv.pem", "hunter2");
@@ -185,21 +192,67 @@ TEST_CASE("Messages exchange - two users online, establish the X3DH shared secre
         if (it.second == "bob")
             id = it.first;
 
-    //national secret message!
-    alice.sendData(id, std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
+    SECTION("Alice uses the avaliable key from bundle of one time keys") {
+        //national secret message!
+        alice.sendData(id, std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
 
-    //server receives get bob bundle request
-    server.getRequest();
-    //alice receives bundle and actually sends data
-    alice.getResponse();
-    //server forwards as bob is online
-    server.getRequest();
-    //bob gets message
-    bob.getResponse();
+        //server receives get bob bundle request
+        server.getRequest();
+        //alice receives bundle and actually sends data
+        alice.getResponse();
+        //server forwards as bob is online
+        server.getRequest();
+        //bob gets message
+        bob.getResponse();
 
-    SendData received = bob.getMessage();
-    CHECK(received.from == "alice");
-    CHECK(received.data == std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
+        SendData received = bob.getMessage();
+        CHECK(received.from == "alice");
+        CHECK(received.data == std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
+    }
 
+    SECTION("Bob updates his bundle, but is able to decrypt the message anyway") {
+        bob.sendKeysBundle();
+        //server receves & stores the data
+        server.getRequest();
+        //bob receives OK
+        bob.getResponse();
+        
+        //national secret message!
+        alice.sendData(id, std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
+        //server receives get bob bundle request
+        server.getRequest();
+        //alice receives bundle and actually sends data
+        alice.getResponse();
+        //server forwards as bob is online
+        server.getRequest();
+        //bob gets message & parses the message using OLD key files
+        bob.getResponse();
+
+        SendData received = bob.getMessage();
+        CHECK(received.from == "alice");
+        CHECK(received.data == std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
+    }
+
+    SECTION("Some mischievous user has emptied the one time keys") {
+        for (int i = 0; i < 20; ++i) {
+            emptyOneTimeKeysRoutine(server, alice, id);
+        }
+        
+        //national secret message!
+        alice.sendData(id, std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
+
+        //server receives get bob bundle request
+        server.getRequest();
+        //alice receives bundle and actually sends data
+        alice.getResponse();
+        //server forwards as bob is online
+        server.getRequest();
+        //bob gets message
+        bob.getResponse();
+
+        SendData received = bob.getMessage();
+        CHECK(received.from == "alice");
+        CHECK(received.data == std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
+    }
     server.dropDatabase();
 }

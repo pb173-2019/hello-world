@@ -5,6 +5,7 @@
 
 #include "../../src/shared/requests.h"
 #include "../../src/server/server.h"
+#include "../../src/shared/curve_25519.h"
 
 using namespace helloworld;
 
@@ -174,5 +175,42 @@ TEST_CASE("Get list") {
             CHECK(server.getUsers("").size() == 100);
         }
     }
+    server.dropDatabase();
+}
+
+TEST_CASE("Key Bundles") {
+    Server server;
+    uint32_t id = 3;
+    
+    KeyBundle<C25519> bundle;
+    bundle.generateTimeStamp();
+    bundle.preKeySingiture = {5};
+    bundle.preKey = {6};
+    bundle.identityKey = {7};
+    bundle.oneTimeKeys = {{1}, {2}};
+
+    server.updateKeyBundle({{Request::Type::KEY_BUNDLE_UPDATE, 0, id}, bundle.serialize()});
+    
+    Response r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, 0, id}, GenericRequest{0, "jenda"}.serialize()});
+    KeyBundle<C25519> received = KeyBundle<C25519>::deserialize(r.payload);
+    CHECK(received.preKeySingiture == std::vector<unsigned char>{5});
+    CHECK(received.preKey == std::vector<unsigned char>{6});
+    CHECK(received.identityKey == std::vector<unsigned char>{7});
+    CHECK(received.oneTimeKeys == std::vector<std::vector<unsigned char>>{{1}, {2}});
+
+    r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, 0, id}, GenericRequest{0, "jenda"}.serialize()});
+    received = KeyBundle<C25519>::deserialize(r.payload);
+    CHECK(received.preKeySingiture == std::vector<unsigned char>{5});
+    CHECK(received.preKey == std::vector<unsigned char>{6});
+    CHECK(received.identityKey == std::vector<unsigned char>{7});
+    CHECK(received.oneTimeKeys == std::vector<std::vector<unsigned char>>{{1}});
+
+    r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, 0, id}, GenericRequest{0, "jenda"}.serialize()});
+    received = KeyBundle<C25519>::deserialize(r.payload);
+    CHECK(received.preKeySingiture == std::vector<unsigned char>{5});
+    CHECK(received.preKey == std::vector<unsigned char>{6});
+    CHECK(received.identityKey == std::vector<unsigned char>{7});
+    CHECK(received.oneTimeKeys == std::vector<std::vector<unsigned char>>{});
+    
     server.dropDatabase();
 }

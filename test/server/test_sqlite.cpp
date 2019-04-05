@@ -243,7 +243,8 @@ TEST_CASE("SQLITE blob storage advanced") {
 
     SECTION("Table bundles") {
         db.insertBundle(99, s1.serialize());
-        CHECK_THROWS(db.insertBundle(99, s3.serialize()));
+        //re-insert data (updates)
+        db.insertBundle(99, s3.serialize());
         db.insertBundle(5, s2.serialize());
         db.insertBundle(3, empty);
 
@@ -259,10 +260,11 @@ TEST_CASE("SQLITE blob storage advanced") {
         resultData = db.selectBundle(99); //doesn't delete
         resultData = db.selectBundle(99);
         UserData res2 = UserData::deserialize(resultData);
-        CHECK(res2.publicKey == std::vector<unsigned char>{1, 2, 3, 4});
+        CHECK(res2.publicKey == std::vector<unsigned char>{11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
+                                                           11, 11, 11, 11, 11, 11, 11});
         CHECK(res2.sessionKey == "asdfasdfasdfasdfafb");
         CHECK(res2.id == 34);
-        CHECK(res2.name == "novere");
+        CHECK(res2.name == "honza");
 
         db.removeBundle(5);
         resultData = db.selectBundle(5);
@@ -276,4 +278,29 @@ TEST_CASE("SQLITE blob storage advanced") {
         resultData = db.selectBundle(99);
         CHECK(resultData.empty());
     }
+}
+
+
+TEST_CASE("SQLITE bundles re-insertion updates") {
+
+    ServerSQLite db{};
+
+    db.insertBundle(3, std::vector<unsigned char>{1,2,3});
+    db.insertBundle(4, std::vector<unsigned char>{4,2,3});
+    db.insertBundle(2, std::vector<unsigned char>{1,2,4});
+
+    //insertion update
+    db.insertBundle(2, std::vector<unsigned char>{5, 5, 5});
+
+    CHECK(db.selectBundle(2) == std::vector<unsigned char>{5, 5, 5});
+    CHECK(db.selectBundle(4) == std::vector<unsigned char>{4,2,3});
+    CHECK(db.selectBundle(3) == std::vector<unsigned char>{1,2,3});
+
+    //insertion update 2x
+    db.insertBundle(2, std::vector<unsigned char>{1, 5});
+    db.insertBundle(2, std::vector<unsigned char>{8, 8, 8, 8, 1});
+
+    CHECK(db.selectBundle(4) == std::vector<unsigned char>{4,2,3});
+    CHECK(db.selectBundle(3) == std::vector<unsigned char>{1,2,3});
+    CHECK(db.selectBundle(2) == std::vector<unsigned char>{8, 8, 8, 8, 1});
 }

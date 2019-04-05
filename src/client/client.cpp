@@ -30,7 +30,8 @@ void Client::callback(std::stringstream &&data) {
             return;
         case Response::Type::CHALLENGE_RESPONSE_NEEDED:
             sendRequest(completeAuth(response.payload,
-                    (_userId == 0) ? Request::Type::CREATE_COMPLETE : Request::Type::LOGIN_COMPLETE));
+                                     (_userId == 0) ? Request::Type::CREATE_COMPLETE
+                                                    : Request::Type::LOGIN_COMPLETE));
             return;
         case Response::Type::USER_REGISTERED:
             _userId = response.header.userId;
@@ -91,15 +92,13 @@ void Client::sendGetOnline() {
     sendGenericRequest(Request::Type::GET_ONLINE);
 }
 
-KeyBundle<C25519> Client::updateKeys() {
+KeyBundle <C25519> Client::updateKeys() {
     const int numberOfOneTimeKeys = 20;
-
-    KeyBundle<C25519> newKeybundle;
+    KeyBundle <C25519> newKeybundle;
 
     std::ifstream temp(_username + idC25519pub, std::ios::binary | std::ios::in);
-
     if (temp.is_open()) {
-        if (!temp)  throw Error("cannot access identity key file");
+        if (!temp) throw Error("cannot access identity key file");
         newKeybundle.identityKey.resize(C25519::KEY_BYTES_LEN);
         read_n(temp, newKeybundle.identityKey.data(), C25519::KEY_BYTES_LEN);
         temp.close();
@@ -110,20 +109,8 @@ KeyBundle<C25519> Client::updateKeys() {
         newKeybundle.identityKey = identityKeyGen.getPublicKey();
     }
 
-    temp.open(_username + preC25519pub, std::ios::binary | std::ios::in);
-
-    if (temp.is_open()) {
-        if (!temp)  throw Error("cannot access old public pre key file");
-        std::ofstream oldpublic(_username + preC25519pub + ".old", std::ios::binary | std::ios::out);
-        oldpublic << temp.rdbuf();
-
-        temp.close();
-        temp.open(_username + preC25519priv, std::ios::binary | std::ios::in);
-        if (!temp)  throw Error("cannot access old private pre key file");
-        std::ofstream oldprivate(_username + preC25519priv + ".old", std::ios::binary | std::ios::out);
-        oldprivate << temp.rdbuf();
-        temp.close();
-    }
+    archiveKey(_username + preC25519pub);
+    archiveKey(_username + preC25519priv);
     C25519KeyGen preKeyGen{};
     preKeyGen.savePrivateKeyPassword(_username + preC25519priv, _password);
     preKeyGen.savePublicKey(_username + preC25519pub);
@@ -132,15 +119,15 @@ KeyBundle<C25519> Client::updateKeys() {
 
     C25519 identity{};
     identity.loadPrivateKey(_username + idC25519priv, _password);
-    identity.loadPublicKey(_username + idC25519pub);
     newKeybundle.preKeySingiture = identity.sign(newKeybundle.preKey);
 
     for (int i = 0; i < numberOfOneTimeKeys; ++i) {
+        archiveKey(_username + std::to_string(i) + oneTimeC25519pub);
+        archiveKey(_username + std::to_string(i) + oneTimeC25519priv);
         C25519KeyGen oneTimeKeygen{};
-        std::vector<unsigned char> onetimeKey = oneTimeKeygen.getPublicKey();
         oneTimeKeygen.savePublicKey(_username + std::to_string(i) + oneTimeC25519pub);
         oneTimeKeygen.savePrivateKeyPassword(_username + std::to_string(i) + oneTimeC25519priv, _password);
-        newKeybundle.oneTimeKeys.emplace_back(std::move(onetimeKey));
+        newKeybundle.oneTimeKeys.emplace_back(std::move(oneTimeKeygen.getPublicKey()));
     }
 
     newKeybundle.generateTimeStamp();
@@ -149,33 +136,43 @@ KeyBundle<C25519> Client::updateKeys() {
 }
 
 void Client::sendKeysBundle() {
-    KeyBundle<C25519> bundle = updateKeys();
+    KeyBundle <C25519> bundle = updateKeys();
     sendRequest({{Request::Type::KEY_BUNDLE_UPDATE, 0, _userId}, bundle.serialize()});
 }
 
 void Client::requestKeyBundle(uint32_t receiverId) {
-    sendRequest({{Request::Type::GET_RECEIVERS_BUNDLE, 0, receiverId}, GenericRequest{_userId, _username}.serialize()});
+    sendRequest(
+            {{Request::Type::GET_RECEIVERS_BUNDLE, 0, receiverId}, GenericRequest{_userId, _username}.serialize()});
+}
+
+void Client::archiveKey(const std::string &keyFileName) {
+    std::ifstream temp(keyFileName, std::ios::binary | std::ios::in);
+    if (temp.is_open()) {
+        if (!temp) throw Error("cannot access key file: " + keyFileName);
+        std::ofstream old(keyFileName + ".old", std::ios::binary | std::ios::out);
+        old << temp.rdbuf();
+    }
 }
 
 void Client::sendData(uint32_t receiverId, const std::vector<unsigned char> &data) {
     if (_usersSession->running()) {
         //todo double ratchet
     } else {
-        std::ifstream in {std::to_string(receiverId) + ".msg", std::ios::binary};
+        std::ifstream in{std::to_string(receiverId) + ".msg", std::ios::binary};
         if (in)
             throw Error("There are messages waiting to be send.");
         in.close();
-        std::ofstream out {std::to_string(receiverId) + ".msg", std::ios::binary};
+        std::ofstream out{std::to_string(receiverId) + ".msg", std::ios::binary};
         write_n(out, data);
         requestKeyBundle(receiverId);
     }
 }
 
-void Client::sendInitialMessage(uint32_t receiverId, const Response& response) {
-    KeyBundle<C25519> bundle = KeyBundle<C25519>::deserialize(response.payload);
+void Client::sendInitialMessage(uint32_t receiverId, const Response &response) {
+    KeyBundle <C25519> bundle = KeyBundle<C25519>::deserialize(response.payload);
 
     std::string file = std::to_string(receiverId) + ".msg";
-    std::ifstream in {file, std::ios::binary};
+    std::ifstream in{file, std::ios::binary};
     if (!in)
         throw Error("There are no messages to be send.");
     size_t size = getSize(in);
@@ -186,7 +183,7 @@ void Client::sendInitialMessage(uint32_t receiverId, const Response& response) {
     std::string time = std::ctime(&now);
     SendData toSend(time, _username, data);
 
-    X3DHRequest<C25519> request;
+    X3DHRequest <C25519> request;
 
     //todo use ratchet key
     std::string key = _x3dh->out(bundle, toSend, request);
@@ -195,7 +192,7 @@ void Client::sendInitialMessage(uint32_t receiverId, const Response& response) {
     remove(file.c_str());
 }
 
-void Client::receiveData(const Response& response) {
+void Client::receiveData(const Response &response) {
     if (_usersSession->running()) {
         //todo double ratchet
     } else {
@@ -204,7 +201,7 @@ void Client::receiveData(const Response& response) {
     }
 }
 
-SendData Client::receiveInitialMessage(const Response& response) {
+SendData Client::receiveInitialMessage(const Response &response) {
     SendData received;
 
     //todo use ratchet key

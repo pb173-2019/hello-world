@@ -139,6 +139,8 @@ private:
     std::unique_ptr<ServerDatabase> _database;
     std::unique_ptr<ServerTransmissionManager> _transmission;
 
+//for testing -> public    
+public:
     /**
      * @brief Register new user and respond with public key verification
      * challenge. Request is received by assymetric cryptography using

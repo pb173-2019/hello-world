@@ -214,6 +214,14 @@ private:
      * @param type request type
      */
     void sendGenericRequest(Request::Type type);
+    
+    /**
+     * Archives the key file - reads keyFileName and saves into
+     * keyFileName.old
+     * 
+     * @param keyFileName filename to archive
+     */
+    void archiveKey(const std::string& keyFileName);
 };
 
 }    // namespace helloworld

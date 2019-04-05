@@ -248,7 +248,8 @@ Response Server::sendKeyBundle(const Request &request) {
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
 
     KeyBundle<C25519> keys = KeyBundle<C25519>::deserialize(bundle);
-    keys.oneTimeKeys.erase(keys.oneTimeKeys.end() - 1);
+    if (!keys.oneTimeKeys.empty())
+        keys.oneTimeKeys.erase(keys.oneTimeKeys.end() - 1);
     bundle = keys.serialize();
     _database->updateBundle(request.header.userId, bundle);
     return r;
@@ -300,9 +301,15 @@ void Server::sendReponse(const std::string &username, const Response &response, 
 }
 
 Response Server::updateKeyBundle(const Request &request) {
-    Response r = {{Response::Type::KEY_BUNDLE_UPDATED, 0, request.header.userId}, {}};
-    _database->insertBundle(request.header.userId, request.payload);
-     return r;
-    }
+    Response r = {{Response::Type::OK, 0, request.header.userId}, {}};
+    //TODO DODODO: isner bundle works only on registration, else update not insert!!!!!!!!
 
+
+
+    _database->insertBundle(request.header.userId, request.payload);
+    //todo for file manager we need his username, but in future use ids only
+    UserData user = _database->select(request.header.userId);
+    sendReponse(user.name, r, getManagerPtr(user.name, true));
+    return r;
+    }
 }    // namespace helloworld

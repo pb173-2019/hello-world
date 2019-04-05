@@ -141,18 +141,12 @@ public:
         gcm.setKey(sk);
         gcm.setIv(to_hex(x3dhBundle.senderEphermalPubKey).substr(0, 24));
 
-        std::stringstream toDecrypt{};
-        std::stringstream result{};
-        std::stringstream ad = additionalData(
-                x3dhBundle.senderIdPubKey, loadC25519Key(username + idC25519pub + (old ? ".old" : "")));
-        write_n(toDecrypt, x3dhBundle.AEADenrypted);
+        std::vector<unsigned char> result;
+        std::vector<unsigned char> ad = std::move(x3dhBundle.senderIdPubKey);
+        append(ad, loadC25519Key(username + idC25519pub + (old ? ".old" : "")));
 
-        gcm.decryptWithAd(toDecrypt, ad, result);
-
-        size_t size = getSize(result);
-        std::vector<unsigned char> resultBytes(size);
-        read_n(result, resultBytes.data(), size);
-        toReceive = SendData::deserialize(resultBytes);
+        gcm.decryptWithAd(x3dhBundle.AEADenrypted, ad, result);
+        toReceive = SendData::deserialize(result);
 
         //discard SK if old message received and the connection would be invalid
         if (incoming.header.type == Response::Type::RECEIVE_OLD)
@@ -188,19 +182,6 @@ private:
     }
 
     /**
-     * Compute additional data stream for AESGCM
-     *
-     * @param senderIdPubKey
-     * @param receiverIdPubKey
-     * @return additional data stream for AESGCM
-     */
-    std::stringstream additionalData(const std::vector<unsigned char> &senderIdPubKey,
-                                const std::vector<unsigned char> &receiverIdPubKey) const {
-        //todo gcm takes first 16 bytes - use hash?
-        return std::stringstream{to_hex(senderIdPubKey) + to_hex(receiverIdPubKey)};
-    }
-
-    /**
      * Load owner id key from file created on registration
      * @return vector with raw bytes of public key
      */
@@ -231,19 +212,12 @@ private:
         gcm.setKey(key);
         gcm.setIv(to_hex(senderEphermal).substr(0, 24));
 
-        std::stringstream toEncrypt{};
-        std::stringstream result{};
-        std::stringstream ad = additionalData(loadC25519Key(username + idC25519pub), bundle.identityKey);
-        write_n(toEncrypt, data.serialize());
+        std::vector<unsigned char> ad = std::move(loadC25519Key(username + idC25519pub));
+        append(ad, bundle.identityKey);
+        std::vector<unsigned char> result;
+        gcm.encryptWithAd(data.serialize(), ad, result);
 
-        gcm.encryptWithAd(toEncrypt, ad, result);
-
-        size_t size = getSize(result);
-        std::vector<unsigned char> resultBytes(size);
-        size_t read = read_n(result, resultBytes.data(), size);
-        if (read != size)
-            throw Error("X3DH: Could not read AEAD encrypted stream.");
-        return resultBytes;
+        return result;
     }
 };
 

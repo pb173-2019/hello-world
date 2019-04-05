@@ -66,10 +66,6 @@ public:
             case Response::Type::OK:
                 CHECK(true);
                 return;
-            case Response::Type::KEY_BUNDLE_UPDATED: {
-                CHECK(true);
-                return;
-            }
             case Response::Type::USERLIST: {
                 UserListReponse data = UserListReponse::deserialize(response.payload);
                 CHECK(data.online.size() == 3);
