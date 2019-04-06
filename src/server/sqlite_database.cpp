@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "../shared/serializable_error.h"
+#include "../shared/utils.h"
 
 namespace helloworld {
 
@@ -158,14 +159,21 @@ namespace helloworld {
         return blob;
     }
 
+    void ServerSQLite::deleteAllData(uint32_t userId) {
+        if (int res = _execute("DELETE FROM messages WHERE userid = " + std::to_string(userId) + ";",
+                        nullptr, nullptr) != SQLITE_OK) {
+            throw Error("Could not delete data of the user: " + _getErrorMsgByReturnType(res));
+        }
+    }
 
     void ServerSQLite::insertBundle(uint32_t userId, const std::vector<unsigned char>& blob) {
         sqlite3_stmt *statement = nullptr;
         //todo needs to be checked, also replaces all the data
-        std::string query = "INSERT OR REPLACE INTO bundles VALUES (?, ?)";
+        std::string query = "INSERT OR REPLACE INTO bundles VALUES (?, ?, ?)";
         sqlite3_prepare_v2(_handler, query.c_str(), -1, &statement, nullptr);
         sqlite3_bind_int(statement, 1, userId);
-        sqlite3_bind_blob64(statement, 2, blob.data(), blob.size() * sizeof(unsigned char), SQLITE_STATIC);
+        sqlite3_bind_int64(statement, 2, static_cast<sqlite3_int64>(getTimestampOf(nullptr)));
+        sqlite3_bind_blob64(statement, 3, blob.data(), blob.size() * sizeof(unsigned char), SQLITE_STATIC);
         if (sqlite3_step(statement) != SQLITE_DONE)
             throw Error("Failed to store blob into table 'bundles'. (" + std::string(sqlite3_errmsg(_handler)) + ")");
         sqlite3_finalize(statement);
@@ -188,12 +196,27 @@ namespace helloworld {
         return blob;
     }
 
+    uint64_t ServerSQLite::getBundleTimestamp(uint32_t userId) {
+        sqlite3_stmt *statement = nullptr;
+        std::string query = "SELECT timestamp FROM bundles WHERE userid = ?";
+        sqlite3_prepare_v2(_handler, query.c_str(), -1, &statement, nullptr);
+        sqlite3_bind_int(statement, 1, userId);
+
+        uint64_t timestamp = 0;
+        if (sqlite3_step(statement) == SQLITE_ROW) {
+            timestamp = static_cast<uint64_t>(sqlite3_column_int64(statement, 0));
+        }
+        sqlite3_finalize(statement);
+        return timestamp;
+    }
+
     void ServerSQLite::updateBundle(uint32_t userId, const std::vector<unsigned char>& blob) {
         sqlite3_stmt *statement = nullptr;
-        std::string query = "UPDATE bundles SET data = ? WHERE userid = ?";
+        std::string query = "UPDATE bundles SET timestamp = ?, data = ? WHERE userid = ?";
         sqlite3_prepare_v2(_handler, query.c_str(), -1, &statement, nullptr);
-        sqlite3_bind_int(statement, 2, userId);
-        sqlite3_bind_blob64(statement, 1, blob.data(), blob.size() * sizeof(unsigned char), SQLITE_STATIC);
+        sqlite3_bind_int64(statement, 1, static_cast<sqlite3_int64>(getTimestampOf(nullptr)));
+        sqlite3_bind_blob64(statement, 2, blob.data(), blob.size() * sizeof(unsigned char), SQLITE_STATIC);
+        sqlite3_bind_int(statement, 3, userId);
         if (sqlite3_step(statement) != SQLITE_DONE)
             throw Error("Failed to store blob into table 'bundles'.");
         sqlite3_finalize(statement);
@@ -252,6 +275,7 @@ namespace helloworld {
 
         if (int res = _execute("CREATE TABLE IF NOT EXISTS bundles ("
                                "userid INTEGER PRIMARY KEY, "
+                               "timestamp INTEGER, "
                                "data BLOB);",
                                nullptr, nullptr) != SQLITE_OK) {
             throw Error("Could not create key bundles database: " + _getErrorMsgByReturnType(res));

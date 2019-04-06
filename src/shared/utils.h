@@ -167,9 +167,21 @@ std::pair<std::vector<T>, std::vector<T>> split(const std::vector<T> &input) {
     return split(input, input.size() / 2);
 }
 
+/**
+ * Stream - vector conversion bundle
+ */
 std::stringstream stream_from_vector(const std::vector<unsigned char> &vector);
 
 std::vector<unsigned char> vector_from_stream(std::istream &stream);
+
+
+/**
+ * Return timestamp of specific time
+ *
+ * @param timer time specifier, use nullptr for 'now'
+ * @return timestamp of timer
+ */
+uint64_t getTimestampOf(time_t* timer);
 
 }    // namespace helloworld
 

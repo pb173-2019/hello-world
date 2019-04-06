@@ -65,12 +65,14 @@ public:
      */
     void insertData(uint32_t userId, const std::vector<unsigned char>& blob) override;
     std::vector<unsigned char> selectData(uint32_t userId) override;
+    void deleteAllData(uint32_t userId) override;
 
     /*
      * WORKING WITH KEYBUNDLES (table users)
      */
     void insertBundle(uint32_t userId, const std::vector<unsigned char>& blob) override;
     std::vector<unsigned char> selectBundle(uint32_t userId) override;
+    uint64_t getBundleTimestamp(uint32_t userId) override;
     void updateBundle(uint32_t userId, const std::vector<unsigned char>& blob) override;
     bool removeBundle(uint32_t userId) override;
 

@@ -1,9 +1,11 @@
 #include <iomanip>
 #include <sstream>
 #include <algorithm>
+#include <ctime>
 
 #include "utils.h"
 #include "serializable_error.h"
+
 
 namespace helloworld {
 
@@ -17,7 +19,6 @@ std::ostream &operator<<(std::ostream &out, safe_mpi &mpi) {
     out << " |\n";
     return out;
 }
-
 
 size_t getSize(std::istream &input) {
     auto original = input.tellg();
@@ -99,6 +100,12 @@ std::vector<unsigned char> from_string(const std::string &input) {
 
 std::string to_string(const std::vector<unsigned char> &input) {
     return std::string(input.begin(), input.end());
+}
+
+uint64_t getTimestampOf(time_t* timer) {
+    std::time_t t = std::time(timer);
+    std::tm *lt = std::localtime(&t);
+    return lt->tm_year * 366 * 24 + lt->tm_yday * 24 + lt->tm_hour;
 }
 
 std::stringstream stream_from_vector(const std::vector<unsigned char> &vector) {

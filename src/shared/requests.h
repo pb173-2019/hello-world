@@ -13,6 +13,7 @@
 #define HELLOWORLD_SERVER_REQUESTS_H_
 
 #include <ctime>
+#include "utils.h"
 #include "serializable.h"
 
 namespace helloworld {
@@ -33,9 +34,7 @@ struct KeyBundle : Serializable<KeyBundle<Asymmetric> > {
     std::vector<key_t> oneTimeKeys;
 
     void generateTimeStamp() {
-        std::time_t t = std::time(nullptr);
-        std::tm *lt = std::localtime(&t);
-        timestamp = lt->tm_year * 366 * 24 + lt->tm_yday * 24 + lt->tm_hour;
+        timestamp = getTimestampOf(nullptr);
     }
 
     serialize::structure& serialize(serialize::structure& result) const override {

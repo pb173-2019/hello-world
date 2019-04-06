@@ -114,6 +114,12 @@ public:
     virtual std::vector<unsigned char> selectData(uint32_t userId) = 0;
 
     /**
+     * Delete all inserted data with provided id (userId)
+     * @param userId of which to delete all the data
+     */
+    virtual void deleteAllData(uint32_t userId) = 0;
+
+    /**
      * Insert key bundle to into database
      * @param userId userId as primary key (bundle owner), must not be in table
      * @param blob key bundle in blob
@@ -128,7 +134,15 @@ public:
     virtual std::vector<unsigned char> selectBundle(uint32_t userId) = 0;
 
     /**
-     * Update key bundle
+     * Get bundle timestamp from database
+     * @param userId id of which to get the timestamp
+     * @return uint64_t timestamp
+     */
+    virtual uint64_t getBundleTimestamp(uint32_t userId) = 0;
+
+    /**
+     * @deprecated Update key bundle
+     *
      * @param userId userId as primary key
      * @param blob new bundle
      */

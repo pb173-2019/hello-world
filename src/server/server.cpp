@@ -169,6 +169,8 @@ Response Server::deleteAccount(const Request &request) {
     if (!_database->remove({curRequest.id, curRequest.name, "", {}})) {
         r = {{Response::Type::FAILED_TO_DELETE_USER, request.header.messageNumber, request.header.userId}, {}};
     } else {
+        _database->removeBundle(curRequest.id);
+        _database->deleteAllData(curRequest.id);
         r = checkEvent(request);
     }
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
@@ -256,8 +258,11 @@ Response Server::sendKeyBundle(const Request &request) {
 }
 
 Response Server::checkEvent(const Request& request) {
-    //todo check for keys that should be updated
-    //todo check for new messages that are waiting for user to come online
+    if (request.header.userId != 0) {
+        uint64_t time = _database->getBundleTimestamp(request.header.userId);
+        if (time + 14*24*3600 > getTimestampOf(nullptr))
+            return {{Response::Type::BUNDLE_UPDATE_NEEDED, request.header.messageNumber, request.header.userId}, {}};
+    }
     return {{Response::Type::OK, request.header.messageNumber, request.header.userId}, {}};
 }
 
