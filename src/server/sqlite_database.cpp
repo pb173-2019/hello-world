@@ -166,13 +166,13 @@ namespace helloworld {
         }
     }
 
-    void ServerSQLite::insertBundle(uint32_t userId, const std::vector<unsigned char>& blob) {
+    void ServerSQLite::insertBundle(uint32_t userId, const std::vector<unsigned char>& blob, uint64_t timestamp) {
         sqlite3_stmt *statement = nullptr;
         //todo needs to be checked, also replaces all the data
         std::string query = "INSERT OR REPLACE INTO bundles VALUES (?, ?, ?)";
         sqlite3_prepare_v2(_handler, query.c_str(), -1, &statement, nullptr);
         sqlite3_bind_int(statement, 1, userId);
-        sqlite3_bind_int64(statement, 2, static_cast<sqlite3_int64>(getTimestampOf(nullptr)));
+        sqlite3_bind_int64(statement, 2, static_cast<sqlite3_int64>(timestamp == 0 ? getTimestampOf(nullptr) : timestamp));
         sqlite3_bind_blob64(statement, 3, blob.data(), blob.size() * sizeof(unsigned char), SQLITE_STATIC);
         if (sqlite3_step(statement) != SQLITE_DONE)
             throw Error("Failed to store blob into table 'bundles'. (" + std::string(sqlite3_errmsg(_handler)) + ")");
@@ -212,9 +212,20 @@ namespace helloworld {
 
     void ServerSQLite::updateBundle(uint32_t userId, const std::vector<unsigned char>& blob) {
         sqlite3_stmt *statement = nullptr;
+        std::string query = "UPDATE bundles SET data = ? WHERE userid = ?";
+        sqlite3_prepare_v2(_handler, query.c_str(), -1, &statement, nullptr);
+        sqlite3_bind_blob64(statement, 1, blob.data(), blob.size() * sizeof(unsigned char), SQLITE_STATIC);
+        sqlite3_bind_int(statement, 2, userId);
+        if (sqlite3_step(statement) != SQLITE_DONE)
+            throw Error("Failed to store blob into table 'bundles'.");
+        sqlite3_finalize(statement);
+    }
+
+    void ServerSQLite::updateBundle(uint32_t userId, const std::vector<unsigned char> &blob, uint64_t timestamp) {
+        sqlite3_stmt *statement = nullptr;
         std::string query = "UPDATE bundles SET timestamp = ?, data = ? WHERE userid = ?";
         sqlite3_prepare_v2(_handler, query.c_str(), -1, &statement, nullptr);
-        sqlite3_bind_int64(statement, 1, static_cast<sqlite3_int64>(getTimestampOf(nullptr)));
+        sqlite3_bind_int64(statement, 1, static_cast<sqlite3_int64>(timestamp));
         sqlite3_bind_blob64(statement, 2, blob.data(), blob.size() * sizeof(unsigned char), SQLITE_STATIC);
         sqlite3_bind_int(statement, 3, userId);
         if (sqlite3_step(statement) != SQLITE_DONE)

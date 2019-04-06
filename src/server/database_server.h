@@ -123,8 +123,9 @@ public:
      * Insert key bundle to into database
      * @param userId userId as primary key (bundle owner), must not be in table
      * @param blob key bundle in blob
+     * @param timestamp  timestamp to save, default 0 -> generate new
      */
-    virtual void insertBundle(uint32_t userId, const std::vector<unsigned char> &blob) = 0;
+    virtual void insertBundle(uint32_t userId, const std::vector<unsigned char> &blob, uint64_t timestamp = 0) = 0;
 
     /**
      * Select key bundle from database
@@ -141,12 +142,13 @@ public:
     virtual uint64_t getBundleTimestamp(uint32_t userId) = 0;
 
     /**
-     * @deprecated Update key bundle
+     * Update key bundle
      *
      * @param userId userId as primary key
      * @param blob new bundle
      */
     virtual void updateBundle(uint32_t userId, const std::vector<unsigned char> &blob) = 0;
+    virtual void updateBundle(uint32_t userId, const std::vector<unsigned char> &blob, uint64_t timestamp) = 0;
 
     /**
      * Delete key bundle from database
