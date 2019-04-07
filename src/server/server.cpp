@@ -264,9 +264,14 @@ Response Server::sendKeyBundle(const Request &request) {
 
 Response Server::checkEvent(const Request& request) {
     if (request.header.userId != 0) {
+        // step one: old keys
         uint64_t time = _database->getBundleTimestamp(request.header.userId);
         if (time + 14*24*3600 > getTimestampOf(nullptr))
             return {{Response::Type::BUNDLE_UPDATE_NEEDED, request.header.messageNumber, request.header.userId}, {}};
+        // step two: new messages
+        std::vector<unsigned char> msg = _database->selectData(request.header.userId);
+        if (!msg.empty())
+            return {{Response::Type::RECEIVE_OLD, request.header.messageNumber, request.header.userId}, std::move(msg)};
     }
     return {{Response::Type::OK, request.header.messageNumber, request.header.userId}, {}};
 }
