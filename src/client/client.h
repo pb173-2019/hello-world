@@ -162,6 +162,10 @@ class Client : public Callable<void, std::stringstream &&> {
     // check for request, in future: either will run in thread later as
     // listening or gets notified by TCP
     void getResponse() { _transmission->receive(); };
+    
+    uint32_t getId() {
+        return _userId;
+    }
 
 private:
     const std::string _username;

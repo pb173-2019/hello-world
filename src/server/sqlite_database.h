@@ -53,9 +53,9 @@ public:
      * WORKING WITH USERDATA (table users)
      */
     uint32_t insert(const UserData &data, bool autoIncrement) override;
-    UserData select(const UserData &query) override;
-    UserData select(uint32_t id) override;
-    UserData select(const std::string& username) override;
+    UserData select(const UserData &query) const override;
+    UserData select(uint32_t id) const override;
+    UserData select(const std::string& username) const override;
     const std::vector<std::unique_ptr<UserData>>& selectLike(const UserData &query) override;
     const std::vector<std::unique_ptr<UserData>> &selectLike(const std::string& username) override;
     bool remove(const UserData& data) override;
@@ -71,8 +71,8 @@ public:
      * WORKING WITH KEYBUNDLES (table users)
      */
     void insertBundle(uint32_t userId, const std::vector<unsigned char>& blob, uint64_t timestamp = 0) override;
-    std::vector<unsigned char> selectBundle(uint32_t userId) override;
-    uint64_t getBundleTimestamp(uint32_t userId) override;
+    std::vector<unsigned char> selectBundle(uint32_t userId) const override;
+    uint64_t getBundleTimestamp(uint32_t userId) const override;
     void updateBundle(uint32_t userId, const std::vector<unsigned char>& blob) override;
     void updateBundle(uint32_t userId, const std::vector<unsigned char> &blob, uint64_t timestamp) override;
     bool removeBundle(uint32_t userId) override;

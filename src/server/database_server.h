@@ -45,7 +45,7 @@ public:
      * @param query search request
      * @return userData - user that matches the query given (exactly)
      */
-    virtual UserData select(const UserData &query) = 0;
+    virtual UserData select(const UserData &query) const = 0;
 
     /**
      * Select from database by userId
@@ -53,7 +53,7 @@ public:
      * @param id id to select
      * @return user with id provided
      */
-    virtual UserData select(uint32_t id) = 0;
+    virtual UserData select(uint32_t id) const = 0;
 
     /**
      * Select from database user by name
@@ -61,7 +61,7 @@ public:
      * @param username user name
      * @return user with name provided
      */
-    virtual UserData select(const std::string& username) = 0;
+    virtual UserData select(const std::string& username) const = 0;
 
     /**
      * Select from database data by query
@@ -132,14 +132,14 @@ public:
      * @param userId user id as primary key (bundle owner)
      * @return copy of key bundle
      */
-    virtual std::vector<unsigned char> selectBundle(uint32_t userId) = 0;
+    virtual std::vector<unsigned char> selectBundle(uint32_t userId) const = 0;
 
     /**
      * Get bundle timestamp from database
      * @param userId id of which to get the timestamp
      * @return uint64_t timestamp
      */
-    virtual uint64_t getBundleTimestamp(uint32_t userId) = 0;
+    virtual uint64_t getBundleTimestamp(uint32_t userId) const = 0;
 
     /**
      * Update key bundle

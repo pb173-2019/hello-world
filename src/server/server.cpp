@@ -180,7 +180,7 @@ Response Server::deleteAccount(const Request &request) {
 
 Response Server::logOut(const Request &request) {
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
-    Response r = checkEvent(request);
+    Response r {{Response::Type::OK, request.header.messageNumber, request.header.userId}, {}};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     logout(curRequest.name);
     return r;

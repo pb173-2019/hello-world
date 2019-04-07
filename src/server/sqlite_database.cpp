@@ -59,7 +59,7 @@ namespace helloworld {
         return _cache;
     }
 
-    UserData ServerSQLite::select(const UserData &query) {
+    UserData ServerSQLite::select(const UserData &query) const {
         if (query.id == 0 && query.name.empty())
             return {};
 
@@ -69,7 +69,7 @@ namespace helloworld {
         return select(query.id);
     }
 
-    UserData ServerSQLite::select(uint32_t id)  {
+    UserData ServerSQLite::select(uint32_t id) const {
         sqlite3_stmt *statement = nullptr;
         sqlite3_prepare_v2(_handler, "SELECT * FROM users WHERE id = ? LIMIT 1;", -1, &statement, nullptr);
         sqlite3_bind_int(statement, 1, id);
@@ -92,7 +92,7 @@ namespace helloworld {
         return data;
     }
 
-    UserData ServerSQLite::select(const std::string& username)  {
+    UserData ServerSQLite::select(const std::string& username) const {
         sqlite3_stmt *statement = nullptr;
         std::string query = "SELECT * FROM users WHERE username = ? LIMIT 1;";
         sqlite3_prepare_v2(_handler, query.c_str(), -1, &statement, nullptr);
@@ -179,7 +179,7 @@ namespace helloworld {
         sqlite3_finalize(statement);
     }
 
-    std::vector<unsigned char> ServerSQLite::selectBundle(uint32_t userId) {
+    std::vector<unsigned char> ServerSQLite::selectBundle(uint32_t userId) const {
         sqlite3_stmt *statement = nullptr;
         std::string query = "SELECT data FROM bundles WHERE userid = ?";
         sqlite3_prepare_v2(_handler, query.c_str(), -1, &statement, nullptr);
@@ -196,7 +196,7 @@ namespace helloworld {
         return blob;
     }
 
-    uint64_t ServerSQLite::getBundleTimestamp(uint32_t userId) {
+    uint64_t ServerSQLite::getBundleTimestamp(uint32_t userId) const {
         sqlite3_stmt *statement = nullptr;
         std::string query = "SELECT timestamp FROM bundles WHERE userid = ?";
         sqlite3_prepare_v2(_handler, query.c_str(), -1, &statement, nullptr);

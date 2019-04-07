@@ -158,7 +158,7 @@ TEST_CASE("Incorrect authentications") {
     server.simulateNewChannel("bob");
     Client client2("bob", "alice_priv.pem", "hunter2");
     client2.login();
-    // server receives request //TODO fails
+    // server receives request
     server.getRequest();
     // client receives challenge
     CHECK_THROWS(client2.getResponse());
@@ -253,6 +253,49 @@ TEST_CASE("Messages exchange - two users online, establish the X3DH shared secre
         SendData received = bob.getMessage();
         CHECK(received.from == "alice");
         CHECK(received.data == std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
+
+        uint64_t lastTimeStamp = server.getDatabase().getBundleTimestamp(bob.getId());
+        std::vector<unsigned char> oldBundle = server.getDatabase().selectBundle(bob.getId());
+
+        //bob now goes offline, and when logs in, the server requests key update / the onetime keys were gone
+        bob.logout();
+        server.getRequest();
+        bob.getResponse();
+
+        uint64_t timestampOfLogin = getTimestampOf(nullptr);
+
+        bob.login();
+        // server receives request
+        server.getRequest();
+        // client receives challenge
+        bob.getResponse();
+        // server verifies & sends the key update needed
+        server.getRequest();
+        //bob sends keys
+        bob.getResponse();
+        //server stores keys & sends OK
+        server.getRequest();
+        // client receives OK
+        bob.getResponse();
+
+        uint64_t newTimeStamp = server.getDatabase().getBundleTimestamp(bob.getId());
+        std::vector<unsigned char> newBundle = server.getDatabase().selectBundle(bob.getId());
+
+        KeyBundle<C25519> oldKeys = KeyBundle<C25519>::deserialize(oldBundle);
+        KeyBundle<C25519> newKeys = KeyBundle<C25519>::deserialize(newBundle);
+
+        CHECK(lastTimeStamp == 1);
+        CHECK(newTimeStamp > lastTimeStamp);
+        CHECK(newTimeStamp == timestampOfLogin); //timestamp varies once a hour
+
+
+        CHECK(oldKeys.oneTimeKeys.size() == 0);
+        CHECK(newKeys.oneTimeKeys.size() == 20);
+
+        CHECK(oldKeys.identityKey == newKeys.identityKey);
+        CHECK(oldKeys.preKeySingiture != newKeys.preKeySingiture);
+        CHECK(oldKeys.preKey != newKeys.preKey);
+        //CHECK(oldKeys.timestamp < newKeys.timestamp); will not work as the timestamp changes a hour
     }
     server.dropDatabase();
 }

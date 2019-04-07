@@ -114,6 +114,11 @@ public:
     void getRequest() {
         _transmission->receive();
     };
+    
+    //to get to database
+    const ServerDatabase& getDatabase() {
+        return *_database;
+    }
 
     //delete connection id (username) to treat new request as new connection
     void simulateNewChannel(const std::string& old) {
