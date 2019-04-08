@@ -14,27 +14,13 @@
 #define HELLOWORLD_SHARED_REQUEST_H_
 
 #include <cstdint>
-#include <map>
-#include <set>
 #include <vector>
+#include <type_traits>
 #include "serializable.h"
 #include "random.h"
+#include <set>
 
 namespace helloworld {
-
-class MessageNumberGenerator {
-    struct MessageNumberData {
-        uint32_t lastSent;
-
-        MessageNumberData() : lastSent(static_cast<uint32_t>(Random{}.getBounded(0, 256))) {}
-
-        explicit MessageNumberData(uint32_t first) : lastSent(first) {}
-    };
-
-    static std::map<uint32_t, MessageNumberData> messageNumbers;
-public:
-    static uint32_t &getNextNumber(uint32_t userId);
-};
 
 struct Request {
     enum class Type {
@@ -115,6 +101,26 @@ struct Response {
     Header header;
     std::vector<unsigned char> payload;
 };
+
+    class MessageNumberGenerator {
+
+        bool _set;
+        std::set<uint32_t > _unresolvedNumbers;
+        uint32_t _nIncomming;
+        uint32_t _nOutgoing;
+    public:
+        MessageNumberGenerator() : _nOutgoing(Random{}.getBounded(0, UINT32_MAX)) {}
+
+        bool checkIncomming(const Request& data);
+
+        bool checkIncomming(const Response& data);
+
+        void setNumber(Request& r);
+
+        void setNumber(Response& r);
+
+    };
+
 
 } // namespace helloworld
 #endif //HELLOWORLD_SHARED_REQUEST_H_
