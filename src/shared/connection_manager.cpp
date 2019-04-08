@@ -5,12 +5,12 @@
 namespace helloworld {
 
 ClientToServerManager::ClientToServerManager(const std::string& sessionKey,
-        const std::string &pubkeyFilename) : ConnectionManager(sessionKey) {
+        const std::string &pubkeyFilename) : BasicConnectionManager(sessionKey) {
     _rsa_out.loadPublicKey(pubkeyFilename);
 }
 
 ClientToServerManager::ClientToServerManager(const std::string& sessionKey,
-        const std::vector<unsigned char> &publicKeyData)  : ConnectionManager(sessionKey) {
+        const std::vector<unsigned char> &publicKeyData)  : BasicConnectionManager(sessionKey) {
     _rsa_out.setPublicKey(publicKeyData);
 }
 
@@ -27,6 +27,9 @@ Response ClientToServerManager::parseIncoming(std::stringstream &&data) {
     std::vector<unsigned char> head(sizeof(Request::Header));
     read_n(headDecrypted, head.data(), head.size());
     response.header = Response::Header::deserialize(head);
+    if (!_counter.checkIncomming(response))
+        // TODO throw exception or discard message
+        ;
     //will pass only encrypted payload if not for server to read
     response.payload.resize(getSize(bodyDecrypted));
     read_n(bodyDecrypted, response.payload.data(), response.payload.size());
@@ -34,11 +37,13 @@ Response ClientToServerManager::parseIncoming(std::stringstream &&data) {
     return response;
 }
 
-std::stringstream ClientToServerManager::parseOutgoing(const Request &data) {
+std::stringstream ClientToServerManager::parseOutgoing(Request data) {
     std::stringstream result{};
     //todo if type SEND encrypt body with ANOTHER session key
     //todo or parse both, (but the body will be parsed twice - for user, and for server)
-    //data.header.messageNumber = _counter.
+
+    // data cannot be const ref - cannot set number
+    _counter.setNumber(data);
     if (_established) {
         _GCMencryptHead(result, data);
         _GCMencryptBody(result, data);
@@ -55,7 +60,7 @@ std::stringstream ClientToServerManager::parseOutgoing(const Request &data) {
 }
 
 GenericServerManager::GenericServerManager(const std::string &privkeyFilename, const std::string &key,
-                                           const std::string &iv) : ConnectionManager("") {
+                                           const std::string &iv) : BasicConnectionManager("") {
     _rsa_in.loadPrivateKey(privkeyFilename, key, iv);
 }
 
@@ -71,6 +76,10 @@ Request GenericServerManager::parseIncoming(std::stringstream &&data) {
     header = _rsa_in.decrypt(header);
 
     request.header = std::move(Request::Header::deserialize(header));
+
+    if (!_counter.checkIncomming(request))
+        // TODO throw exception or discard message
+        ;
 
     size_t length = getSize(data);
     request.payload = std::vector<unsigned char>(length);
@@ -92,9 +101,9 @@ void GenericServerManager::setKey(const std::string &key) {
     _sessionKey = key;
 }
 
-std::stringstream GenericServerManager::parseOutgoing(const Response &data) {
+std::stringstream GenericServerManager::parseOutgoing(Response data) {
     std::stringstream result{};
-    //data.header.messageNumber = _counter.
+    _counter.setNumber(data);
     _GCMencryptHead(result, data);
     _GCMencryptBody(result, data);
     result.seekg(0, std::ios::beg);
@@ -102,7 +111,7 @@ std::stringstream GenericServerManager::parseOutgoing(const Response &data) {
     return result;
 }
 
-ServerToClientManager::ServerToClientManager(const std::string &sessionKey) : ConnectionManager(sessionKey) {
+ServerToClientManager::ServerToClientManager(const std::string &sessionKey) : BasicConnectionManager(sessionKey) {
     switchSecureChannel(true);
 }
 
@@ -118,6 +127,9 @@ Request ServerToClientManager::parseIncoming(std::stringstream &&data) {
     std::vector<unsigned char> head(sizeof(Request::Header));
     read_n(headDecrypted, head.data(), head.size());
     request.header = Request::Header::deserialize(head);
+    if (!_counter.checkIncomming(request))
+        // TODO throw exception or discard message
+        ;
     //will pass only encrypted payload if not for server to read
     request.payload.resize(getSize(bodyDecrypted));
     read_n(bodyDecrypted, request.payload.data(), request.payload.size());
@@ -125,9 +137,9 @@ Request ServerToClientManager::parseIncoming(std::stringstream &&data) {
     return request;
 }
 
-std::stringstream ServerToClientManager::parseOutgoing(const Response &data) {
+std::stringstream ServerToClientManager::parseOutgoing(Response data) {
     std::stringstream result{};
-
+    _counter.setNumber(data);
     _GCMencryptHead(result, data);
     _GCMencryptBody(result, data);
     return result;

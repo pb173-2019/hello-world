@@ -43,7 +43,7 @@ namespace helloworld {
  */
 
 template<typename incoming, typename outgoing>
-class ConnectionManager {
+class  ConnectionManager {
 protected:
 
     AESGCM _gcm{};
@@ -84,7 +84,7 @@ public:
      * @param data
      * @return
      */
-    virtual std::stringstream parseOutgoing(const outgoing &data) = 0;
+    virtual std::stringstream parseOutgoing(outgoing data) = 0;
 
 protected:
     //pretty ugly, but C++ does not simply allows to move n bytes
@@ -157,7 +157,7 @@ template<typename incoming, typename outgoing>
 class BasicConnectionManager : public ConnectionManager<incoming, outgoing> {
 protected:
 
-    //todo implement
+
     MessageNumberGenerator _counter;
 
 public:
@@ -174,7 +174,7 @@ public:
 /**
  * Client side implementation with connections to other clients as well
  */
-class ClientToServerManager : public ConnectionManager<Response, Request> {
+class ClientToServerManager : public BasicConnectionManager<Response, Request> {
 
     //outgoing RSA initialized with server public key
     RSA2048 _rsa_out{};
@@ -201,7 +201,7 @@ public:
 
     Response parseIncoming(std::stringstream &&data) override;
 
-    std::stringstream parseOutgoing(const Request &data) override;
+    std::stringstream parseOutgoing(Request data) override;
 
 private:
 
@@ -211,19 +211,19 @@ private:
  * Server side implementation with connection to one client at time
  * server always knows the session key as it is forwarded in auth / registration
  */
-class ServerToClientManager : public ConnectionManager<Request, Response> {
+class ServerToClientManager : public BasicConnectionManager<Request, Response> {
 public:
     explicit ServerToClientManager(const std::string &sessionKey);
 
     Request parseIncoming(std::stringstream &&data) override;
 
-    std::stringstream parseOutgoing(const Response &data) override;
+    std::stringstream parseOutgoing(Response data) override;
 };
 
 /**
  * Class that is meant to parse only with server private key - incoming registration & request
  */
-class GenericServerManager : ConnectionManager<Request, Response> {
+class GenericServerManager : BasicConnectionManager<Request, Response> {
 
     RSA2048 _rsa_in{};
 
@@ -261,7 +261,7 @@ public:
      * @param key GCM key to encrypt
      * @return stream
      */
-    std::stringstream parseOutgoing(const Response &data) override;
+    std::stringstream parseOutgoing(Response data) override;
 
     /**
      * Set gcm key for parseOutgoing(const Response &data) method
