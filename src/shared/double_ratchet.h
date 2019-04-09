@@ -17,7 +17,7 @@
 namespace helloworld {
 
 class DoubleRatchet {
-    static const int MAX_SKIP = 10;
+    static const int MAX_SKIP = 1000;
 
    private:
     DoubleRatchetAdapter ext;
@@ -31,9 +31,10 @@ class DoubleRatchet {
         _MKSKIPPED;    // Dictionary of skipped-over message keys, indexed
                        // by ratchet public key and message number. Raises an
                        // exception if too many elements are stored
+    key _AD;           // additional data from X3DH
 
     key TrySkippedMessageKeys(const Header &header, const key &ciphertext,
-                              const key &AD);
+                              const key &hmac);
     void SkipMessageKeys(size_t until);
     void DHRatchet(const Header &header);
 
@@ -45,7 +46,7 @@ class DoubleRatchet {
      * @param other_dh_public_key Curve25519 public key from the other client
      */
     DoubleRatchet(
-        const std::vector<unsigned char> &sk,
+        std::vector<unsigned char> sk, std::vector<unsigned char> ad,
         std::vector<unsigned char> other_dh_public_key);    // RatchetInitAlice
 
     /**
@@ -55,7 +56,7 @@ class DoubleRatchet {
      * @param dh_public_key own Curve25519 public key
      * @param dh_private_key own Curve25519 public key
      */
-    DoubleRatchet(std::vector<unsigned char> sk,
+    DoubleRatchet(std::vector<unsigned char> sk, std::vector<unsigned char> ad,
                   std::vector<unsigned char> dh_public_key,
                   std::vector<unsigned char> dh_private_key);
 
@@ -66,9 +67,7 @@ class DoubleRatchet {
      * @param AD additional data (output from X3DH)
      * @return Message message struct with header, hmac and ciphertext
      */
-    Message RatchetEncrypt(const std::vector<unsigned char> &plaintext,
-
-                           const std::vector<unsigned char> &AD);
+    Message RatchetEncrypt(const std::vector<unsigned char> &plaintext);
 
     /**
      * @brief Decrypts message using Double Ratchet algorithm
@@ -77,8 +76,7 @@ class DoubleRatchet {
      * @param AD additional data (output from X3DH)
      * @return vector decrypted data
      */
-    std::vector<unsigned char> RatchetDecrypt(
-        const Message &message, const std::vector<unsigned char> &AD);
+    std::vector<unsigned char> RatchetDecrypt(const Message &message);
 };
 
 }    // namespace helloworld

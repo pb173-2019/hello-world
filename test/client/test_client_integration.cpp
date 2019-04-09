@@ -11,17 +11,17 @@
 
 using namespace helloworld;
 
-TEST_CASE("Create key for alice") {
+TEST_CASE("Create key for aliceabc") {
     RSAKeyGen keygen;
-    keygen.savePrivateKeyPassword("alice_priv.pem", "hunter2");
-    keygen.savePublicKey("alice_pub.pem");
+    keygen.savePrivateKeyPassword("aliceabc_priv.pem", "hunter2");
+    keygen.savePublicKey("aliceabc_pub.pem");
 }
 
 TEST_CASE("Scenario 1: create, logout, login, delete.") {
     Server server;
 
-    Client client("alice", "alice_priv.pem", "hunter2");
-    client.createAccount("alice_pub.pem");
+    Client client("aliceabc", "aliceabc_priv.pem", "hunter2");
+    client.createAccount("aliceabc_pub.pem");
 
     std::cout << "server receives request\n";
     // server receives request
@@ -73,7 +73,7 @@ TEST_CASE("Scenario 1: create, logout, login, delete.") {
 }
 
 void registerUserRoutine(Server& server, Client& client) {
-    client.createAccount("alice_pub.pem");
+    client.createAccount("aliceabc_pub.pem");
     server.getRequest();
     client.getResponse();
     server.getRequest();
@@ -94,22 +94,22 @@ bool checkContains(const std::map<uint32_t, std::string>& values, const std::str
 TEST_CASE("Scenario 2: getting users from database.") {
     Server server;
 
-    Client alice("alice", "alice_priv.pem", "hunter2");
-    registerUserRoutine(server, alice);
+    Client aliceabc("aliceabc", "aliceabc_priv.pem", "hunter2");
+    registerUserRoutine(server, aliceabc);
 
-    Client bob("bob", "alice_priv.pem", "hunter2");
+    Client bob("bob", "aliceabc_priv.pem", "hunter2");
     registerUserRoutine(server, bob);
 
-    Client emily("emily","alice_priv.pem", "hunter2");
+    Client emily("emily","aliceabc_priv.pem", "hunter2");
     registerUserRoutine(server, emily);
 
-    Client lila("lila", "alice_priv.pem", "hunter2");
+    Client lila("lila", "aliceabc_priv.pem", "hunter2");
     registerUserRoutine(server, lila);
 
-    Client borek("borek", "alice_priv.pem", "hunter2");
+    Client borek("borek", "aliceabc_priv.pem", "hunter2");
     registerUserRoutine(server, borek);
 
-    Client lylibo("lylibo", "alice_priv.pem", "hunter2");
+    Client lylibo("lylibo", "aliceabc_priv.pem", "hunter2");
     registerUserRoutine(server, lylibo);
 
     borek.sendGetOnline();
@@ -122,7 +122,7 @@ TEST_CASE("Scenario 2: getting users from database.") {
     server.getRequest();
     borek.getResponse();
 
-    CHECK(checkContains(borek.getUsers(), "alice"));
+    CHECK(checkContains(borek.getUsers(), "aliceabc"));
     CHECK(checkContains(borek.getUsers(), "lylibo"));
     CHECK(checkContains(borek.getUsers(), "lila"));
     CHECK(!checkContains(borek.getUsers(), "emily"));
@@ -131,16 +131,20 @@ TEST_CASE("Scenario 2: getting users from database.") {
 }
 
 TEST_CASE("Incorrect authentications") {
+    RSAKeyGen keygen;
+    keygen.savePrivateKeyPassword("aliceabc_priv.pem", "hunter2");
+    keygen.savePublicKey("aliceabc_pub.pem");
+    
     Server server;
-    Client alice("alice", "alice_priv.pem", "hunter2");
-    registerUserRoutine(server, alice);
-    Client bob("bob", "alice_priv.pem", "hunter2");
+    Client aliceabc("aliceabc", "aliceabc_priv.pem", "hunter2");
+    registerUserRoutine(server, aliceabc);
+    Client bob("bob", "aliceabc_priv.pem", "hunter2");
     registerUserRoutine(server, bob);
 
-    Client client1("alice", "alice_priv.pem", "hunter2");
+    Client client1("aliceabc", "aliceabc_priv.pem", "hunter2");
     //registrates when user logged with that exact username
-    server.simulateNewChannel("alice");
-    client1.createAccount("alice_pub.pem");
+    server.simulateNewChannel("aliceabc");
+    client1.createAccount("aliceabc_pub.pem");
     // server receives request
     server.getRequest();
     // client receives challenge
@@ -148,15 +152,15 @@ TEST_CASE("Incorrect authentications") {
 
 
     //registrates when username exists, but not logged in
-    server.logout("alice");
-    client1.createAccount("alice_pub.pem");
+    server.logout("aliceabc");
+    client1.createAccount("aliceabc_pub.pem");
     // server receives request
     server.getRequest();
     // client receives challenge
     CHECK_THROWS(client1.getResponse());
 
     server.simulateNewChannel("bob");
-    Client client2("bob", "alice_priv.pem", "hunter2");
+    Client client2("bob", "aliceabc_priv.pem", "hunter2");
     client2.login();
     // server receives request
     server.getRequest();
@@ -174,39 +178,39 @@ void emptyOneTimeKeysRoutine(Server& server, Client& client, uint32_t id) {
 
 TEST_CASE("Messages exchange - two users online, establish the X3DH shared secret connection") {
     Server server;
-    Client alice("alice", "alice_priv.pem", "hunter2");
-    registerUserRoutine(server, alice);
-    Client bob("bob", "alice_priv.pem", "hunter2");
+    Client aliceabc("aliceabc", "aliceabc_priv.pem", "hunter2");
+    registerUserRoutine(server, aliceabc);
+    Client bob("bob", "aliceabc_priv.pem", "hunter2");
     registerUserRoutine(server, bob);
 
-    alice.sendGetOnline();
+    aliceabc.sendGetOnline();
 
     //server receives request
     server.getRequest();
     //client obtains the online users
-    alice.getResponse();
+    aliceabc.getResponse();
 
     uint32_t id;
     //get bob id, maybe reverse map and make it name -> id
-    for (auto it : alice.getUsers())
+    for (auto it : aliceabc.getUsers())
         if (it.second == "bob")
             id = it.first;
 
-    SECTION("Alice uses the avaliable key from bundle of one time keys") {
+    SECTION("aliceabc uses the avaliable key from bundle of one time keys") {
         //national secret message!
-        alice.sendData(id, std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
+        aliceabc.sendData(id, std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
 
         //server receives get bob bundle request
         server.getRequest();
-        //alice receives bundle and actually sends data
-        alice.getResponse();
+        //aliceabc receives bundle and actually sends data
+        aliceabc.getResponse();
         //server forwards as bob is online
         server.getRequest();
         //bob gets message
         bob.getResponse();
 
         SendData received = bob.getMessage();
-        CHECK(received.from == "alice");
+        CHECK(received.from == "aliceabc");
         CHECK(received.data == std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
     }
 
@@ -218,40 +222,40 @@ TEST_CASE("Messages exchange - two users online, establish the X3DH shared secre
         bob.getResponse();
         
         //national secret message!
-        alice.sendData(id, std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
+        aliceabc.sendData(id, std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
         //server receives get bob bundle request
         server.getRequest();
-        //alice receives bundle and actually sends data
-        alice.getResponse();
+        //aliceabc receives bundle and actually sends data
+        aliceabc.getResponse();
         //server forwards as bob is online
         server.getRequest();
         //bob gets message & parses the message using OLD key files
         bob.getResponse();
 
         SendData received = bob.getMessage();
-        CHECK(received.from == "alice");
+        CHECK(received.from == "aliceabc");
         CHECK(received.data == std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
     }
 
     SECTION("Some mischievous user has emptied the one time keys") {
         for (int i = 0; i < 20; ++i) {
-            emptyOneTimeKeysRoutine(server, alice, id);
+            emptyOneTimeKeysRoutine(server, aliceabc, id);
         }
         
         //national secret message!
-        alice.sendData(id, std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
+        aliceabc.sendData(id, std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
 
         //server receives get bob bundle request
         server.getRequest();
-        //alice receives bundle and actually sends data
-        alice.getResponse();
+        //aliceabc receives bundle and actually sends data
+        aliceabc.getResponse();
         //server forwards as bob is online
         server.getRequest();
         //bob gets message
         bob.getResponse();
 
         SendData received = bob.getMessage();
-        CHECK(received.from == "alice");
+        CHECK(received.from == "aliceabc");
         CHECK(received.data == std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
 
         uint64_t lastTimeStamp = server.getDatabase().getBundleTimestamp(bob.getId());

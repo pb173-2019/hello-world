@@ -39,8 +39,6 @@ Response ClientToServerManager::parseIncoming(std::stringstream &&data) {
 
 std::stringstream ClientToServerManager::parseOutgoing(Request data) {
     std::stringstream result{};
-    //todo if type SEND encrypt body with ANOTHER session key
-    //todo or parse both, (but the body will be parsed twice - for user, and for server)
 
     // data cannot be const ref - cannot set number
     _counter.setNumber(data);
