@@ -31,133 +31,7 @@ class X3DH {
     const std::string& pwd;
     uint64_t timestamp = 0;
 
-   public:
-    X3DH(const std::string& username, const std::string& pwd)
-        : username(username), pwd(pwd) {}
-
-    void setTimestamp(uint64_t timestamp) { this->timestamp = timestamp; }
-
-    /**
-     * Perform X3DH protocol (key exchange) first part
-     *
-     * @param toSend data to send
-     * @param bundle key bundle of receiver fetched from server
-     * @return X3DH SK key
-     */
-    std::string out(const KeyBundle<C25519> bundle, const SendData& toSend,
-                    X3DHRequest<C25519>& toFill) const {
-        if (!verifyPrekey(bundle.identityKey, bundle.preKey,
-                          bundle.preKeySingiture))
-            throw Error("X3DH: Key verification has failed.");
-
-        bool opUsed = !bundle.oneTimeKeys.empty();
-        size_t keyId = 0;
-
-        C25519KeyGen ephermalGen;
-        // DH1 step
-        C25519 identity;
-        identity.loadPrivateKey(username + idC25519priv, pwd);
-        identity.setPublicKey(bundle.preKey);
-        std::vector<unsigned char> dh = identity.getShared();
-        // DH2 step
-        C25519 ephermal;
-        ephermal.setPrivateKey(ephermalGen);
-        ephermal.setPublicKey(bundle.identityKey);
-        append(dh, ephermal.getShared());
-        // DH3 step
-        ephermal.setPublicKey(bundle.preKey);
-        append(dh, ephermal.getShared());
-        // optional DH4 step
-        if (opUsed) {
-            keyId = bundle.oneTimeKeys.size() - 1;
-            ephermal.setPublicKey(bundle.oneTimeKeys[keyId]);
-            append(dh, ephermal.getShared());
-        }
-
-        hkdf kdf;
-        std::string sk = kdf.generate(to_hex(dh), 16);
-
-        clear<unsigned char>(dh.data(), dh.size());
-
-        // build request
-        toFill.timestamp = bundle.timestamp;
-        toFill.senderIdPubKey =
-            std::move(loadC25519Key(username + idC25519pub));
-        toFill.senderEphermalPubKey = std::move(ephermalGen.getPublicKey());
-        toFill.opKeyUsed = opUsed ? X3DHRequest<C25519>::OP_KEY_USED
-                                  : X3DHRequest<C25519>::OP_KEY_NONE,
-        toFill.opKeyId = keyId;
-        toFill.AEADenrypted = std::move(
-            aeadEncrypt(sk, toFill.senderEphermalPubKey, bundle, toSend));
-
-        return sk;
-    }
-
-    /**
-     * Perform X3DH protocol (key exchange) second part
-     *
-     * @param incoming incoming request with payload deserializable to
-     * X3DHRequest<C25519>
-     * @return X3DH SK key
-     */
-    std::string in(SendData& toReceive, const Response& incoming) {
-        X3DHRequest<C25519> x3dhBundle =
-            X3DHRequest<C25519>::deserialize(incoming.payload);
-        bool old = timestamp !=
-                   x3dhBundle.timestamp;    // use the previous bundle version ?
-
-        std::vector<unsigned char> dh_bytes;
-
-        C25519 identityKeyCurve;
-        identityKeyCurve.loadPrivateKey(
-            username + idC25519priv + (old ? ".old" : ""), pwd);
-        C25519 preKeyCurve;
-        preKeyCurve.loadPrivateKey(
-            username + preC25519priv + (old ? ".old" : ""), pwd);
-
-        // DH1 step
-        preKeyCurve.setPublicKey(x3dhBundle.senderIdPubKey);
-        dh_bytes = preKeyCurve.getShared();
-
-        // DH2 step
-        identityKeyCurve.setPublicKey(x3dhBundle.senderEphermalPubKey);
-        append(dh_bytes, identityKeyCurve.getShared());
-
-        // DH3 step
-        preKeyCurve.setPublicKey(x3dhBundle.senderEphermalPubKey);
-        append(dh_bytes, preKeyCurve.getShared());
-
-        // DH4 step
-        if (x3dhBundle.opKeyUsed == X3DHRequest<C25519>::OP_KEY_USED) {
-            C25519 onetimeKeyCurve;
-            onetimeKeyCurve.loadPrivateKey(
-                username + std::to_string(x3dhBundle.opKeyId) +
-                    oneTimeC25519priv + (old ? ".old" : ""),
-                pwd);
-            onetimeKeyCurve.setPublicKey(x3dhBundle.senderEphermalPubKey);
-            append(dh_bytes, onetimeKeyCurve.getShared());
-        }
-
-        hkdf kdf;
-        std::string sk = kdf.generate(to_hex(dh_bytes), 16);
-
-        AESGCM gcm;
-        gcm.setKey(sk);
-        gcm.setIv(to_hex(x3dhBundle.senderEphermalPubKey).substr(0, 24));
-
-        std::vector<unsigned char> result;
-        std::vector<unsigned char> ad = std::move(x3dhBundle.senderIdPubKey);
-        append(ad, loadC25519Key(username + idC25519pub + (old ? ".old" : "")));
-
-        gcm.decryptWithAd(x3dhBundle.AEADenrypted, ad, result);
-        toReceive = SendData::deserialize(result);
-
-        // discard SK if old message received and the connection would be
-        // invalid
-        if (incoming.header.type == Response::Type::RECEIVE_OLD) return "";
-        return sk;
-    }
-
+public:
     struct X3DHSecretPubKey {
         std::vector<unsigned char> sk;
         std::vector<unsigned char> ad;
@@ -171,11 +45,17 @@ class X3DH {
         std::vector<unsigned char> privKey;
     };
 
-    X3DHSecretKeyPair getSecret(const Response& incoming) {
+    X3DH(const std::string& username, const std::string& pwd)
+        : username(username), pwd(pwd) {}
+
+    void setTimestamp(uint64_t timestamp) { this->timestamp = timestamp; }
+
+
+    std::pair<std::vector<unsigned char>, X3DHSecretKeyPair> getSecret(const Response& incoming) {
         X3DHRequest<C25519> x3dhBundle =
             X3DHRequest<C25519>::deserialize(incoming.payload);
-        bool old = timestamp !=
-                   x3dhBundle.timestamp;    // use the previous bundle version ?
+
+        bool old = timestamp != x3dhBundle.timestamp;
 
         std::vector<unsigned char> dh_bytes;
 
@@ -217,57 +97,59 @@ class X3DH {
         std::vector<unsigned char> result;
         auto pubKey = loadC25519Key(username + preC25519pub + (old ? ".old" : ""));
 
-        if (incoming.header.type == Response::Type::RECEIVE_OLD) throw Error("RECEIVE_OLD");
-        return {from_hex(sk), ad, pubKey, preKeyCurve.getPrivateKey()};
+        if (incoming.header.type == Response::Type::RECEIVE_OLD)
+            throw Error("RECEIVE_OLD");
+        return std::make_pair(x3dhBundle.AEADenrypted,
+                X3DHSecretKeyPair{from_hex(sk), std::move(ad), std::move(pubKey), preKeyCurve.getPrivateKey()});
     }
 
-    X3DHSecretPubKey getSecret(const KeyBundle<C25519>& bundle) const {
-        if (!verifyPrekey(bundle.identityKey, bundle.preKey,
-                          bundle.preKeySingiture))
-            throw Error("X3DH: Key verification has failed.");
+//    X3DHSecretPubKey getSecret(const KeyBundle<C25519>& bundle) const {
+//        if (!verifyPrekey(bundle.identityKey, bundle.preKey,
+//                          bundle.preKeySingiture))
+//            throw Error("X3DH: Key verification has failed.");
+//
+//        bool opUsed = !bundle.oneTimeKeys.empty();
+//        size_t keyId = 0;
+//
+//        C25519KeyGen ephemeralGen;
+//        // DH1 step
+//        C25519 identity;
+//        identity.loadPrivateKey(username + idC25519priv, pwd);
+//        identity.setPublicKey(bundle.preKey);
+//        std::vector<unsigned char> dh = identity.getShared();
+//        // DH2 step
+//        C25519 ephemeral;
+//        ephemeral.setPrivateKey(ephemeralGen);
+//        ephemeral.setPublicKey(bundle.identityKey);
+//        append(dh, ephemeral.getShared());
+//        // DH3 step
+//        ephemeral.setPublicKey(bundle.preKey);
+//        append(dh, ephemeral.getShared());
+//        // optional DH4 step
+//        if (opUsed) {
+//            keyId = bundle.oneTimeKeys.size() - 1;
+//            ephemeral.setPublicKey(bundle.oneTimeKeys[keyId]);
+//            append(dh, ephemeral.getShared());
+//        }
+//
+//        hkdf kdf;
+//        std::string sk = kdf.generate(to_hex(dh), 16);
+//
+//        clear<unsigned char>(dh.data(), dh.size());
+//
+//        std::vector<unsigned char> ad = loadC25519Key(username + idC25519pub);
+//        append(ad, bundle.identityKey);
+//
+//        return {from_hex(sk), ad, bundle.preKey};
+//    }
 
-        bool opUsed = !bundle.oneTimeKeys.empty();
-        size_t keyId = 0;
-
-        C25519KeyGen ephemeralGen;
-        // DH1 step
-        C25519 identity;
-        identity.loadPrivateKey(username + idC25519priv, pwd);
-        identity.setPublicKey(bundle.preKey);
-        std::vector<unsigned char> dh = identity.getShared();
-        // DH2 step
-        C25519 ephemeral;
-        ephemeral.setPrivateKey(ephemeralGen);
-        ephemeral.setPublicKey(bundle.identityKey);
-        append(dh, ephemeral.getShared());
-        // DH3 step
-        ephemeral.setPublicKey(bundle.preKey);
-        append(dh, ephemeral.getShared());
-        // optional DH4 step
-        if (opUsed) {
-            keyId = bundle.oneTimeKeys.size() - 1;
-            ephemeral.setPublicKey(bundle.oneTimeKeys[keyId]);
-            append(dh, ephemeral.getShared());
-        }
-
-        hkdf kdf;
-        std::string sk = kdf.generate(to_hex(dh), 16);
-
-        clear<unsigned char>(dh.data(), dh.size());
-
-        std::vector<unsigned char> ad = loadC25519Key(username + idC25519pub);
-        append(ad, bundle.identityKey);
-
-        return {from_hex(sk), ad, bundle.preKey};
-    }
-
-    std::pair<X3DHRequest<C25519>, X3DHSecretPubKey> out(
+    std::pair<X3DHRequest<C25519>, X3DHSecretPubKey> setSecret(
         const KeyBundle<C25519>& bundle) const {
         if (!verifyPrekey(bundle.identityKey, bundle.preKey,
                           bundle.preKeySingiture))
             throw Error("X3DH: Key verification has failed.");
 
-        bool opUsed = !bundle.oneTimeKeys.empty();
+        bool opAvailable = !bundle.oneTimeKeys.empty();
         size_t keyId = 0;
 
         C25519KeyGen ephermalGen;
@@ -285,7 +167,7 @@ class X3DH {
         ephermal.setPublicKey(bundle.preKey);
         append(dh, ephermal.getShared());
         // optional DH4 step
-        if (opUsed) {
+        if (opAvailable) {
             keyId = bundle.oneTimeKeys.size() - 1;
             ephermal.setPublicKey(bundle.oneTimeKeys[keyId]);
             append(dh, ephermal.getShared());
@@ -302,8 +184,8 @@ class X3DH {
         toFill.senderIdPubKey =
             std::move(loadC25519Key(username + idC25519pub));
         toFill.senderEphermalPubKey = std::move(ephermalGen.getPublicKey());
-        toFill.opKeyUsed = opUsed ? X3DHRequest<C25519>::OP_KEY_USED
-                                  : X3DHRequest<C25519>::OP_KEY_NONE,
+        toFill.opKeyUsed = opAvailable ? X3DHRequest<C25519>::OP_KEY_USED
+                                       : X3DHRequest<C25519>::OP_KEY_NONE,
         toFill.opKeyId = keyId;
 
         std::vector<unsigned char> ad = loadC25519Key(username + idC25519pub);
@@ -311,7 +193,7 @@ class X3DH {
         return std::make_pair(toFill, X3DHSecretPubKey{from_hex(sk), ad, bundle.preKey});
     }
 
-   private:
+private:
     /**
      * Verify signature on prekey used
      *
@@ -352,31 +234,6 @@ class X3DH {
         return key;
     }
 
-    /**
-     * Compute AESGCM with AD from data send by user
-     * @param key key to use for encryption, sould be the result of
-     *        KDF( DH1 || DH2 || DH3 || DH4 - optionally)
-     * @param senderEphermal to use as IV
-     * @param bundle bundle with receiver X3DH keys
-     * @param data data to encrypt
-     * @return encrypted data vector
-     */
-    std::vector<unsigned char> aeadEncrypt(
-        const std::string& key,
-        const std::vector<unsigned char>& senderEphermal,
-        const KeyBundle<C25519>& bundle, const SendData& data) const {
-        AESGCM gcm;
-        gcm.setKey(key);
-        gcm.setIv(to_hex(senderEphermal).substr(0, 24));
-
-        std::vector<unsigned char> ad =
-            std::move(loadC25519Key(username + idC25519pub));
-        append(ad, bundle.identityKey);
-        std::vector<unsigned char> result;
-        gcm.encryptWithAd(data.serialize(), ad, result);
-
-        return result;
-    }
 };
 
 }    // namespace helloworld

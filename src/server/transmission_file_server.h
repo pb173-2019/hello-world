@@ -38,7 +38,10 @@ class ServerFiles : public ServerTransmissionManager {
 
 public:
     explicit ServerFiles(Callable<void, bool, const std::string&, std::stringstream&&>* callback) :
-                         ServerTransmissionManager(callback) {};
+                         ServerTransmissionManager(callback) {
+        //we put there the super class method, which is overridden (type error otherwise)
+        Network::setServer(&ServerTransmissionManager::receive, this);
+    };
 
     // Copying is not available
     ServerFiles(const ServerFiles &other) = delete;
@@ -52,6 +55,7 @@ public:
             remove(leftovers.c_str());
             leftovers = getFile(".tcp");
         }
+        Network::setServer(nullptr, nullptr);
     };
 
     void send(const std::string& usrname, std::iostream &data) override {
@@ -61,8 +65,11 @@ public:
         if (!send) {
             throw Error("Transmission failed.\n");
         }
-
+        //saves into .tcp file
         _base64.fromStream(data, send);
+        //notifies the user (static callback socket mock)
+        send.close();
+        Network::sendToUser(usrname);
     }
 
     void receive() override {
@@ -75,14 +82,15 @@ public:
         std::stringstream result{};
         _base64.toStream(received, result);
         std::string name = incoming.substr(0, incoming.size() - 4);
-
         result.seekg(0, std::ios::beg);
-        Callable<void, bool, const std::string&, std::stringstream&&>::call(callback, exists(name),
-                name, std::move(result));
-        incoming.push_back('\0'); //sichr
+
+        received.close();
         if (remove(incoming.c_str()) != 0) {
             throw Error("Could not finish transmission.\n");
         }
+
+        Callable<void, bool, const std::string&, std::stringstream&&>::call(callback, exists(name),
+                name, std::move(result));
     }
 
     /**

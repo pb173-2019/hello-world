@@ -37,36 +37,34 @@ TEST_CASE("X3DH process test one-time keys present") {
         bobOneTime2.getPublicKey()
     };
 
-    X3DHRequest<C25519> toFill;
-
     SendData toSend{"1.3.2013", "user", {1, 2, 3, 4}};
-    SendData transfered;
 
     X3DH x3dh_alice(alice, alice_pwd);
     //setTimestamp() not needed in x3dh_alice as alice is not using .in()
-    std::string shared = x3dh_alice.out(bundle, toSend, toFill);
 
-    std::cout << shared << "\n";
+    X3DHRequest<C25519> request;
+    X3DH::X3DHSecretPubKey secret;
+    std::tie(request, secret) = x3dh_alice.setSecret(bundle);
 
     SECTION("SIMULATE receiver") {
-        CHECK(shared.size() == 32);
-        REQUIRE(toFill.opKeyUsed == 0x01);
-        REQUIRE(toFill.opKeyId == 1);
+        CHECK(secret.sk.size() == 16);
+        REQUIRE(request.opKeyUsed == 0x01);
+        REQUIRE(request.opKeyId == 1);
 
         std::vector <unsigned char> dhs;
 
         // DH1 step
         C25519 dhcurve;
         dhcurve.setPrivateKey(bobPreKey);
-        dhcurve.setPublicKey(toFill.senderIdPubKey);
+        dhcurve.setPublicKey(request.senderIdPubKey);
         dhs = dhcurve.getShared();
 
         //DH2 step
-        identity.setPublicKey(toFill.senderEphermalPubKey);
+        identity.setPublicKey(request.senderEphermalPubKey);
         appendVector(dhs, identity.getShared());
 
         //DH3
-        dhcurve.setPublicKey(toFill.senderEphermalPubKey);
+        dhcurve.setPublicKey(request.senderEphermalPubKey);
         appendVector(dhs, dhcurve.getShared());
 
         //DH4 (optional)
@@ -76,25 +74,14 @@ TEST_CASE("X3DH process test one-time keys present") {
         hkdf kdf;
         std::string sk = kdf.generate(to_hex(dhs), 16);
 
-        CHECK(sk == shared);
-
-        AESGCM gcm;
-        gcm.setKey(sk);
-        gcm.setIv(to_hex(toFill.senderEphermalPubKey).substr(0, 24));
-
-        std::vector<unsigned char> result;
-        std::vector<unsigned char> ad = toFill.senderIdPubKey;
-        ad.insert(ad.end(), bundle.identityKey.begin(), bundle.identityKey.end());
-
-        gcm.decryptWithAd(toFill.AEADenrypted, ad, result);
-        transfered = SendData::deserialize(result);
+        CHECK(sk == to_hex(secret.sk));
     }
 
     SECTION("ACTUAL receiver current pwdSet") {
         std::string bob = "bob";
         std::string bob_pwd = "bob je svaloun";
 
-        Response r{{Response::Type::RECEIVE, 0, 0}, toFill.serialize()};
+        Response r{{Response::Type::RECEIVE, 0, 0}, request.serialize()};
 
         bobIdentity.savePublicKey(bob + idC25519pub);
         bobIdentity.savePrivateKeyPassword(bob + idC25519priv, bob_pwd);
@@ -102,19 +89,24 @@ TEST_CASE("X3DH process test one-time keys present") {
         bobPreKey.savePublicKey(bob + preC25519pub);
         bobPreKey.savePrivateKeyPassword(bob + preC25519priv, bob_pwd);
 
-        bobOneTime2.savePublicKey(bob + std::to_string(toFill.opKeyId) + oneTimeC25519pub);
-        bobOneTime2.savePrivateKeyPassword(bob + std::to_string(toFill.opKeyId) + oneTimeC25519priv, bob_pwd);
+        bobOneTime2.savePublicKey(bob + std::to_string(request.opKeyId) + oneTimeC25519pub);
+        bobOneTime2.savePrivateKeyPassword(bob + std::to_string(request.opKeyId) + oneTimeC25519priv, bob_pwd);
 
         X3DH x3dh_bob(bob, bob_pwd);
         x3dh_bob.setTimestamp(bundle.timestamp);
-        CHECK(x3dh_bob.in(transfered, r) == shared);
+
+        std::vector<unsigned char> messageEncrypted;
+        X3DH::X3DHSecretKeyPair bob_secret;
+        std::tie(messageEncrypted, bob_secret) = x3dh_bob.getSecret(r);
+
+        CHECK(bob_secret.sk == secret.sk);
     }
 
     SECTION("ACTUAL receiver old pwdSet") {
         std::string bob = "bob";
         std::string bob_pwd = "bob je svaloun";
 
-        Response r{{Response::Type::RECEIVE, 0, 0}, toFill.serialize()};
+        Response r{{Response::Type::RECEIVE, 0, 0}, request.serialize()};
 
         bobIdentity.savePublicKey(bob + idC25519pub + ".old");
         bobIdentity.savePrivateKeyPassword(bob + idC25519priv + ".old", bob_pwd);
@@ -122,17 +114,18 @@ TEST_CASE("X3DH process test one-time keys present") {
         bobPreKey.savePublicKey(bob + preC25519pub + ".old");
         bobPreKey.savePrivateKeyPassword(bob + preC25519priv + ".old", bob_pwd);
 
-        bobOneTime2.savePublicKey(bob + std::to_string(toFill.opKeyId) + oneTimeC25519pub + ".old");
-        bobOneTime2.savePrivateKeyPassword(bob + std::to_string(toFill.opKeyId) + oneTimeC25519priv + ".old", bob_pwd);
+        bobOneTime2.savePublicKey(bob + std::to_string(request.opKeyId) + oneTimeC25519pub + ".old");
+        bobOneTime2.savePrivateKeyPassword(bob + std::to_string(request.opKeyId) + oneTimeC25519priv + ".old", bob_pwd);
 
         X3DH x3dh_bob(bob, bob_pwd);
         x3dh_bob.setTimestamp(bundle.timestamp + 1); //different timestamp!
-        CHECK(x3dh_bob.in(transfered, r) == shared);
-    }
 
-    CHECK(transfered.from == toSend.from);
-    CHECK(transfered.data == toSend.data);
-    CHECK(transfered.date == toSend.date);
+        std::vector<unsigned char> messageEncrypted;
+        X3DH::X3DHSecretKeyPair bob_secret;
+        std::tie(messageEncrypted, bob_secret) = x3dh_bob.getSecret(r);
+
+        CHECK(bob_secret.sk == secret.sk);
+    }
 }
 
 TEST_CASE("X3DH process test no one time keys") {
@@ -157,59 +150,46 @@ TEST_CASE("X3DH process test no one time keys") {
     bundle.preKey = bobPreKey.getPublicKey();
     bundle.preKeySingiture = identity.sign(bundle.preKey);
 
-    X3DHRequest<C25519> toFill;
-
     SendData toSend{"1.3.2013", "user", {1, 2, 3, 4}};
-    SendData transfered;
 
     X3DH x3dh_alice(alice, alice_pwd);
     //setTimestamp() not needed in x3dh_alice as alice is not using .in()
-    std::string shared = x3dh_alice.out(bundle, toSend, toFill);
 
-    std::cout << shared << "\n";
+    X3DHRequest<C25519> request;
+    X3DH::X3DHSecretPubKey secret;
+    std::tie(request, secret) = x3dh_alice.setSecret(bundle);
 
     SECTION("SIMULATE receiver") {
-        CHECK(shared.size() == 32);
-        REQUIRE(toFill.opKeyUsed == 0x00);
+        CHECK(secret.sk.size() == 16);
+        REQUIRE(request.opKeyUsed == 0x00);
 
         std::vector <unsigned char> dhs;
 
         // DH1 step
         C25519 dhcurve;
         dhcurve.setPrivateKey(bobPreKey);
-        dhcurve.setPublicKey(toFill.senderIdPubKey);
+        dhcurve.setPublicKey(request.senderIdPubKey);
         dhs = dhcurve.getShared();
 
         //DH2 step
-        identity.setPublicKey(toFill.senderEphermalPubKey);
+        identity.setPublicKey(request.senderEphermalPubKey);
         appendVector(dhs, identity.getShared());
 
         //DH3
-        dhcurve.setPublicKey(toFill.senderEphermalPubKey);
+        dhcurve.setPublicKey(request.senderEphermalPubKey);
         appendVector(dhs, dhcurve.getShared());
 
         hkdf kdf;
         std::string sk = kdf.generate(to_hex(dhs), 16);
 
-        CHECK(sk == shared);
-
-        AESGCM gcm;
-        gcm.setKey(sk);
-        gcm.setIv(to_hex(toFill.senderEphermalPubKey).substr(0, 24));
-
-        std::vector<unsigned char> result;
-        std::vector<unsigned char> ad = toFill.senderIdPubKey;
-        ad.insert(ad.end(), bundle.identityKey.begin(), bundle.identityKey.end());
-
-        gcm.decryptWithAd(toFill.AEADenrypted, ad, result);
-        transfered = SendData::deserialize(result);
+        CHECK(sk == to_hex(secret.sk));
     }
 
     SECTION("ACTUAL receiver current pwdSet") {
         std::string bob = "bob";
         std::string bob_pwd = "bob je svaloun";
 
-        Response r{{Response::Type::RECEIVE, 0, 0}, toFill.serialize()};
+        Response r{{Response::Type::RECEIVE, 0, 0}, request.serialize()};
 
         bobIdentity.savePublicKey(bob + idC25519pub);
         bobIdentity.savePrivateKeyPassword(bob + idC25519priv, bob_pwd);
@@ -219,14 +199,18 @@ TEST_CASE("X3DH process test no one time keys") {
 
         X3DH x3dh_bob(bob, bob_pwd);
         x3dh_bob.setTimestamp(bundle.timestamp);
-        CHECK(x3dh_bob.in(transfered, r) == shared);
+
+        std::vector<unsigned char> messageEncrypted;
+        X3DH::X3DHSecretKeyPair bob_secret;
+        std::tie(messageEncrypted, bob_secret) = x3dh_bob.getSecret(r);
+        CHECK(bob_secret.sk == secret.sk);
     }
 
     SECTION("ACTUAL receiver old pwdSet") {
         std::string bob = "bob";
         std::string bob_pwd = "bob je svaloun";
 
-        Response r{{Response::Type::RECEIVE, 0, 0}, toFill.serialize()};
+        Response r{{Response::Type::RECEIVE, 0, 0}, request.serialize()};
 
         bobIdentity.savePublicKey(bob + idC25519pub + ".old");
         bobIdentity.savePrivateKeyPassword(bob + idC25519priv + ".old", bob_pwd);
@@ -236,12 +220,13 @@ TEST_CASE("X3DH process test no one time keys") {
 
         X3DH x3dh_bob(bob, bob_pwd);
         x3dh_bob.setTimestamp(bundle.timestamp + 1); //different timestamp!
-        CHECK(x3dh_bob.in(transfered, r) == shared);
-    }
 
-    CHECK(transfered.from == toSend.from);
-    CHECK(transfered.data == toSend.data);
-    CHECK(transfered.date == toSend.date);
+        std::vector<unsigned char> messageEncrypted;
+        X3DH::X3DHSecretKeyPair bob_secret;
+        std::tie(messageEncrypted, bob_secret) = x3dh_bob.getSecret(r);
+
+        CHECK(bob_secret.sk == secret.sk);
+    }
 }
 
 

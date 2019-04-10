@@ -6,6 +6,8 @@
  *  - generates ids for connection
  *  - uses encoder
  *
+ * Network class takes care of the inner calls between server & users
+ *
  * @version 0.1
  * @date 21. 3. 2019
  *
@@ -18,20 +20,12 @@
 
 #include <string>
 #include <set>
+#include <map>
 
 #include "utils.h"
 #include "serializable_error.h"
 
 namespace helloworld {
-
-template <typename Incoming, typename Outgoing>
-class FileTransmission {
-
-
-    virtual void receive() = 0;
-
-};
-
 
 class ServerTransmissionManager {
 protected:
@@ -125,6 +119,43 @@ public:
      */
     virtual void receive() = 0;
 };
+
+// a bit ugly way to notify server that the "socket" has arrived
+using server_socket = void (ServerTransmissionManager::*)();
+using client_socket = void (UserTransmissionManager::*)();
+
+class Network {
+    static server_socket server_callback;
+    static ServerTransmissionManager* server_instance;
+    static std::map<std::string, std::pair<client_socket, UserTransmissionManager*>> connection_callbacks;
+
+    static bool enabled;
+
+public:
+    static void setEnabled(bool isEnabled) {
+        enabled = isEnabled;
+    }
+
+    static void setServer(server_socket serverCallback, ServerTransmissionManager* server) {
+        server_callback = serverCallback;
+        server_instance = server;
+    }
+
+    static void addConnection(const std::string &username, std::pair<client_socket, UserTransmissionManager*> client) {
+        connection_callbacks.emplace(username, client);
+    }
+
+    static void releaseConnection(const std::string &username) {
+        connection_callbacks.erase(username);
+    }
+
+    //calls server's receive method
+    static void sendToServer();
+
+    //calls client's receive method
+    static void sendToUser(const std::string &username);
+};
+
 
 } //namespace helloworld
 

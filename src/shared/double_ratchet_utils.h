@@ -139,7 +139,7 @@ class DoubleRatchetAdapter {
         return _hmac.generate(hmacInput);
     }
 
-   public:
+public:
     DHPair GENERATE_DH() const;
 
     key DH(const DHPair &dh_pair, const key &dh_pub) const;

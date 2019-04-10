@@ -171,7 +171,7 @@ Response Server::deleteAccount(const Request &request) {
     } else {
         _database->removeBundle(curRequest.id);
         _database->deleteAllData(curRequest.id);
-        r = checkEvent(request);
+        r = {{Response::Type::OK, 0, 0}, {}};
     }
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     logout(curRequest.name);
@@ -246,29 +246,33 @@ Response Server::sendKeyBundle(const Request &request) {
     if (bundle.empty())
         throw Error("Could not find bundle for user " + std::to_string(request.header.userId));
 
-    Response r{{Response::Type::RECEIVER_BUNDLE_SENT, 0, request.header.userId}, bundle};
-    sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
-
     KeyBundle<C25519> keys = KeyBundle<C25519>::deserialize(bundle);
     if (!keys.oneTimeKeys.empty())
         keys.oneTimeKeys.erase(keys.oneTimeKeys.end() - 1);
 
-    bundle = keys.serialize();
     if (keys.oneTimeKeys.empty())
-        _database->updateBundle(request.header.userId, bundle, 1); //timestamp to 1 - update needed
+        _database->updateBundle(request.header.userId, keys.serialize(), 1); //timestamp to 1 - update needed
     else
-        _database->updateBundle(request.header.userId, bundle);
+        _database->updateBundle(request.header.userId, keys.serialize());
 
+    Response r{{Response::Type::RECEIVER_BUNDLE_SENT, 0, request.header.userId}, bundle};
+    sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }
 
 Response Server::checkEvent(const Request& request) {
     if (request.header.userId != 0) {
-        // step one: old keys
+        // step one: old keys: if time stored + 2 weeks < now
         uint64_t time = _database->getBundleTimestamp(request.header.userId);
-        if (time + 14*24*3600 > getTimestampOf(nullptr))
+        if (time + 14*24*3600 < getTimestampOf(nullptr))
             return {{Response::Type::BUNDLE_UPDATE_NEEDED, request.header.messageNumber, request.header.userId}, {}};
-        // step two: new messages
+
+        // step two: one-time keys emptied //todo should be implemented or just wait for 2week period?
+        KeyBundle<C25519> keys = KeyBundle<C25519>::deserialize(_database->selectBundle(request.header.userId));
+        if (keys.oneTimeKeys.empty())
+            return {{Response::Type::BUNDLE_UPDATE_NEEDED, request.header.messageNumber, request.header.userId}, {}};
+
+        // step three: new messages
         std::vector<unsigned char> msg = _database->selectData(request.header.userId);
         if (!msg.empty())
             return {{Response::Type::RECEIVE_OLD, request.header.messageNumber, request.header.userId}, std::move(msg)};

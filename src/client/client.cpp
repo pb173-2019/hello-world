@@ -70,6 +70,7 @@ void Client::logout() {
 }
 
 void Client::createAccount(const std::string &pubKeyFilename) {
+    _userId = 0;
     _connection =
         std::make_unique<ClientToServerManager>(_sessionKey, serverPub);
     std::ifstream input(pubKeyFilename);
@@ -79,13 +80,12 @@ void Client::createAccount(const std::string &pubKeyFilename) {
     AuthenticateRequest registerRequest(_username, key);
 
     sendRequest({{Request::Type::CREATE, 1, 0}, registerRequest.serialize()});
-    _userId = 0;
 }
 
 void Client::deleteAccount() {
     GenericRequest request(_userId, _username);
     sendRequest({{Request::Type::REMOVE, 0, _userId}, request.serialize()});
-    _userId = 0;
+
 }
 
 void Client::sendFindUsers(const std::string &query) {
@@ -164,8 +164,7 @@ void Client::archiveKey(const std::string &keyFileName) {
     }
 }
 
-void Client::sendData(uint32_t receiverId,
-                      const std::vector<unsigned char> &data) {
+void Client::sendData(uint32_t receiverId, const std::vector<unsigned char> &data) {
     if (_doubleRatchetConnection) {
         auto message = _doubleRatchetConnection->RatchetEncrypt(data);
         auto now = std::chrono::system_clock::to_time_t(
@@ -180,6 +179,7 @@ void Client::sendData(uint32_t receiverId,
         std::ofstream out{std::to_string(receiverId) + ".msg",
                           std::ios::binary};
         write_n(out, data);
+        out.close();
         requestKeyBundle(receiverId);
     }
 }
@@ -193,6 +193,7 @@ void Client::sendInitialMessage(uint32_t receiverId, const Response &response) {
     size_t size = getSize(in);
     std::vector<unsigned char> data(size);
     read_n(in, data.data(), data.size());
+    in.close();
 
     auto now =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -201,8 +202,7 @@ void Client::sendInitialMessage(uint32_t receiverId, const Response &response) {
 
     X3DHRequest<C25519> request;
     X3DH::X3DHSecretPubKey secret;
-    std::tie(request, secret) =
-        _x3dh->out(bundle);
+    std::tie(request, secret) = _x3dh->setSecret(bundle);
     _doubleRatchetConnection =
         std::make_unique<DoubleRatchet>(secret.sk, secret.ad, secret.pubKey);
     Message message = _doubleRatchetConnection->RatchetEncrypt(toSend.serialize());
@@ -220,22 +220,18 @@ void Client::receiveData(const Response &response) {
         sendData.data = receivedData;
         _incomming = sendData;
     } else {
-        _incomming = receiveInitialMessage(response);
+        std::vector<unsigned char> messageEncrypted;
+        X3DH::X3DHSecretKeyPair secret;
+        std::tie(messageEncrypted, secret) = _x3dh->getSecret(response);
+
+        _doubleRatchetConnection = std::make_unique<DoubleRatchet>(
+                secret.sk, secret.ad, secret.pubKey, secret.privKey);
+
+        Message message = Message::deserialize(messageEncrypted);
+        _incomming = SendData::deserialize(_doubleRatchetConnection->RatchetDecrypt(message));
     }
 }
 
-SendData Client::receiveInitialMessage(const Response &response) {
-    auto secret = _x3dh->getSecret(response);
-    _doubleRatchetConnection = std::make_unique<DoubleRatchet>(
-        secret.sk, secret.ad, secret.pubKey, secret.privKey);
-
-    X3DHRequest<C25519> request =
-        X3DHRequest<C25519>::deserialize(response.payload);
-    Message message = Message::deserialize(request.AEADenrypted);
-    SendData sendData = SendData::deserialize(_doubleRatchetConnection->RatchetDecrypt(message));
-
-    return sendData;
-}
 
 void Client::parseUsers(const helloworld::Response &response) {
     _userList.clear();
@@ -271,11 +267,17 @@ void ClientCleaner_Run() {
     leftovers = getFile(".pub");
     while (!leftovers.empty()) {
         remove(leftovers.c_str());leftovers = getFile(".pub");
+        leftovers = getFile(".pub");
     }
     leftovers = getFile(".old");
     while (!leftovers.empty()) {
         remove(leftovers.c_str());
         leftovers = getFile(".old");
+    }
+    leftovers = getFile(".msg");
+    while (!leftovers.empty()) {
+        remove(leftovers.c_str());
+        leftovers = getFile(".msg");
     }
 }
 
