@@ -119,6 +119,10 @@ public:
         return _buffer_private;
     }
 
+    std::vector<unsigned char> getPublicKey() {
+        return _buffer_public;
+    }
+
     /**
      * Compute the second step of DH (the first is generating the public key)
      * @return shared secret

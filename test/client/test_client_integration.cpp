@@ -201,12 +201,16 @@ TEST_CASE("Messages exchange - two users online, establish the X3DH shared secre
         aliceabc.sendData(id, std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
 
         //server receives get bob bundle request
+        std::cout << "server receives get bob bundle request\n";
         server.getRequest();
         //aliceabc receives bundle and actually sends data
+        std::cout << "aliceabc receives bundle and actually sends data\n";
         aliceabc.getResponse();
         //server forwards as bob is online
+        std::cout << "server forwards as bob is online\n";
         server.getRequest();
         //bob gets message
+        std::cout << "bob gets message\n";
         bob.getResponse();
 
         SendData received = bob.getMessage();

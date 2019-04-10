@@ -1,6 +1,5 @@
 #include <iostream>
 
-#include <unistd.h>
 #include "../shared/rsa_2048.h"
 #include "client.h"
 

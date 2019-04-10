@@ -68,17 +68,17 @@ std::vector<unsigned char> DoubleRatchetAdapter::DECRYPT(
     return plaintext;
 }
 
-Header DoubleRatchetAdapter::HEADER(const DHPair &dh_pair, size_t pn,
+MessageHeader DoubleRatchetAdapter::HEADER(const DHPair &dh_pair, size_t pn,
                                     size_t n) const {
-    return Header(dh_pair.pub, pn, n);
+    return MessageHeader(dh_pair.pub, pn, n);
 }
 
 std::vector<unsigned char> DoubleRatchetAdapter::CONCAT(
-    const key &ad, const Header &header) const {
+    const key &ad, const MessageHeader &header) const {
     auto result = ad;
-    auto serializedHeader = header.serialize();
-    result.insert(result.end(), serializedHeader.begin(),
-                  serializedHeader.end());
+    auto serializedMessageHeader = header.serialize();
+    result.insert(result.end(), serializedMessageHeader.begin(),
+                  serializedMessageHeader.end());
 
     return result;
 }

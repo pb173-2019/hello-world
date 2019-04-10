@@ -1,6 +1,7 @@
 #include "client.h"
 #include <chrono>
 #include <ctime>
+#include <tuple>
 
 #include "config.h"
 
@@ -198,13 +199,14 @@ void Client::sendInitialMessage(uint32_t receiverId, const Response &response) {
     std::string time = std::ctime(&now);
     SendData toSend(time, _username, data);
 
-    auto secret = _x3dh->getSecret(bundle);
+    X3DHRequest<C25519> request;
+    X3DH::X3DHSecretPubKey secret;
+    std::tie(request, secret) =
+        _x3dh->out(bundle);
     _doubleRatchetConnection =
         std::make_unique<DoubleRatchet>(secret.sk, secret.ad, secret.pubKey);
-    auto message = _doubleRatchetConnection->RatchetEncrypt(toSend.serialize());
-
-    X3DHRequest<C25519> request =
-        _x3dh->out(bundle, message.serialize());
+    Message message = _doubleRatchetConnection->RatchetEncrypt(toSend.serialize());
+    request.AEADenrypted = message.serialize();
 
     sendRequest({{Request::Type::SEND, 0, receiverId}, request.serialize()});
     remove(file.c_str());
@@ -230,9 +232,7 @@ SendData Client::receiveInitialMessage(const Response &response) {
     X3DHRequest<C25519> request =
         X3DHRequest<C25519>::deserialize(response.payload);
     Message message = Message::deserialize(request.AEADenrypted);
-    std::cout << message.header.n << "\n";
-    SendData sendData = SendData::deserialize(
-        _doubleRatchetConnection->RatchetDecrypt(message));
+    SendData sendData = SendData::deserialize(_doubleRatchetConnection->RatchetDecrypt(message));
 
     return sendData;
 }

@@ -33,10 +33,10 @@ class DoubleRatchet {
                        // exception if too many elements are stored
     key _AD;           // additional data from X3DH
 
-    key TrySkippedMessageKeys(const Header &header, const key &ciphertext,
+    key TrySkippedMessageKeys(const MessageHeader &header, const key &ciphertext,
                               const key &hmac);
     void SkipMessageKeys(size_t until);
-    void DHRatchet(const Header &header);
+    void DHRatchet(const MessageHeader &header);
 
    public:
     /**

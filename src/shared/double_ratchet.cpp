@@ -37,7 +37,7 @@ Message DoubleRatchet::RatchetEncrypt(
     const std::vector<unsigned char> &plaintext) {
     key mk;
     std::tie(_CKs, mk) = ext.KDF_CK(_CKs, 0x01);
-    Header header = ext.HEADER(_DHs, _PN, _Ns);
+    MessageHeader header = ext.HEADER(_DHs, _PN, _Ns);
     ++_Ns;
 
     return Message(header, ext.ENCRYPT(mk, plaintext, ext.CONCAT(_AD, header)));
@@ -67,7 +67,7 @@ std::vector<unsigned char> DoubleRatchet::RatchetDecrypt(
     return ext.DECRYPT(mk, ciphertext, hmac, ext.CONCAT(_AD, header));
 }
 
-key DoubleRatchet::TrySkippedMessageKeys(const Header &header,
+key DoubleRatchet::TrySkippedMessageKeys(const MessageHeader &header,
                                          const key &ciphertext,
                                          const key &hmac) {
     auto found = _MKSKIPPED.find({header.dh, header.n});
@@ -96,7 +96,7 @@ void DoubleRatchet::SkipMessageKeys(size_t until) {
     }
 }
 
-void DoubleRatchet::DHRatchet(const Header &header) {
+void DoubleRatchet::DHRatchet(const MessageHeader &header) {
     _PN = _Ns;
     _Ns = 0;
     _Nr = 0;

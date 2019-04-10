@@ -212,11 +212,13 @@ class X3DH {
         hkdf kdf;
         std::string sk = kdf.generate(to_hex(dh_bytes), 16);
 
-        std::vector<unsigned char> ad = std::move(x3dhBundle.senderIdPubKey);
-        std::vector<unsigned char> pubKey =
-            loadC25519Key(username + idC25519pub + (old ? ".old" : ""));
+        std::vector<unsigned char> ad = x3dhBundle.senderIdPubKey;
+        append(ad, loadC25519Key(username + idC25519pub + (old ? ".old" : "")));
+        std::vector<unsigned char> result;
+        auto pubKey = loadC25519Key(username + preC25519pub + (old ? ".old" : ""));
 
-        return {from_hex(sk), ad, pubKey, identityKeyCurve.getPrivateKey()};
+        if (incoming.header.type == Response::Type::RECEIVE_OLD) throw Error("RECEIVE_OLD");
+        return {from_hex(sk), ad, pubKey, preKeyCurve.getPrivateKey()};
     }
 
     X3DHSecretPubKey getSecret(const KeyBundle<C25519>& bundle) const {
@@ -253,17 +255,14 @@ class X3DH {
 
         clear<unsigned char>(dh.data(), dh.size());
 
-        std::vector<unsigned char> pubKey =
-            std::move(loadC25519Key(username + idC25519pub));
-        std::vector<unsigned char> ad = pubKey;
+        std::vector<unsigned char> ad = loadC25519Key(username + idC25519pub);
         append(ad, bundle.identityKey);
 
-        return {from_hex(sk), ad, pubKey};
+        return {from_hex(sk), ad, bundle.preKey};
     }
 
-    X3DHRequest<C25519> out(
-        const KeyBundle<C25519>& bundle,
-        const std::vector<unsigned char>& encryptedData) const {
+    std::pair<X3DHRequest<C25519>, X3DHSecretPubKey> out(
+        const KeyBundle<C25519>& bundle) const {
         if (!verifyPrekey(bundle.identityKey, bundle.preKey,
                           bundle.preKeySingiture))
             throw Error("X3DH: Key verification has failed.");
@@ -306,9 +305,10 @@ class X3DH {
         toFill.opKeyUsed = opUsed ? X3DHRequest<C25519>::OP_KEY_USED
                                   : X3DHRequest<C25519>::OP_KEY_NONE,
         toFill.opKeyId = keyId;
-        toFill.AEADenrypted = encryptedData;
 
-        return toFill;
+        std::vector<unsigned char> ad = loadC25519Key(username + idC25519pub);
+        append(ad, bundle.identityKey);
+        return std::make_pair(toFill, X3DHSecretPubKey{from_hex(sk), ad, bundle.preKey});
     }
 
    private:
