@@ -26,7 +26,7 @@ namespace helloworld {
 
 using key = std::vector<unsigned char>;
 
-struct Header : public Serializable<Header> {
+struct MessageHeader : public Serializable<MessageHeader> {
     /**
      * @brief DH ratchet public key
      */
@@ -40,12 +40,13 @@ struct Header : public Serializable<Header> {
      */
     size_t n;
 
-    Header() = default;
+    MessageHeader() = default;
 
-    Header(key dh, size_t pn, size_t n) : dh(std::move(dh)), pn(pn), n(n) {}
+    MessageHeader(key dh, size_t pn, size_t n)
+        : dh(std::move(dh)), pn(pn), n(n) {}
 
-
-    serialize::structure& serialize(serialize::structure& result) const override {
+    serialize::structure &serialize(
+        serialize::structure &result) const override {
         serialize::serialize(dh, result);
         serialize::serialize(pn, result);
         serialize::serialize(n, result);
@@ -56,21 +57,18 @@ struct Header : public Serializable<Header> {
         return serialize(result);
     }
 
-    static Header deserialize(const serialize::structure  &data, uint64_t& from) {
-        Header result;
-        result.dh =
-                serialize::deserialize<decltype(result.dh)>(data, from);
-        result.pn =
-                serialize::deserialize<decltype(result.pn)>(data, from);
-        result.n =
-                serialize::deserialize<decltype(result.n)>(data, from);
+    static MessageHeader deserialize(const serialize::structure &data,
+                                     uint64_t &from) {
+        MessageHeader result;
+        result.dh = serialize::deserialize<decltype(result.dh)>(data, from);
+        result.pn = serialize::deserialize<decltype(result.pn)>(data, from);
+        result.n = serialize::deserialize<decltype(result.n)>(data, from);
         return result;
     }
-    static Header deserialize(const serialize::structure& data) {
+    static MessageHeader deserialize(const serialize::structure &data) {
         uint64_t from = 0;
         return deserialize(data, from);
     }
-
 };
 
 struct CipherHMAC {
@@ -79,19 +77,20 @@ struct CipherHMAC {
 };
 
 struct Message : public Serializable<Message> {
-    Header header;
+    MessageHeader header;
     std::vector<unsigned char> ciphertext;
     std::vector<unsigned char> hmac;
 
     Message() = default;
 
-    Message(Header header, CipherHMAC cipherHMAC)
+    Message(MessageHeader header, CipherHMAC cipherHMAC)
         : header(std::move(header)),
           ciphertext(cipherHMAC.ciphertext),
           hmac(cipherHMAC.hmac) {}
 
-    serialize::structure& serialize(serialize::structure& result) const override {
-        serialize::serialize(header.serialize(), result);
+    serialize::structure &serialize(
+        serialize::structure &result) const override {
+        serialize::serialize(header, result);
         serialize::serialize(ciphertext, result);
         serialize::serialize(hmac, result);
         return result;
@@ -101,16 +100,18 @@ struct Message : public Serializable<Message> {
         return serialize(result);
     }
 
-    static Message deserialize(const serialize::structure& data, uint64_t& from) {
+    static Message deserialize(const serialize::structure &data,
+                               uint64_t &from) {
         Message message;
-        message.header = serialize::deserialize<Header>(data, from);
+        message.header =
+            serialize::deserialize<decltype(message.header)>(data, from);
         message.ciphertext =
-                serialize::deserialize<decltype(message.ciphertext)>(data, from);
+            serialize::deserialize<decltype(message.ciphertext)>(data, from);
         message.hmac =
-                serialize::deserialize<decltype(message.hmac)>(data, from);
+            serialize::deserialize<decltype(message.hmac)>(data, from);
         return message;
     }
-    static Message deserialize(const serialize::structure& data) {
+    static Message deserialize(const serialize::structure &data) {
         uint64_t from = 0;
         return deserialize(data, from);
     }
@@ -130,12 +131,18 @@ class DoubleRatchetAdapter {
         std::make_unique<hmac_base<MBEDTLS_MD_SHA512, KDF_RK_SIZE>>(),
         "ENCRYPT for Double Ratchet. 239"};
 
-    std::vector<unsigned char> to_vector(std::istream &in, size_t size);
+    key getHmac(const key &authentication_key, const key &associated_data,
+                const key &ciphertext) {
+        auto hmacInput = associated_data;
+        _hmac.setKey(to_hex(authentication_key));
+        hmacInput.insert(hmacInput.end(), ciphertext.begin(), ciphertext.end());
+        return _hmac.generate(hmacInput);
+    }
 
    public:
     DHPair GENERATE_DH() const;
 
-    key DH(const DHPair &dh_pair, const key &dh_pub);
+    key DH(const DHPair &dh_pair, const key &dh_pub) const;
 
     std::pair<key, key> KDF_RK(const key &rk, const key &dh_out);
 
@@ -145,11 +152,13 @@ class DoubleRatchetAdapter {
                        const key &associated_data);
 
     std::vector<unsigned char> DECRYPT(const key &mk, const key &ciphertext,
+                                       const key &hmac,
                                        const key &associated_data);
 
-    Header HEADER(const DHPair &dh_pair, size_t pn, size_t n);
+    MessageHeader HEADER(const DHPair &dh_pair, size_t pn, size_t n) const;
 
-    std::vector<unsigned char> CONCAT(const key &ad, const Header &header);
+    std::vector<unsigned char> CONCAT(const key &ad,
+                                      const MessageHeader &header) const;
 };
 
 }    // namespace helloworld

@@ -29,9 +29,9 @@ struct Request {
     };
 
     struct Header : public Serializable<Request::Header> {
-        Type type{};
-        uint32_t messageNumber{};
-        uint32_t userId{};
+        Type type = Type::LOGIN;
+        uint32_t messageNumber = 0;
+        uint32_t userId = 0;
 
         Header() = default;
 
@@ -76,9 +76,9 @@ struct Response {
     };
 
     struct Header : public Serializable<Response::Header> {
-        Type type{};
-        uint32_t messageNumber{};
-        uint32_t userId{};
+        Type type = Type::OK;
+        uint32_t messageNumber = 0;
+        uint32_t userId = 0;
 
         Header() = default;
 
@@ -104,10 +104,10 @@ struct Response {
 
     class MessageNumberGenerator {
 
-        bool _set;
+        bool _set = false;
         std::set<uint32_t > _unresolvedNumbers;
-        uint32_t _nIncomming;
-        uint32_t _nOutgoing;
+        uint32_t _nIncomming = 0;
+        uint32_t _nOutgoing = 0;
     public:
         MessageNumberGenerator() : _nOutgoing(Random{}.getBounded(0, UINT32_MAX)) {}
 

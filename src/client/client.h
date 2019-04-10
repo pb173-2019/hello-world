@@ -16,31 +16,23 @@
 #include <string>
 #include <vector>
 
-#include "../shared/connection_manager.h"
-#include "../shared/request_response.h"
-#include "../shared/user_data.h"
-#include "../shared/rsa_2048.h"
 #include "../shared/X3DH.h"
+#include "../shared/connection_manager.h"
+#include "../shared/double_ratchet.h"
+#include "../shared/request_response.h"
 #include "../shared/requests.h"
+#include "../shared/rsa_2048.h"
+#include "../shared/user_data.h"
 #include "secure_channel.h"
 #include "transmission_file_client.h"
 
 namespace helloworld {
 
-//todo delete when implemented
-class DoubleRatchet {
-public:
-    bool running() {
-        return false;
-    }
-};
-
 class Client : public Callable<void, std::stringstream &&> {
     static constexpr int SYMMETRIC_KEY_SIZE = 16;
 
    public:
-    Client(std::string username,
-           const std::string &clientPrivKeyFilename,
+    Client(std::string username, const std::string &clientPrivKeyFilename,
            const std::string &password);
 
     /**
@@ -71,7 +63,7 @@ class Client : public Callable<void, std::stringstream &&> {
      * @param username  name of user
      * @param password password of user
      */
-    void createAccount(const std::string& pubKeyFilename);
+    void createAccount(const std::string &pubKeyFilename);
 
     /**
      * @brief Permanently deletes the user from server
@@ -82,19 +74,17 @@ class Client : public Callable<void, std::stringstream &&> {
      * @brief Get user list based on given query
      *
      */
-    void sendFindUsers(const std::string &name); //todo return ids as well
+    void sendFindUsers(const std::string &name);    // todo return ids as well
 
     /**
      * @brief Get online user list
      */
-    void sendGetOnline(); //todo return ids as well
+    void sendGetOnline();    // todo return ids as well
 
     /**
      * Returns the userlist requested in send*()
      */
-     const std::map<uint32_t, std::string>& getUsers() {
-        return _userList;
-     }
+    const std::map<uint32_t, std::string> &getUsers() { return _userList; }
 
     /**
      * Send data to server
@@ -119,7 +109,7 @@ class Client : public Callable<void, std::stringstream &&> {
      * @param receiverId user id - the user that is supposed to receive the data
      * @param data data to send
      */
-    void sendData(uint32_t receiverId, const std::vector<unsigned char>& data);
+    void sendData(uint32_t receiverId, const std::vector<unsigned char> &data);
 
     /**
      * Send data to other user using X3Dh protocol
@@ -129,7 +119,7 @@ class Client : public Callable<void, std::stringstream &&> {
      * @param response keys bundle of the receiver downloaded from server
      * @param data data to send
      */
-    void sendInitialMessage(uint32_t receiverId, const Response& response);
+    void sendInitialMessage(uint32_t receiverId, const Response &response);
 
     /**
      * Receive data from user, decides whether treat as X3DH protocol or just
@@ -137,15 +127,13 @@ class Client : public Callable<void, std::stringstream &&> {
      *
      * @param response response obtained by user
      */
-    void receiveData(const Response& response);
+    void receiveData(const Response &response);
 
     /**
      * Get the message parsed by x3dh or ratchet
      * @return last message received
      */
-    SendData getMessage() {
-        return _incomming;
-    }
+    SendData getMessage() { return _incomming; }
 
     /**
      * Receive data from other user using X3Dh protocol
@@ -153,7 +141,7 @@ class Client : public Callable<void, std::stringstream &&> {
      *
      * @param response response to parse
      */
-    SendData receiveInitialMessage(const Response& response);
+    SendData receiveInitialMessage(const Response &response);
 
     //
     // TESTING PURPOSE METHODS SECTION
@@ -162,25 +150,23 @@ class Client : public Callable<void, std::stringstream &&> {
     // check for request, in future: either will run in thread later as
     // listening or gets notified by TCP
     void getResponse() { _transmission->receive(); };
-    
-    uint32_t getId() {
-        return _userId;
-    }
 
-private:
+    uint32_t getId() { return _userId; }
+
+   private:
     const std::string _username;
     const std::string _password;
     uint32_t _userId = 0;
 
-    //todo think of better way to get incomming message
+    // todo think of better way to get incomming message
     SendData _incomming;
     std::map<uint32_t, std::string> _userList;
 
-    //todo move to connection manager, now its only sent to manager anyway
+    // todo move to connection manager, now its only sent to manager anyway
     const std::string _sessionKey;
     RSA2048 _rsa;
     std::unique_ptr<X3DH> _x3dh;
-    std::unique_ptr<DoubleRatchet> _usersSession;
+    std::unique_ptr<DoubleRatchet> _doubleRatchetConnection;
     std::unique_ptr<UserTransmissionManager> _transmission;
     std::unique_ptr<ClientToServerManager> _connection = nullptr;
 
@@ -196,9 +182,11 @@ private:
      * Performs server challenge
      * @param secret secret to prove the identity over
      * @param type type of authentication (on registration / login)
-     * @return request to server to verify the challenge sent in this request payload
+     * @return request to server to verify the challenge sent in this request
+     * payload
      */
-    Request completeAuth(const std::vector<unsigned char> &secret, Request::Type type);
+    Request completeAuth(const std::vector<unsigned char> &secret,
+                         Request::Type type);
 
     /**
      * Generic request sender
@@ -210,7 +198,7 @@ private:
      * Obtains UserList response and parses it
      * @param response response obtained on get-users like methods
      */
-    void parseUsers(const Response& response);
+    void parseUsers(const Response &response);
 
     /**
      * Generic request sender, sends request with header only
@@ -218,14 +206,14 @@ private:
      * @param type request type
      */
     void sendGenericRequest(Request::Type type);
-    
+
     /**
      * Archives the key file - reads keyFileName and saves into
      * keyFileName.old
-     * 
+     *
      * @param keyFileName filename to archive
      */
-    void archiveKey(const std::string& keyFileName);
+    void archiveKey(const std::string &keyFileName);
 };
 
 }    // namespace helloworld
