@@ -24,6 +24,15 @@
 
 namespace helloworld {
 
+template <typename Incoming, typename Outgoing>
+class FileTransmission {
+
+
+    virtual void receive() = 0;
+
+};
+
+
 class ServerTransmissionManager {
 protected:
     /**
