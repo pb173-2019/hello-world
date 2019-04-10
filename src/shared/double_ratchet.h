@@ -21,8 +21,8 @@ class DoubleRatchet {
 
    private:
     DoubleRatchetAdapter ext;
-    DHPair _DHs;    // DH Ratchet key pair (the “sending” or “self” ratchet key)
-    key _DHr;    // DH Ratchet public key (the “received” or “remote” key)
+    DHPair _DHs;        // DH Ratchet key pair (the “sending” or “self” ratchet key)
+    key _DHr;           // DH Ratchet public key (the “received” or “remote” key)
     key _RK;            // 32-byte Root Key
     key _CKs, _CKr;     // 32-byte Chain Keys for sending and receiving
     size_t _Ns, _Nr;    // Message numbers for sending and receiving
