@@ -76,6 +76,8 @@ public:
      * Get online user list
      */
     virtual const std::set<std::string> &getOpenConnections() = 0;
+
+
 };
 
 class UserTransmissionManager {

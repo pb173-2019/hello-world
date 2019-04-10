@@ -23,13 +23,7 @@
 #include "../shared/base_64.h"
 #include "../shared/utils.h"
 
-#if defined(WINDOWS)
-#include <windows.h>
-#include <io.h>
 
-#else
-#include <dirent.h>
-#endif
 
 
 namespace helloworld {
@@ -53,11 +47,10 @@ public:
 
     ~ServerFiles() override {
         //testing - delete any .tcp files
-        std::string leftovers = getIncoming();
+        std::string leftovers = getFile(".tcp");
         while (!leftovers.empty()) {
-            leftovers.push_back('\0'); //sichr
             remove(leftovers.c_str());
-            leftovers = getIncoming();
+            leftovers = getFile(".tcp");
         }
     };
 
@@ -73,7 +66,7 @@ public:
     }
 
     void receive() override {
-        std::string incoming = getIncoming();
+        std::string incoming = getFile(".tcp");
         std::ifstream received{incoming, std::ios::binary | std::ios::in};
         if (!received) {
             return;
@@ -130,53 +123,6 @@ public:
     const std::set<std::string>& getOpenConnections() override {
         return _files;
     }
-
-private:
-    //from https://stackoverflow.com/questions/11140483/how-to-get-list-of-files-with-a-specific-extension-in-a-given-folder
-
-    /**
-     * Get the
-     */
-#if defined(WINDOWS)
-
-    std::string getIncoming() {
-        std::string file;
-
-        WIN32_FIND_DATAA data;
-        HANDLE handle = FindFirstFile(".\\*", &data);
-
-        long hFile;
-
-        if (handle) {
-            do {
-                if (std::strstr(data.cFileName, ".tcp")) {
-                    file = data.cFileName;
-                    break;
-                }
-            } while ( FindNextFile(handle, &data));
-            FindClose(handle);
-        }
-        return file;
-    }
-
-#else
-    std::string getIncoming() {
-       std::string file;
-       DIR* dirFile = opendir( "." );
-       if ( dirFile ) {
-          struct dirent* hFile;
-          errno = 0;
-          while (( hFile = readdir( dirFile )) != nullptr ) {
-             if ( std::strstr( hFile->d_name, ".tcp" )) {
-                  file = hFile->d_name;
-                  break;
-             }
-          }
-          closedir( dirFile );
-       }
-       return file;
-    }
-#endif
 };
 
 } //namespace helloworld

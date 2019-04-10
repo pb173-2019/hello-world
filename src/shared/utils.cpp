@@ -6,6 +6,15 @@
 #include "utils.h"
 #include "serializable_error.h"
 
+#if defined(WINDOWS)
+#include <windows.h>
+#include <io.h>
+
+#else
+
+#include <dirent.h>
+
+#endif
 
 namespace helloworld {
 
@@ -102,7 +111,7 @@ std::string to_string(const std::vector<unsigned char> &input) {
     return std::string(input.begin(), input.end());
 }
 
-uint64_t getTimestampOf(time_t* timer) {
+uint64_t getTimestampOf(time_t *timer) {
     std::time_t t = std::time(timer);
     std::tm *lt = std::localtime(&t);
     return lt->tm_year * 366 * 24 + lt->tm_yday * 24 + lt->tm_hour;
@@ -123,5 +132,47 @@ std::vector<unsigned char> vector_from_stream(std::istream &stream) {
     }
     return result;
 }
+
+std::string getFile(const std::string &suffix) {
+    std::string file;
+
+#if defined(WINDOWS)
+    //from https://stackoverflow.com/questions/11140483/how-to-get-list-of-files-with-a-specific-extension-in-a-given-folder
+
+    WIN32_FIND_DATAA data;
+        HANDLE handle = FindFirstFile(".\\*", &data);
+
+        long hFile;
+
+        if (handle) {
+            do {
+                if (std::strstr(data.cFileName, ".tcp")) {
+                    file = data.cFileName;
+                    break;
+                }
+            } while ( FindNextFile(handle, &data));
+            FindClose(handle);
+        }
+
+#else
+
+    DIR *dirFile = opendir(".");
+    if (dirFile) {
+        struct dirent *hFile;
+        errno = 0;
+        while ((hFile = readdir(dirFile)) != nullptr) {
+            if (std::strstr(hFile->d_name, ".tcp")) {
+                file = hFile->d_name;
+                break;
+            }
+        }
+        closedir(dirFile);
+    }
+
+#endif
+
+    return file;
+}
+
 
 } //namespace helloworld

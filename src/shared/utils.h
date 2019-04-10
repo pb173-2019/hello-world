@@ -183,6 +183,14 @@ std::vector<unsigned char> vector_from_stream(std::istream &stream);
  */
 uint64_t getTimestampOf(time_t* timer);
 
+
+/**
+ * Get any file that contains the suffix specified
+ * @param suffix file suffix to search
+ * @return  file with name: *suffix
+ */
+std::string getFile(const std::string& suffix);
+
 }    // namespace helloworld
 
 #endif    // HELLOWORLD_SHARED_UTILS_H_

@@ -216,6 +216,27 @@ class Client : public Callable<void, std::stringstream &&> {
     void archiveKey(const std::string &keyFileName);
 };
 
+//separated from client as this is used as testing extension that deletes the *key, *pub, *old files
+void ClientCleaner_Run() {
+    std::string leftovers = getFile(".key");
+    while (!leftovers.empty()) {
+        remove(leftovers.c_str());
+        leftovers = getFile(".key");
+    }
+
+    leftovers = getFile(".pub");
+    while (!leftovers.empty()) {
+        remove(leftovers.c_str());
+        leftovers = getFile(".pub");
+    }
+
+    leftovers = getFile(".old");
+    while (!leftovers.empty()) {
+        remove(leftovers.c_str());
+        leftovers = getFile(".old");
+    }
+}
+
 }    // namespace helloworld
 
 #endif    // HELLOWORLD_CLIENT_CLIENT_H_

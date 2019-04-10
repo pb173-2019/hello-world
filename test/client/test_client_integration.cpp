@@ -306,4 +306,6 @@ TEST_CASE("Messages exchange - two users online, establish the X3DH shared secre
         //CHECK(oldKeys.timestamp < newKeys.timestamp); will not work as the timestamp changes a hour
     }
     server.dropDatabase();
+
+    ClientCleaner_Run();
 }
