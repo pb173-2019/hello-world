@@ -146,7 +146,7 @@ std::string getFile(const std::string &suffix) {
 
         if (handle) {
             do {
-                if (std::strstr(data.cFileName, ".tcp")) {
+                if (std::strstr(data.cFileName, suffix.c_str())) {
                     file = data.cFileName;
                     break;
                 }
@@ -161,7 +161,7 @@ std::string getFile(const std::string &suffix) {
         struct dirent *hFile;
         errno = 0;
         while ((hFile = readdir(dirFile)) != nullptr) {
-            if (std::strstr(hFile->d_name, ".tcp")) {
+            if (std::strstr(hFile->d_name, suffix.c_str())) {
                 file = hFile->d_name;
                 break;
             }

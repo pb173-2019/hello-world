@@ -18,6 +18,7 @@
 #include <sstream>
 #include <set>
 #include <cstring>
+#include <ctime>
 
 #include "../shared/transmission.h"
 #include "../shared/base_64.h"
@@ -31,17 +32,24 @@ namespace helloworld {
 class ClientFiles : public UserTransmissionManager {
 
     Base64 _base64;
+    std::string unique_identifier;
 
 public:
     explicit ClientFiles(Callable<void, std::stringstream &&> *callback,
-                         std::string username) : UserTransmissionManager(callback, std::move(username)) {};
+                         std::string username) : UserTransmissionManager(callback, std::move(username)) {
+        //unique_identifier = username + std::to_string(std::time(nullptr));
+        //username is moved, so we have to use the inner value
+        Network::addConnection(this->username, std::make_pair(&UserTransmissionManager::receive, this));
+    };
 
     // Copying is not available
     ClientFiles(const ClientFiles &other) = delete;
 
     ClientFiles &operator=(const ClientFiles &other) = delete;
 
-    ~ClientFiles() override = default;
+    ~ClientFiles() override {
+        Network::releaseConnection(username);
+    }
 
     void send(std::iostream &data) override {
         data.seekg(0, std::ios::beg);
@@ -50,8 +58,9 @@ public:
         if (!send) {
             throw Error("Transmission failed.\n");
         }
-
         _base64.fromStream(data, send);
+        send.close();
+        Network::sendToServer();
     }
 
     void receive() override {
@@ -63,6 +72,10 @@ public:
 
             std::stringstream result{};
             _base64.toStream(received, result);
+            received.close();
+            if (remove((username + "-response.tcp").c_str()) != 0) {
+                throw Error("Could not finish transmission.\n");
+            }
 
             result.seekg(0, std::ios::beg);
             Callable<void, std::stringstream &&>::call(callback, std::move(result));
@@ -71,10 +84,6 @@ public:
             // exceptions in its callback
             remove((username + "-response.tcp").c_str());
             throw e;
-        }
-
-        if (remove((username + "-response.tcp").c_str()) != 0) {
-            throw Error("Could not finish transmission.\n");
         }
     }
 };

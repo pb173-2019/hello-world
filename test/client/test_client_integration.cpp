@@ -18,68 +18,21 @@ TEST_CASE("Create key for aliceabc") {
 }
 
 TEST_CASE("Scenario 1: create, logout, login, delete.") {
+    Network::setEnabled(true);
+
     Server server;
-
     Client client("aliceabc", "aliceabc_priv.pem", "hunter2");
+
     client.createAccount("aliceabc_pub.pem");
-
-    std::cout << "server receives request\n";
-    // server receives request
-    server.getRequest();
-
-    std::cout << "client receives challenge\n";
-    // client receives challenge
-    client.getResponse();
-
-    std::cout << "server verifies challenge\n";
-    // server verifies challenge and asks for keys
-    server.getRequest();
-
-    std::cout << "client recieves Key Init Response\n";
-    // client recieves Key Init Request
-    client.getResponse();
-
-    std::cout << "server recieve Key Update request and update keys in database\n";
-    // server recieve Key Update request and update keys in database
-    server.getRequest();
-
-    std::cout << "client recieves final ok response";
-    // Final OK response
-    client.getResponse();
-
 
     client.logout();
-    // server receives request
-    server.getRequest();
-    // client obtains the final OK response
-    client.getResponse();
 
     client.login();
-    // server receives request
-    server.getRequest();
-    // client receives challenge
-    client.getResponse();
-    // server verifies challenge
-    server.getRequest();
-    // client obtains the final OK response
-    client.getResponse();
 
     client.deleteAccount();
-    // server receives request
-    server.getRequest();
-    // client obtains the final OK response
-    client.getResponse();
-    server.dropDatabase();
-}
 
-void registerUserRoutine(Server& server, Client& client) {
-    client.createAccount("aliceabc_pub.pem");
-    server.getRequest();
-    client.getResponse();
-    server.getRequest();
-    client.getResponse();
-    server.getRequest();
-    client.getResponse();
+    server.dropDatabase();
+    Network::setEnabled(false);
 }
 
 
@@ -92,35 +45,33 @@ bool checkContains(const std::map<uint32_t, std::string>& values, const std::str
 }
 
 TEST_CASE("Scenario 2: getting users from database.") {
+    Network::setEnabled(true);
+
     Server server;
 
     Client aliceabc("aliceabc", "aliceabc_priv.pem", "hunter2");
-    registerUserRoutine(server, aliceabc);
+    aliceabc.createAccount("aliceabc_pub.pem");
 
     Client bob("bob", "aliceabc_priv.pem", "hunter2");
-    registerUserRoutine(server, bob);
+    bob.createAccount("aliceabc_pub.pem");
 
     Client emily("emily","aliceabc_priv.pem", "hunter2");
-    registerUserRoutine(server, emily);
+    emily.createAccount("aliceabc_pub.pem");
 
     Client lila("lila", "aliceabc_priv.pem", "hunter2");
-    registerUserRoutine(server, lila);
+    lila.createAccount("aliceabc_pub.pem");
 
     Client borek("borek", "aliceabc_priv.pem", "hunter2");
-    registerUserRoutine(server, borek);
+    borek.createAccount("aliceabc_pub.pem");
 
     Client lylibo("lylibo", "aliceabc_priv.pem", "hunter2");
-    registerUserRoutine(server, lylibo);
+    lylibo.createAccount("aliceabc_pub.pem");
 
     borek.sendGetOnline();
-    server.getRequest();
-    borek.getResponse();
 
     CHECK(borek.getUsers().size() == 6);
 
     borek.sendFindUsers("li");
-    server.getRequest();
-    borek.getResponse();
 
     CHECK(checkContains(borek.getUsers(), "aliceabc"));
     CHECK(checkContains(borek.getUsers(), "lylibo"));
@@ -128,67 +79,49 @@ TEST_CASE("Scenario 2: getting users from database.") {
     CHECK(!checkContains(borek.getUsers(), "emily"));
     CHECK(!checkContains(borek.getUsers(), "bob"));
     server.dropDatabase();
+    Network::setEnabled(false);
+
 }
 
 TEST_CASE("Incorrect authentications") {
-    RSAKeyGen keygen;
-    keygen.savePrivateKeyPassword("aliceabc_priv.pem", "hunter2");
-    keygen.savePublicKey("aliceabc_pub.pem");
-    
+    Network::setEnabled(true);
+
     Server server;
     Client aliceabc("aliceabc", "aliceabc_priv.pem", "hunter2");
-    registerUserRoutine(server, aliceabc);
+    aliceabc.createAccount("aliceabc_pub.pem");
     Client bob("bob", "aliceabc_priv.pem", "hunter2");
-    registerUserRoutine(server, bob);
+    bob.createAccount("aliceabc_pub.pem");
 
-    Client client1("aliceabc", "aliceabc_priv.pem", "hunter2");
     //registrates when user logged with that exact username
+    Client client1("aliceabc", "aliceabc_priv.pem", "hunter2");
     server.simulateNewChannel("aliceabc");
-    client1.createAccount("aliceabc_pub.pem");
-    // server receives request
-    server.getRequest();
-    // client receives challenge
-    CHECK_THROWS(client1.getResponse());
-
+    CHECK_THROWS(client1.createAccount("aliceabc_pub.pem"));
 
     //registrates when username exists, but not logged in
     server.logout("aliceabc");
-    client1.createAccount("aliceabc_pub.pem");
-    // server receives request
-    server.getRequest();
-    // client receives challenge
-    CHECK_THROWS(client1.getResponse());
+    CHECK_THROWS(client1.createAccount("aliceabc_pub.pem"));
 
     server.simulateNewChannel("bob");
     Client client2("bob", "aliceabc_priv.pem", "hunter2");
-    client2.login();
-    // server receives request
-    server.getRequest();
-    // client receives challenge
-    CHECK_THROWS(client2.getResponse());
+    CHECK_THROWS(client2.login());
+
     server.dropDatabase();
+    Network::setEnabled(false);
+
+    ClientCleaner_Run();
 }
 
-void emptyOneTimeKeysRoutine(Server& server, Client& client, uint32_t id) {
-    client.requestKeyBundle(id);
-    server.getRequest();
-    //no message, the client attempts to send no existing data (file) with the key bundle
-    CHECK_THROWS(client.getResponse());
-}
 
 TEST_CASE("Messages exchange - two users online, establish the X3DH shared secret connection") {
+    Network::setEnabled(true);
+
     Server server;
     Client aliceabc("aliceabc", "aliceabc_priv.pem", "hunter2");
-    registerUserRoutine(server, aliceabc);
+    aliceabc.createAccount("aliceabc_pub.pem");
     Client bob("bob", "aliceabc_priv.pem", "hunter2");
-    registerUserRoutine(server, bob);
+    bob.createAccount("aliceabc_pub.pem");
 
     aliceabc.sendGetOnline();
-
-    //server receives request
-    server.getRequest();
-    //client obtains the online users
-    aliceabc.getResponse();
 
     uint32_t id;
     //get bob id, maybe reverse map and make it name -> id
@@ -200,19 +133,6 @@ TEST_CASE("Messages exchange - two users online, establish the X3DH shared secre
         //national secret message!
         aliceabc.sendData(id, std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
 
-        //server receives get bob bundle request
-        std::cout << "server receives get bob bundle request\n";
-        server.getRequest();
-        //aliceabc receives bundle and actually sends data
-        std::cout << "aliceabc receives bundle and actually sends data\n";
-        aliceabc.getResponse();
-        //server forwards as bob is online
-        std::cout << "server forwards as bob is online\n";
-        server.getRequest();
-        //bob gets message
-        std::cout << "bob gets message\n";
-        bob.getResponse();
-
         SendData received = bob.getMessage();
         CHECK(received.from == "aliceabc");
         CHECK(received.data == std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
@@ -220,21 +140,9 @@ TEST_CASE("Messages exchange - two users online, establish the X3DH shared secre
 
     SECTION("Bob updates his bundle, but is able to decrypt the message anyway") {
         bob.sendKeysBundle();
-        //server receves & stores the data
-        server.getRequest();
-        //bob receives OK
-        bob.getResponse();
-        
+
         //national secret message!
         aliceabc.sendData(id, std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
-        //server receives get bob bundle request
-        server.getRequest();
-        //aliceabc receives bundle and actually sends data
-        aliceabc.getResponse();
-        //server forwards as bob is online
-        server.getRequest();
-        //bob gets message & parses the message using OLD key files
-        bob.getResponse();
 
         SendData received = bob.getMessage();
         CHECK(received.from == "aliceabc");
@@ -243,20 +151,12 @@ TEST_CASE("Messages exchange - two users online, establish the X3DH shared secre
 
     SECTION("Some mischievous user has emptied the one time keys") {
         for (int i = 0; i < 20; ++i) {
-            emptyOneTimeKeysRoutine(server, aliceabc, id);
+            //no message, the client attempts to send no existing data (file) with the key bundle
+            CHECK_THROWS(aliceabc.requestKeyBundle(id));
         }
         
         //national secret message!
         aliceabc.sendData(id, std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
-
-        //server receives get bob bundle request
-        server.getRequest();
-        //aliceabc receives bundle and actually sends data
-        aliceabc.getResponse();
-        //server forwards as bob is online
-        server.getRequest();
-        //bob gets message
-        bob.getResponse();
 
         SendData received = bob.getMessage();
         CHECK(received.from == "aliceabc");
@@ -267,24 +167,10 @@ TEST_CASE("Messages exchange - two users online, establish the X3DH shared secre
 
         //bob now goes offline, and when logs in, the server requests key update / the onetime keys were gone
         bob.logout();
-        server.getRequest();
-        bob.getResponse();
 
         uint64_t timestampOfLogin = getTimestampOf(nullptr);
 
         bob.login();
-        // server receives request
-        server.getRequest();
-        // client receives challenge
-        bob.getResponse();
-        // server verifies & sends the key update needed
-        server.getRequest();
-        //bob sends keys
-        bob.getResponse();
-        //server stores keys & sends OK
-        server.getRequest();
-        // client receives OK
-        bob.getResponse();
 
         uint64_t newTimeStamp = server.getDatabase().getBundleTimestamp(bob.getId());
         std::vector<unsigned char> newBundle = server.getDatabase().selectBundle(bob.getId());
@@ -306,6 +192,7 @@ TEST_CASE("Messages exchange - two users online, establish the X3DH shared secre
         //CHECK(oldKeys.timestamp < newKeys.timestamp); will not work as the timestamp changes a hour
     }
     server.dropDatabase();
+    Network::setEnabled(false);
 
     ClientCleaner_Run();
 }

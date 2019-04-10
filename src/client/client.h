@@ -135,13 +135,6 @@ class Client : public Callable<void, std::stringstream &&> {
      */
     SendData getMessage() { return _incomming; }
 
-    /**
-     * Receive data from other user using X3Dh protocol
-     * called from receiveData
-     *
-     * @param response response to parse
-     */
-    SendData receiveInitialMessage(const Response &response);
 
     //
     // TESTING PURPOSE METHODS SECTION
@@ -153,7 +146,7 @@ class Client : public Callable<void, std::stringstream &&> {
 
     uint32_t getId() { return _userId; }
 
-   private:
+private:
     const std::string _username;
     const std::string _password;
     uint32_t _userId = 0;
