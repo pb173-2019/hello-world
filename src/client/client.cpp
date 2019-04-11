@@ -42,15 +42,11 @@ void Client::callback(std::stringstream &&data) {
             sendKeysBundle();
             return;
         case Response::Type::RECEIVER_BUNDLE_SENT:
-            // todo attrib only response as the response contains id, for now
-            // just to emphasize todo that response has receiver's (to whom we
-            // send message) id in header
-            sendInitialMessage(response.header.userId, response);
+            sendInitialMessage(response);
             return;
         case Response::Type::RECEIVE:
         case Response::Type::RECEIVE_OLD:
-            receiveData(response);    // the difference between dereve/receive
-                                      // old is decided in
+            receiveData(response);
             return;
         default:
             throw Error("Unknown response type.");
@@ -154,6 +150,10 @@ void Client::requestKeyBundle(uint32_t receiverId) {
                  GenericRequest{_userId, _username}.serialize()});
 }
 
+void Client::checkForMessages() {
+    sendGenericRequest(Request::Type::CHECK_INCOMING);
+}
+
 void Client::archiveKey(const std::string &keyFileName) {
     std::ifstream temp(keyFileName, std::ios::binary | std::ios::in);
     if (temp.is_open()) {
@@ -184,10 +184,10 @@ void Client::sendData(uint32_t receiverId, const std::vector<unsigned char> &dat
     }
 }
 
-void Client::sendInitialMessage(uint32_t receiverId, const Response &response) {
+void Client::sendInitialMessage(const Response &response) {
     KeyBundle<C25519> bundle = KeyBundle<C25519>::deserialize(response.payload);
 
-    std::string file = std::to_string(receiverId) + ".msg";
+    std::string file = std::to_string(response.header.userId) + ".msg";
     std::ifstream in{file, std::ios::binary};
     if (!in) throw Error("There are no messages to be send.");
     size_t size = getSize(in);
@@ -208,7 +208,7 @@ void Client::sendInitialMessage(uint32_t receiverId, const Response &response) {
     Message message = _doubleRatchetConnection->RatchetEncrypt(toSend.serialize());
     request.AEADenrypted = message.serialize();
 
-    sendRequest({{Request::Type::SEND, 0, receiverId}, request.serialize()});
+    sendRequest({{Request::Type::SEND, 0, response.header.userId}, request.serialize()});
     remove(file.c_str());
 }
 

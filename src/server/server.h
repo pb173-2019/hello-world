@@ -234,6 +234,14 @@ public:
     Response sendKeyBundle(const Request &request);
 
     /**
+     * Request any new messages
+     *
+     * @param request request with user name & id
+     * @return uses checkEvent()
+     */
+    Response checkIncoming(const Request &request);
+
+    /**
      * @brief Called when OK reponse should be sent
      *        notifies user whether an event occurs that should user know
      *        (e.g. old keys, empty key pool)

@@ -40,6 +40,8 @@ Response Server::handleUserRequest(const Request &request) {
             return updateKeyBundle(request);
         case Request::Type::GET_RECEIVERS_BUNDLE:
             return sendKeyBundle(request);
+        case Request::Type::CHECK_INCOMING:
+            return checkIncoming(request);
         default:
             throw Error("Invalid operation.");
     }
@@ -156,6 +158,13 @@ Response Server::getOnline(const Request &request) {
 
     Response r = {{Response::Type::USERLIST, request.header.messageNumber, request.header.userId},
                   UserListReponse{{users.begin(), users.end()}, ids}.serialize()};
+    sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
+    return r;
+}
+
+Response Server::checkIncoming(const Request &request) {
+    GenericRequest curRequest = GenericRequest::deserialize(request.payload);
+    Response r = checkEvent(request);
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }

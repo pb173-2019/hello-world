@@ -9,10 +9,11 @@ static constexpr int alice_id = 1;
 static constexpr int bob_id = 2;
 
 static constexpr size_t SEND_DATA = 0;
-static constexpr size_t LOGIN = 1;
-static constexpr size_t LOGOUT = 2;
-static constexpr size_t REGISTER = 3;
-static constexpr size_t DELETE_ACC = 4;
+static constexpr size_t RECEIVE = 1;
+static constexpr size_t LOGIN = 2;
+static constexpr size_t LOGOUT = 3;
+static constexpr size_t REGISTER = 4;
+static constexpr size_t DELETE_ACC = 5;
 
 std::ostream& operator<<(std::ostream& in, const std::vector<unsigned char>& data) {
     for (unsigned char c : data) {
@@ -33,8 +34,25 @@ void callRandomMethod(Client& alice, Client& bob, size_t rand, Random& random) {
             std::cout << "Client id " + std::to_string(performing.getId()) + " sending data to id " + std::to_string(other_id) << "...";
             std::cout << "\nsending: " << data;
             performing.sendData(other_id, data);
-            std::cout << " done. Received: " << (other_id == 1 ? alice : bob).getMessage().data;
+            Client& other = other_id == 1 ? alice : bob;
+            if (other.getMessage().from.empty()) {
+                std::cout << "\ndone: Not received.\n";
+            } else {
+                std::cout << " done. Received: " << other.getMessage().data;
+                other.getMessage().from = "";
+            }
             break;
+        }
+
+        case RECEIVE: {
+            std::cout << "Client id " + std::to_string(performing.getId()) + " asks server to check incomming messages...";
+            performing.checkForMessages();
+            if (performing.getMessage().from.empty()) {
+                std::cout << "\ndone: Not received.\n";
+            } else {
+                std::cout << " done. Old received: " << performing.getMessage().data;
+                performing.getMessage().from = "";
+            }
         }
 
         case LOGIN: {
@@ -82,7 +100,7 @@ TEST_CASE("Create keys") {
     bob.savePublicKey("bob_messaging_pub.pem");
 }
 
-TEST_CASE("The users are logged in & randomly messages earch other") {
+TEST_CASE("Random testing 1:1 messaging") {
     Network::setEnabled(true);
 
     Server server;
@@ -93,17 +111,38 @@ TEST_CASE("The users are logged in & randomly messages earch other") {
     alice.createAccount("alice_messaging_pub.pem");
     bob.createAccount("bob_messaging_pub.pem");
 
-    Random random;
+    SECTION("Just online users") {
+        std::cout << "--------------------------------------\n"
+                     "----------SIMPLE SENDING MSGS---------\n"
+                     "--------------------------------------\n";
+        Random random;
 
-    for (int i = 0; i < 50; i++) {
-        std::cout << "Round: " << std::to_string(i) << "\n";
-        callRandomMethod(alice, bob, SEND_DATA, random);
-        std::cout << "------\n\n";
+        for (int i = 0; i < 50; i++) {
+            std::cout << "Round: " << std::to_string(i) << "\n";
+            callRandomMethod(alice, bob, SEND_DATA, random);
+            std::cout << "------\n\n";
+        }
+    }
+
+    SECTION("Users may go randomly on/off") {
+        std::cout << "--------------------------------------\n"
+                     "------------RANDOMLY ON/OFF-----------\n"
+                     "--------------------------------------\n";
+
+        Random random;
+        for (int i = 0; i < 70; i++) {
+            std::cout << "Round: " << std::to_string(i) << "\n";
+            size_t randomAction = random.getBounded(SEND_DATA, LOGOUT);
+
+            callRandomMethod(alice, bob, SEND_DATA, random);
+            std::cout << "------\n\n";
+        }
     }
 
     server.dropDatabase();
     ClientCleaner_Run();
 }
+
 
 TEST_CASE("Clear keys") {
     remove("alice_messaging.pem");

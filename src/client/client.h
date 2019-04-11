@@ -31,7 +31,7 @@ namespace helloworld {
 class Client : public Callable<void, std::stringstream &&> {
     static constexpr int SYMMETRIC_KEY_SIZE = 16;
 
-   public:
+public:
     Client(std::string username, const std::string &clientPrivKeyFilename,
            const std::string &password);
 
@@ -74,17 +74,22 @@ class Client : public Callable<void, std::stringstream &&> {
      * @brief Get user list based on given query
      *
      */
-    void sendFindUsers(const std::string &name);    // todo return ids as well
+    void sendFindUsers(const std::string &name);
 
     /**
      * @brief Get online user list
      */
-    void sendGetOnline();    // todo return ids as well
+    void sendGetOnline();
 
     /**
-     * Returns the userlist requested in send*()
+     * @brief Returns the userlist requested in send*()
      */
     const std::map<uint32_t, std::string> &getUsers() { return _userList; }
+
+    /**
+     * @brief Just ask server whether messages available
+     */
+    void checkForMessages();
 
     /**
      * Send data to server
@@ -115,11 +120,11 @@ class Client : public Callable<void, std::stringstream &&> {
      * Send data to other user using X3Dh protocol
      * called on server response RECEIVER_BUNDLE which was invoked by sendData()
      *
-     * @param receiverId user id - the user that is supposed to receive the data
      * @param response keys bundle of the receiver downloaded from server
+     *          in header is the **receiver's id**, not senders
      * @param data data to send
      */
-    void sendInitialMessage(uint32_t receiverId, const Response &response);
+    void sendInitialMessage(const Response &response);
 
     /**
      * Receive data from user, decides whether treat as X3DH protocol or just
@@ -133,7 +138,8 @@ class Client : public Callable<void, std::stringstream &&> {
      * Get the message parsed by x3dh or ratchet
      * @return last message received
      */
-    SendData getMessage() { return _incomming; }
+    SendData& getMessage() { return _incomming; }
+
 
 
     //
