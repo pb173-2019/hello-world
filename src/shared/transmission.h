@@ -180,6 +180,24 @@ public:
     static void release();
 
     /*
+     * Release all delayed messages (stack)
+     */
+    static void releaseAll() {
+        while (!delayed.empty()) {
+            release();
+        }
+    }
+
+    /*
+     * Return current blocked message sender (<name>.tcp) format
+     */
+    static const std::string* getBlockedMsgSender() {
+        if (delayed.empty())
+            return nullptr;
+        return &(delayed.end() - 1)->first;
+    }
+
+    /*
      * Discard last delayed message (stack)
      */
     static void discard();
