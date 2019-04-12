@@ -40,6 +40,8 @@ Message DoubleRatchet::RatchetEncrypt(
     MessageHeader header = ext.HEADER(_DHs, _PN, _Ns);
     ++_Ns;
 
+    //std::cout << "DH encrypt: " << header.n << "\n";
+
     return Message(header, ext.ENCRYPT(mk, plaintext, ext.CONCAT(_AD, header)));
 }
 
@@ -48,6 +50,8 @@ std::vector<unsigned char> DoubleRatchet::RatchetDecrypt(
     auto header = message.header;
     auto ciphertext = message.ciphertext;
     auto hmac = message.hmac;
+
+    //std::cout << "DH decrypt: " << message.header.n << "\n";
 
     key plaintext = TrySkippedMessageKeys(header, ciphertext, hmac);
     if (!plaintext.empty()) {
