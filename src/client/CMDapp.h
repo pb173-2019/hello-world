@@ -78,7 +78,7 @@ namespace helloworld {
                         password = getInput("Password: ");
                         generateKeypair(username, password);
                         break;
-                    case 2:
+                    case 2: {
                         if (!client) {
                             if (username.empty())
                                 username = getInput("Username: ");
@@ -91,8 +91,9 @@ namespace helloworld {
                             c->setHostAddress(ip);
                             c->setHostPort(default_port);
                             QObject::connect(c, SIGNAL(disconnected()),
-                                    this, SLOT(disconnected()));
+                                             this, SLOT(disconnected()));
                             c->init();
+                        }
                         }
                         break;
                     case 3:
