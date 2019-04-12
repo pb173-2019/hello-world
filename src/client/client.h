@@ -24,7 +24,7 @@
 #include "../shared/rsa_2048.h"
 #include "../shared/user_data.h"
 #include "secure_channel.h"
-#include "transmission_file_client.h"
+#include "../shared/transmission.h"
 
 namespace helloworld {
 
@@ -35,6 +35,23 @@ class Client : public Callable<void, std::stringstream &&> {
     Client(std::string username, const std::string &clientPrivKeyFilename,
            const std::string &password);
 
+
+    UserTransmissionManager *getTransmisionManger() {
+        return _transmission.get();
+    }
+
+    void setTransmissionManager(std::unique_ptr<UserTransmissionManager>&& ptr) {
+        _transmission = std::move(ptr);
+    }
+
+    bool ready() {
+        return _transmission
+            && _transmission->status() == UserTransmissionManager::Status::OK;
+    }
+
+    const std::string& name() const {
+        return _username;
+    }
     /**
      * @brief This function is called when transmission manager discovers new
      *        incoming request

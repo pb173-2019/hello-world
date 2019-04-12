@@ -14,6 +14,14 @@ if (MSVC)
     SET (CMAKE_CPP_FLAGS "${CMAKE_CPP_FLAGS} /EHsc")
 endif()
 
+find_package(Qt5Network REQUIRED)
+find_package(Qt5Core REQUIRED)
+
+#set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+SET(CMAKE_AUTORCC ON)
+
 # mbedtls settings
 add_compile_definitions(MBEDTLS_CONFIG_FILE=<config.h>)
 SET(ENABLE_PROGRAMS OFF CACHE BOOL "Build mbed TLS programs.")
