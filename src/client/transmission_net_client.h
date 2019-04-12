@@ -25,6 +25,7 @@ class ClientSocket : public QObject, public UserTransmissionManager {
     std::unique_ptr<QTcpSocket> _socket;
 public:
     explicit ClientSocket(Callable<void, std::stringstream &&> *callback,
+                        std::string username,
                         const std::string& addr = "",
                          uint16_t port = 500, QObject *parent = nullptr)
                          : QObject(parent)
@@ -33,6 +34,7 @@ public:
                          , _address(QString().fromStdString(addr))
                          , _socket(new QTcpSocket()) {
         QObject::connect(_socket.get(), SIGNAL(stateChanged(QAbstractSocket::SocketState)), this, SLOT(_state_change(QAbstractSocket::SocketState)));
+        QObject::connect(_socket.get(), SIGNAL(readyRead()), this, SLOT(recieve()));
     };
 
     void setHostAddress(const std::string& address) { _address = _address.fromStdString(address); }

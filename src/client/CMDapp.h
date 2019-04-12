@@ -2,6 +2,11 @@
 // Created by ivan on 10.4.19.
 //
 
+/*
+ * JUST FOR VISUAL TESTING OF NET_CLIENT
+ *
+ */
+
 #ifndef HELLOWORLD_CMDAPP_H
 #define HELLOWORLD_CMDAPP_H
 #include <iostream>
@@ -143,7 +148,7 @@ namespace helloworld {
             client =
                     std::make_unique<Client>(username, username + "_priv.pem",
                                              password);
-            client->setTransmissionManager(std::make_unique<ClientSocket>(client.get()));
+            client->setTransmissionManager(std::make_unique<ClientSocket>(client.get(), username));
         }
 
         std::string getInput(const std::string &prompt) {
