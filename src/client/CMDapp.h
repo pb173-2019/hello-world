@@ -85,8 +85,8 @@ namespace helloworld {
                             password = getInput("Password: ");
                             createClient(username, password);
                         }
-                        if (auto c = dynamic_cast<ClientSocket *>(client->getTransmisionManger());
-                                c != nullptr) {
+                        auto c = dynamic_cast<ClientSocket *>(client->getTransmisionManger());
+                        if (c != nullptr) {
                             std::string ip = getInput("IP address: ");
                             c->setHostAddress(ip);
                             c->setHostPort(default_port);
