@@ -109,9 +109,12 @@ namespace helloworld {
                         break;
                     case 6:
                         checkConnection();
-                        if (auto c = dynamic_cast<ClientSocket *>(client->getTransmisionManger());
-                                c != nullptr) {
-                            c->closeConnection();
+                        {
+                            auto c = dynamic_cast<ClientSocket *>(client->getTransmisionManger());
+                            if (c != nullptr) {
+                                c->closeConnection();
+                            }
+
                         }
                         break;
                     default:
