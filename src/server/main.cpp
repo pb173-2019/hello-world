@@ -7,7 +7,7 @@
 int main(int /* argc */, char ** /* argv */) {
     using namespace helloworld;
 
-    Request request{{Request::Type::CREATE, 0, 0}, std::vector<unsigned char>(10)};
+    Request request{{Request::Type::CREATE, 0}, std::vector<unsigned char>(10)};
     std::vector<unsigned char> head_data = request.header.serialize();
     std::stringstream head;
     write_n(head, head_data);

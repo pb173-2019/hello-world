@@ -14,7 +14,6 @@ Client::Client(std::string username, const std::string &clientPrivKeyFilename,
                const std::string &password)
     : _username(std::move(username)),
       _password(password),
-      _sessionKey(to_hex(Random().get(SYMMETRIC_KEY_SIZE))),
       _x3dh(std::make_unique<X3DH>(_username, _password)),
       _transmission(std::make_unique<ClientFiles>(this, _username)) {
     _rsa.loadPrivateKey(clientPrivKeyFilename, password);
@@ -54,8 +53,7 @@ void Client::callback(std::stringstream &&data) {
 }
 
 void Client::login() {
-    _connection =
-        std::make_unique<ClientToServerManager>(_sessionKey, serverPub);
+    _connection = std::make_unique<ClientToServerManager>(to_hex(Random().get(SYMMETRIC_KEY_SIZE)), serverPub);
     AuthenticateRequest request(_username, {});
     sendRequest({{Request::Type::LOGIN, _userId}, request.serialize()});
 }
@@ -67,8 +65,7 @@ void Client::logout() {
 
 void Client::createAccount(const std::string &pubKeyFilename) {
     _userId = 0;
-    _connection =
-        std::make_unique<ClientToServerManager>(_sessionKey, serverPub);
+    _connection = std::make_unique<ClientToServerManager>(to_hex(Random().get(SYMMETRIC_KEY_SIZE)), serverPub);
     std::ifstream input(pubKeyFilename);
     std::string publicKey((std::istreambuf_iterator<char>(input)),
                           std::istreambuf_iterator<char>());
@@ -81,7 +78,6 @@ void Client::createAccount(const std::string &pubKeyFilename) {
 void Client::deleteAccount() {
     GenericRequest request(_userId, _username);
     sendRequest({{Request::Type::REMOVE, _userId}, request.serialize()});
-
 }
 
 void Client::sendFindUsers(const std::string &query) {
@@ -173,11 +169,8 @@ void Client::sendData(uint32_t receiverId, const std::vector<unsigned char> &dat
         SendData toSend(time, _username, message.serialize());
         sendRequest({{Request::Type::SEND, receiverId}, toSend.serialize()});
     } else {
-        std::ifstream in{std::to_string(receiverId) + ".msg", std::ios::binary};
-        if (in) throw Error("There are messages waiting to be send.");
-        in.close();
-        std::ofstream out{std::to_string(receiverId) + ".msg",
-                          std::ios::binary};
+        //simple message stacking into one file, in future maybe add some separator policy
+        std::ofstream out{std::to_string(receiverId) + ".msg", std::ios::binary | std::ios_base::app};
         write_n(out, data);
         out.close();
         requestKeyBundle(receiverId);

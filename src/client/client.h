@@ -161,8 +161,6 @@ private:
     SendData _incomming;
     std::map<uint32_t, std::string> _userList;
 
-    // todo move to connection manager, now its only sent to manager anyway
-    const std::string _sessionKey;
     RSA2048 _rsa;
     std::unique_ptr<X3DH> _x3dh;
     std::unique_ptr<DoubleRatchet> _doubleRatchetConnection;
