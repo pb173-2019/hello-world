@@ -10,8 +10,13 @@ init:
 
 install:
   - git submodule update --init --recursive
+  - set QTDIR=C:\Qt\5.11.0\mingw53_32
+  - choco install -y InnoSetup
+  - set PATH=%QTDIR%\bin;C:\Qt\Tools\mingw530_32\bin;%PATH%;"C:\Program Files (x86)\Inno Setup 5"
+
 
 before_build:
+  - set Path=C:\Qt\5.6\msvc2015_64\bin;%Path%
   - cmake -H. -BBuild -G "Visual Studio 15 2017 Win64" .
 
 # build with MSBuild
