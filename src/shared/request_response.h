@@ -35,8 +35,7 @@ struct Request {
 
         Header() = default;
 
-        Header(Type type, uint32_t messageNumber, uint32_t userId)
-                : type(type), messageNumber(messageNumber), userId(userId) {}
+        Header(Type type, uint32_t userId) : type(type), userId(userId) {}
 
         serialize::structure& serialize(serialize::structure& result) const override;
         serialize::structure serialize() const override {
@@ -82,8 +81,7 @@ struct Response {
 
         Header() = default;
 
-        Header(Type type, uint32_t messageNumber, uint32_t userId)
-                : type(type), messageNumber(messageNumber), userId(userId) {}
+        Header(Type type, uint32_t userId) : type(type), userId(userId) {}
 
         serialize::structure& serialize(serialize::structure& result) const override;
         serialize::structure serialize() const override {

@@ -20,7 +20,7 @@ Response registerAlice(Server &server, const std::string &name) {
     AuthenticateRequest registerRequest(name, key);
     //sets the transmission manager for server
     registerRequest.sessionKey = "323994cfb9da285a5d9642e1759b224a";
-    Request request{{Request::Type::CREATE, 1, 0}, registerRequest.serialize()};
+    Request request{{Request::Type::CREATE, 0}, registerRequest.serialize()};
 
     return server.handleUserRequest(request);
 }
@@ -31,7 +31,7 @@ Response completeAlice(Server &server, const std::vector<unsigned char>& secret,
     rsa.loadPrivateKey("alice_priv.pem", "2b7e151628aed2a6abf7158809cf4f3c", "323994cfb9da285a5d9642e1759b224a");
 
     CompleteAuthRequest crRequest(std::move(rsa.sign(secret)), name);
-    Request request{{type, 2, 0}, crRequest.serialize()};
+    Request request{{type, 0}, crRequest.serialize()};
     return server.handleUserRequest(request);
 }
 
@@ -57,7 +57,7 @@ TEST_CASE("Add new user") {
         SECTION("Challenge incorrectly solved") {
             CompleteAuthRequest crRequest(
                     std::vector<unsigned char>(256, 10), name);
-            Request request{{Request::Type::CREATE_COMPLETE, 2, 0},
+            Request request{{Request::Type::CREATE_COMPLETE, 0},
                             crRequest.serialize()};
             CHECK_THROWS(server.handleUserRequest(request));
         }
@@ -68,8 +68,7 @@ TEST_CASE("Add new user") {
         }
         
         SECTION("Keys initialization") {
-            Request request{{Request::Type::KEY_BUNDLE_UPDATE, 3, 0},
-                            {}};
+            Request request{{Request::Type::KEY_BUNDLE_UPDATE, 0}, {}};
         }
     }
     server.dropDatabase();
@@ -87,14 +86,14 @@ TEST_CASE("User authentication") {
     SECTION("Existing user") {
         AuthenticateRequest authRequest("alice", {});
         authRequest.sessionKey = "323994cfb9da285a5d9642e1759b224a";
-        Request request{{Request::Type::LOGIN, 10, 0}, authRequest.serialize()};
+        Request request{{Request::Type::LOGIN, 0}, authRequest.serialize()};
 
         auto response = server.handleUserRequest(request);
         CHECK(response.header.type == Response::Type::CHALLENGE_RESPONSE_NEEDED);
 
         SECTION("Challenge not solved 1") {
             CompleteAuthRequest caRequest(response.payload, name);
-            Request request{{Request::Type::LOGIN_COMPLETE, 2, 0},
+            Request request{{Request::Type::LOGIN_COMPLETE, 0},
                             caRequest.serialize()};
             CHECK_THROWS(server.handleUserRequest(request));
         }
@@ -102,7 +101,7 @@ TEST_CASE("User authentication") {
         SECTION("Challenge not solved 2") {
             CompleteAuthRequest caRequest(
                     std::vector<unsigned char>(128, 10), name);
-            Request request{{Request::Type::LOGIN_COMPLETE, 2, 0},
+            Request request{{Request::Type::LOGIN_COMPLETE, 0},
                             caRequest.serialize()};
             CHECK_THROWS(server.handleUserRequest(request));
         }
@@ -116,7 +115,7 @@ TEST_CASE("User authentication") {
     SECTION("Non-existing user") {
         AuthenticateRequest authRequest("bob", {});
         authRequest.sessionKey = "323994cfb9da285a5d9642e1759b224a";
-        Request request{{Request::Type::LOGIN, 10, 0}, authRequest.serialize()};
+        Request request{{Request::Type::LOGIN, 0}, authRequest.serialize()};
 
         CHECK_THROWS(server.handleUserRequest(request));
     }
@@ -131,18 +130,18 @@ TEST_CASE("Delete & logout") {
     completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE);
 
     GenericRequest nameId{0, name};
-    Request logoutRequest{{Request::Type::LOGOUT, 0, 0}, nameId.serialize()};
+    Request logoutRequest{{Request::Type::LOGOUT, 0}, nameId.serialize()};
     auto logoutReponse = server.handleUserRequest(logoutRequest);
     CHECK(logoutReponse.header.type == Response::Type::OK);
 
     //login
     AuthenticateRequest authRequest("alice", {});
     authRequest.sessionKey = "323994cfb9da285a5d9642e1759b224a";
-    Request login{{Request::Type::LOGIN, 10, 0}, authRequest.serialize()};
+    Request login{{Request::Type::LOGIN, 0}, authRequest.serialize()};
     response = server.handleUserRequest(login);
     completeAlice(server, response.payload, name, Request::Type::LOGIN_COMPLETE);
 
-    Request deleteUser{{Request::Type::REMOVE, 0, 0}, nameId.serialize()};
+    Request deleteUser{{Request::Type::REMOVE, 0}, nameId.serialize()};
     auto removeReponse = server.handleUserRequest(logoutRequest);
     CHECK(removeReponse.header.type == Response::Type::OK);
     //try to log in
@@ -189,23 +188,23 @@ TEST_CASE("Key Bundles") {
     bundle.identityKey = {7};
     bundle.oneTimeKeys = {{1}, {2}};
 
-    server.updateKeyBundle({{Request::Type::KEY_BUNDLE_UPDATE, 0, id}, bundle.serialize()});
+    server.updateKeyBundle({{Request::Type::KEY_BUNDLE_UPDATE, id}, bundle.serialize()});
     
-    Response r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, 0, id}, GenericRequest{0, "jenda"}.serialize()});
+    Response r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, id}, GenericRequest{0, "jenda"}.serialize()});
     KeyBundle<C25519> received = KeyBundle<C25519>::deserialize(r.payload);
     CHECK(received.preKeySingiture == std::vector<unsigned char>{5});
     CHECK(received.preKey == std::vector<unsigned char>{6});
     CHECK(received.identityKey == std::vector<unsigned char>{7});
     CHECK(received.oneTimeKeys == std::vector<std::vector<unsigned char>>{{1}, {2}});
 
-    r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, 0, id}, GenericRequest{0, "jenda"}.serialize()});
+    r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, id}, GenericRequest{0, "jenda"}.serialize()});
     received = KeyBundle<C25519>::deserialize(r.payload);
     CHECK(received.preKeySingiture == std::vector<unsigned char>{5});
     CHECK(received.preKey == std::vector<unsigned char>{6});
     CHECK(received.identityKey == std::vector<unsigned char>{7});
     CHECK(received.oneTimeKeys == std::vector<std::vector<unsigned char>>{{1}});
 
-    r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, 0, id}, GenericRequest{0, "jenda"}.serialize()});
+    r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, id}, GenericRequest{0, "jenda"}.serialize()});
     received = KeyBundle<C25519>::deserialize(r.payload);
     CHECK(received.preKeySingiture == std::vector<unsigned char>{5});
     CHECK(received.preKey == std::vector<unsigned char>{6});

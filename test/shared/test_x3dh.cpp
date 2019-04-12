@@ -81,7 +81,7 @@ TEST_CASE("X3DH process test one-time keys present") {
         std::string bob = "bob";
         std::string bob_pwd = "bob je svaloun";
 
-        Response r{{Response::Type::RECEIVE, 0, 0}, request.serialize()};
+        Response r{{Response::Type::RECEIVE, 0}, request.serialize()};
 
         bobIdentity.savePublicKey(bob + idC25519pub);
         bobIdentity.savePrivateKeyPassword(bob + idC25519priv, bob_pwd);
@@ -106,7 +106,7 @@ TEST_CASE("X3DH process test one-time keys present") {
         std::string bob = "bob";
         std::string bob_pwd = "bob je svaloun";
 
-        Response r{{Response::Type::RECEIVE, 0, 0}, request.serialize()};
+        Response r{{Response::Type::RECEIVE, 0}, request.serialize()};
 
         bobIdentity.savePublicKey(bob + idC25519pub + ".old");
         bobIdentity.savePrivateKeyPassword(bob + idC25519priv + ".old", bob_pwd);
@@ -189,7 +189,7 @@ TEST_CASE("X3DH process test no one time keys") {
         std::string bob = "bob";
         std::string bob_pwd = "bob je svaloun";
 
-        Response r{{Response::Type::RECEIVE, 0, 0}, request.serialize()};
+        Response r{{Response::Type::RECEIVE, 0}, request.serialize()};
 
         bobIdentity.savePublicKey(bob + idC25519pub);
         bobIdentity.savePrivateKeyPassword(bob + idC25519priv, bob_pwd);
@@ -210,7 +210,7 @@ TEST_CASE("X3DH process test no one time keys") {
         std::string bob = "bob";
         std::string bob_pwd = "bob je svaloun";
 
-        Response r{{Response::Type::RECEIVE, 0, 0}, request.serialize()};
+        Response r{{Response::Type::RECEIVE, 0}, request.serialize()};
 
         bobIdentity.savePublicKey(bob + idC25519pub + ".old");
         bobIdentity.savePrivateKeyPassword(bob + idC25519priv + ".old", bob_pwd);

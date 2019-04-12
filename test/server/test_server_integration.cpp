@@ -19,13 +19,13 @@ Request registerUser(const std::string &name, const std::string& sessionKey, con
                           std::istreambuf_iterator<char>());
     std::vector<unsigned char> key(publicKey.begin(), publicKey.end());
     AuthenticateRequest registerRequest(name, key);
-    return {{Request::Type::CREATE, 1, 0}, registerRequest.serialize()};
+    return {{Request::Type::CREATE, 0}, registerRequest.serialize()};
 }
 
 Request loginUser(const std::string &name, const std::string& sessionKey) {
 
     AuthenticateRequest auth(name, {});
-    return {{Request::Type::LOGIN, 1, 0}, auth.serialize()};
+    return {{Request::Type::LOGIN, 0}, auth.serialize()};
 }
 
 Request completeAuth(const std::vector<unsigned char>& secret,
@@ -38,19 +38,19 @@ Request completeAuth(const std::vector<unsigned char>& secret,
     rsa.loadPrivateKey(privKeyFilename, pwd);
 
     CompleteAuthRequest crRequest(std::move(rsa.sign(secret)), name);
-    return {{type, 2, 0}, crRequest.serialize()};
+    return {{type, 0}, crRequest.serialize()};
 }
 
 Request logoutUser(const std::string& username) {
     //id ignored for now, we run on names to simplify
     GenericRequest logout{0, username};
-    return {{Request::Type::LOGOUT, 0, 0}, logout.serialize()};
+    return {{Request::Type::LOGOUT, 0}, logout.serialize()};
 }
 
 Request deleteUser(const std::string& username) {
     //id ignored for now, we run on names to simplify
     GenericRequest logout{0, username};
-    return {{Request::Type::REMOVE, 0, 0}, logout.serialize()};
+    return {{Request::Type::REMOVE, 0}, logout.serialize()};
 }
 
 class ClientMock : public Callable<void, std::stringstream &&> {
@@ -78,12 +78,12 @@ public:
                 registered = true;
                 uid = response.header.userId;
 
-                std::stringstream buffer = _connection->parseOutgoing({{Request::Type::KEY_BUNDLE_UPDATE, 0, uid}, {0}});
+                std::stringstream buffer = _connection->parseOutgoing({{Request::Type::KEY_BUNDLE_UPDATE, uid}, {0}});
                 _transmission->send(buffer);
                 return;
             }
             case Response::Type::BUNDLE_UPDATE_NEEDED: {
-                std::stringstream buffer = _connection->parseOutgoing({{Request::Type::KEY_BUNDLE_UPDATE, 0, uid}, {0}});
+                std::stringstream buffer = _connection->parseOutgoing({{Request::Type::KEY_BUNDLE_UPDATE, uid}, {0}});
                 _transmission->send(buffer);
                 return;
             }
@@ -212,7 +212,7 @@ TEST_CASE("Scenario 2: get online users.") {
     registerUserRoutine(server, client3);
 
     std::stringstream getOnline = client2._connection->parseOutgoing(
-            {{Request::Type::GET_ONLINE, 0, 0}, GenericRequest{0, "bob"}.serialize()});
+            {{Request::Type::GET_ONLINE, 0}, GenericRequest{0, "bob"}.serialize()});
     client2._transmission->send(getOnline);
 
     //server receives request

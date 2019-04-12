@@ -19,7 +19,7 @@ namespace helloworld {
 class DoubleRatchet {
     static const int MAX_SKIP = 1000;
 
-   private:
+private:
     DoubleRatchetAdapter ext;
     DHPair _DHs;        // DH Ratchet key pair (the “sending” or “self” ratchet key)
     key _DHr;           // DH Ratchet public key (the “received” or “remote” key)
@@ -38,7 +38,7 @@ class DoubleRatchet {
     void SkipMessageKeys(size_t until);
     void DHRatchet(const MessageHeader &header);
 
-   public:
+public:
     /**
      * @brief Create DoubleRatchetObject (RatchetInitAlice)
      *

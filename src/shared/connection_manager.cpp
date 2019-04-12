@@ -16,8 +16,6 @@ ClientToServerManager::ClientToServerManager(const std::string& sessionKey,
 
 Response ClientToServerManager::parseIncoming(std::stringstream &&data) {
 
-    //todo if incomming head type of RECEIVE / RECEIVE OLD react: X3DH protocol
-
     if (getSize(data) < HEADER_ENCRYPTED_SIZE)
         throw Error("Server returned generic error.");
     std::stringstream headDecrypted = _GCMdecryptHead(data);
@@ -115,9 +113,6 @@ ServerToClientManager::ServerToClientManager(const std::string &sessionKey) : Ba
 
 Request ServerToClientManager::parseIncoming(std::stringstream &&data) {
     Request request;
-
-    //todo DONT encrypt body when data sent for another user (if type SEND)
-    //todo or encrypt both, (but the body will be parsed twice - for user, and for server)
 
     std::stringstream headDecrypted = _GCMdecryptHead(data);
     std::stringstream bodyDecrypted = _GCMdecryptBody(data);

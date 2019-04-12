@@ -80,13 +80,12 @@ public:
         } catch (Error &ex) {
             std::cerr << ex.what() << std::endl;
             sendReponse(username,
-                    {{Response::Type::GENERIC_SERVER_ERROR, request.header.messageNumber,
-                      request.header.userId}, ex.serialize()}, getManagerPtr(username, true));
+                    {{Response::Type::GENERIC_SERVER_ERROR, request.header.userId}, ex.serialize()},
+                    getManagerPtr(username, true));
         } catch (std::exception& generic) {
             std::cerr << generic.what() << std::endl;
-            sendReponse(username, {{Response::Type::GENERIC_SERVER_ERROR, request.header.messageNumber,
-                                    request.header.userId}, from_string(generic.what()) },
-                                            getManagerPtr(username, true));
+            sendReponse(username, {{Response::Type::GENERIC_SERVER_ERROR, request.header.userId},
+                                   from_string(generic.what()) }, getManagerPtr(username, true));
         }
     }
 
