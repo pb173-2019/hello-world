@@ -2,7 +2,7 @@
 
 #include "../../src/client/client.h"
 #include "../../src/server/server.h"
-
+#include "../../src/client/transmission_file_client.h"
 using namespace helloworld;
 // will always start from 1
 static bool alice_on = true;
@@ -125,7 +125,9 @@ TEST_CASE("Random testing 1:1 messaging") {
     Random random;
 
     Client alice("alice", "alice_messaging.pem", "123456");
+    alice.setTransmissionManager(std::make_unique<ClientFiles>(&alice, alice.name()));
     Client bob("bob", "bob_messaging.pem", "123456");
+    bob.setTransmissionManager(std::make_unique<ClientFiles>(&bob, bob.name()));
 
     alice.createAccount("alice_messaging_pub.pem");
     bob.createAccount("bob_messaging_pub.pem");

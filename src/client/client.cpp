@@ -10,12 +10,14 @@
 
 namespace helloworld {
 
-Client::Client(std::string username, const std::string &clientPrivKeyFilename,
-               const std::string &password)
+Client::Client(std::string username,
+            const std::string &clientPrivKeyFilename,
+            const std::string &password)
     : _username(std::move(username)),
       _password(password),
-      _x3dh(std::make_unique<X3DH>(_username, _password)),
-      _transmission(std::make_unique<ClientFiles>(this, _username)) {
+      _x3dh(std::make_unique<X3DH>(_username, _password))
+       {
+
     _rsa.loadPrivateKey(clientPrivKeyFilename, password);
 }
 

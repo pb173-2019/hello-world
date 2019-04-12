@@ -36,7 +36,7 @@ class ClientFiles : public UserTransmissionManager {
 
 public:
     explicit ClientFiles(Callable<void, std::stringstream &&> *callback,
-                         std::string username) : UserTransmissionManager(callback, std::move(username)) {
+                         std::string username) : UserTransmissionManager(callback, std::move(username), OK) {
         //unique_identifier = username + std::to_string(std::time(nullptr));
         //username is moved, so we have to use the inner value
         Network::addConnection(this->username, std::make_pair(&UserTransmissionManager::receive, this));

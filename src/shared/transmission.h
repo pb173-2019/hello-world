@@ -85,20 +85,31 @@ public:
 };
 
 class UserTransmissionManager {
+public:
+    enum Status {OK, NEED_INIT};
 protected:
     /**
      * Function that can handle receive() output
      */
+     Status _status;
     Callable<void, std::stringstream &&> *callback;
     std::string username;
 
 public:
     explicit UserTransmissionManager(Callable<void, std::stringstream &&> *callback,
-                                     std::string username) : callback(callback), username(std::move(username)) {
+                                     std::string username, Status status)
+                                     : _status(status)
+                                     , callback(callback)
+                                     , username(std::move(username)) {
         if (callback == nullptr)
             throw Error("Null not allowed.");
     };
 
+    Status status() { return _status; }
+
+    void setCallback(Callable<void, std::stringstream &&> *newCallback) {
+        callback = newCallback;
+    }
     // Copying is not available
     UserTransmissionManager(const UserTransmissionManager &other) = delete;
 
