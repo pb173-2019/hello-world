@@ -21,6 +21,7 @@
 #include <string>
 #include <set>
 #include <map>
+#include <fstream>
 
 #include "utils.h"
 #include "serializable_error.h"
@@ -139,31 +140,91 @@ class Network {
     static server_socket server_callback;
     static ServerTransmissionManager* server_instance;
     static std::map<std::string, std::pair<client_socket, UserTransmissionManager*>> connection_callbacks;
+    static std::vector<std::pair<std::string, std::vector<unsigned char>>> delayed;
 
     static bool enabled;
+    static bool problem;
 
 public:
+    /*
+     * Switch the network feature on/off
+     */
     static void setEnabled(bool isEnabled) {
         enabled = isEnabled;
     }
 
+    /*
+     * Switch delaying network messages on/off
+     */
+    static void setProblematic(bool isProblematic) {
+        problem = isProblematic;
+    }
+
+    /*
+     * Set server instance's transmission manager to receive messages
+     * done automatically in constructor
+     */
     static void setServer(server_socket serverCallback, ServerTransmissionManager* server) {
         server_callback = serverCallback;
         server_instance = server;
     }
 
+    /*
+     * Add user's connection manager to receive data from server
+     * done automatically in constructor
+     */
     static void addConnection(const std::string &username, std::pair<client_socket, UserTransmissionManager*> client) {
         connection_callbacks.emplace(username, client);
     }
 
+    /*
+     * Remove user's callback
+     * done automatically in destructor
+     */
     static void releaseConnection(const std::string &username) {
         connection_callbacks.erase(username);
     }
 
-    //calls server's receive method
+    /*
+     * Release last delayed message (stack)
+     */
+    static void release();
+
+    /*
+     * Release all delayed messages (stack)
+     */
+    static void releaseAll() {
+        while (!delayed.empty()) {
+            release();
+        }
+    }
+
+    /*
+     * Return current blocked message sender (<name>.tcp) format
+     */
+    static const std::string* getBlockedMsgSender() {
+        if (delayed.empty())
+            return nullptr;
+        return &(delayed.end() - 1)->first;
+    }
+
+    /*
+     * Discard last delayed message (stack)
+     */
+    static void discard();
+
+    /*
+     * Send automatically message to server
+     * doesn't work if not enabled
+     * done automatically in transmission manager
+     */
     static void sendToServer();
 
-    //calls client's receive method
+    /*
+     * Send automatically message to user
+     * doesn't work if not enabled
+     * done automatically in transmission manager
+     */
     static void sendToUser(const std::string &username);
 };
 

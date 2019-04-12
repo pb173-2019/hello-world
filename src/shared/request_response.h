@@ -24,7 +24,7 @@ namespace helloworld {
 
 struct Request {
     enum class Type {
-        LOGIN, LOGIN_COMPLETE, LOGOUT, CREATE, CREATE_COMPLETE,
+        LOGIN, LOGIN_COMPLETE, LOGOUT, CREATE, CREATE_COMPLETE, CHECK_INCOMING,
         REMOVE, SEND, GET_ONLINE, FIND_USERS, KEY_BUNDLE_UPDATE, GET_RECEIVERS_BUNDLE
     };
 
@@ -35,8 +35,7 @@ struct Request {
 
         Header() = default;
 
-        Header(Type type, uint32_t messageNumber, uint32_t userId)
-                : type(type), messageNumber(messageNumber), userId(userId) {}
+        Header(Type type, uint32_t userId) : type(type), userId(userId) {}
 
         serialize::structure& serialize(serialize::structure& result) const override;
         serialize::structure serialize() const override {
@@ -82,8 +81,7 @@ struct Response {
 
         Header() = default;
 
-        Header(Type type, uint32_t messageNumber, uint32_t userId)
-                : type(type), messageNumber(messageNumber), userId(userId) {}
+        Header(Type type, uint32_t userId) : type(type), userId(userId) {}
 
         serialize::structure& serialize(serialize::structure& result) const override;
         serialize::structure serialize() const override {

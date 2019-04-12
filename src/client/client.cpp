@@ -15,9 +15,9 @@ Client::Client(std::string username,
             const std::string &password)
     : _username(std::move(username)),
       _password(password),
-      _sessionKey(to_hex(Random().get(SYMMETRIC_KEY_SIZE))),
-      _x3dh(std::make_unique<X3DH>(_username, _password))
-      {
+      _x3dh(std::make_unique<X3DH>(_username, _password)),
+      _transmission(std::make_unique<ClientFiles>(this, _username)) {
+
     _rsa.loadPrivateKey(clientPrivKeyFilename, password);
 }
 
@@ -43,15 +43,11 @@ void Client::callback(std::stringstream &&data) {
             sendKeysBundle();
             return;
         case Response::Type::RECEIVER_BUNDLE_SENT:
-            // todo attrib only response as the response contains id, for now
-            // just to emphasize todo that response has receiver's (to whom we
-            // send message) id in header
-            sendInitialMessage(response.header.userId, response);
+            sendInitialMessage(response);
             return;
         case Response::Type::RECEIVE:
         case Response::Type::RECEIVE_OLD:
-            receiveData(response);    // the difference between dereve/receive
-                                      // old is decided in
+            receiveData(response);
             return;
         default:
             throw Error("Unknown response type.");
@@ -59,39 +55,36 @@ void Client::callback(std::stringstream &&data) {
 }
 
 void Client::login() {
-    _connection =
-        std::make_unique<ClientToServerManager>(_sessionKey, serverPub);
+    _connection = std::make_unique<ClientToServerManager>(to_hex(Random().get(SYMMETRIC_KEY_SIZE)), serverPub);
     AuthenticateRequest request(_username, {});
-    sendRequest({{Request::Type::LOGIN, 1, _userId}, request.serialize()});
+    sendRequest({{Request::Type::LOGIN, _userId}, request.serialize()});
 }
 
 void Client::logout() {
     GenericRequest request(_userId, _username);
-    sendRequest({{Request::Type::LOGOUT, 0, _userId}, request.serialize()});
+    sendRequest({{Request::Type::LOGOUT, _userId}, request.serialize()});
 }
 
 void Client::createAccount(const std::string &pubKeyFilename) {
     _userId = 0;
-    _connection =
-        std::make_unique<ClientToServerManager>(_sessionKey, serverPub);
+    _connection = std::make_unique<ClientToServerManager>(to_hex(Random().get(SYMMETRIC_KEY_SIZE)), serverPub);
     std::ifstream input(pubKeyFilename);
     std::string publicKey((std::istreambuf_iterator<char>(input)),
                           std::istreambuf_iterator<char>());
     std::vector<unsigned char> key(publicKey.begin(), publicKey.end());
     AuthenticateRequest registerRequest(_username, key);
 
-    sendRequest({{Request::Type::CREATE, 1, 0}, registerRequest.serialize()});
+    sendRequest({{Request::Type::CREATE, 0}, registerRequest.serialize()});
 }
 
 void Client::deleteAccount() {
     GenericRequest request(_userId, _username);
-    sendRequest({{Request::Type::REMOVE, 0, _userId}, request.serialize()});
-
+    sendRequest({{Request::Type::REMOVE, _userId}, request.serialize()});
 }
 
 void Client::sendFindUsers(const std::string &query) {
     GetUsers request{_userId, _username, query};
-    sendRequest({{Request::Type::FIND_USERS, 0, _userId}, request.serialize()});
+    sendRequest({{Request::Type::FIND_USERS, _userId}, request.serialize()});
 }
 
 void Client::sendGetOnline() { sendGenericRequest(Request::Type::GET_ONLINE); }
@@ -147,12 +140,16 @@ KeyBundle<C25519> Client::updateKeys() {
 void Client::sendKeysBundle() {
     KeyBundle<C25519> bundle = updateKeys();
     sendRequest(
-        {{Request::Type::KEY_BUNDLE_UPDATE, 0, _userId}, bundle.serialize()});
+        {{Request::Type::KEY_BUNDLE_UPDATE, _userId}, bundle.serialize()});
 }
 
 void Client::requestKeyBundle(uint32_t receiverId) {
-    sendRequest({{Request::Type::GET_RECEIVERS_BUNDLE, 0, receiverId},
+    sendRequest({{Request::Type::GET_RECEIVERS_BUNDLE, receiverId},
                  GenericRequest{_userId, _username}.serialize()});
+}
+
+void Client::checkForMessages() {
+    sendGenericRequest(Request::Type::CHECK_INCOMING);
 }
 
 void Client::archiveKey(const std::string &keyFileName) {
@@ -172,23 +169,20 @@ void Client::sendData(uint32_t receiverId, const std::vector<unsigned char> &dat
             std::chrono::system_clock::now());
         std::string time = std::ctime(&now);
         SendData toSend(time, _username, message.serialize());
-        sendRequest({{Request::Type::SEND, 0, receiverId}, toSend.serialize()});
+        sendRequest({{Request::Type::SEND, receiverId}, toSend.serialize()});
     } else {
-        std::ifstream in{std::to_string(receiverId) + ".msg", std::ios::binary};
-        if (in) throw Error("There are messages waiting to be send.");
-        in.close();
-        std::ofstream out{std::to_string(receiverId) + ".msg",
-                          std::ios::binary};
+        //simple message stacking into one file, in future maybe add some separator policy
+        std::ofstream out{std::to_string(receiverId) + ".msg", std::ios::binary | std::ios_base::app};
         write_n(out, data);
         out.close();
         requestKeyBundle(receiverId);
     }
 }
 
-void Client::sendInitialMessage(uint32_t receiverId, const Response &response) {
+void Client::sendInitialMessage(const Response &response) {
     KeyBundle<C25519> bundle = KeyBundle<C25519>::deserialize(response.payload);
 
-    std::string file = std::to_string(receiverId) + ".msg";
+    std::string file = std::to_string(response.header.userId) + ".msg";
     std::ifstream in{file, std::ios::binary};
     if (!in) throw Error("There are no messages to be send.");
     size_t size = getSize(in);
@@ -209,7 +203,7 @@ void Client::sendInitialMessage(uint32_t receiverId, const Response &response) {
     Message message = _doubleRatchetConnection->RatchetEncrypt(toSend.serialize());
     request.AEADenrypted = message.serialize();
 
-    sendRequest({{Request::Type::SEND, 0, receiverId}, request.serialize()});
+    sendRequest({{Request::Type::SEND, response.header.userId}, request.serialize()});
     remove(file.c_str());
 }
 
@@ -249,13 +243,13 @@ void Client::sendRequest(const Request &request) {
 
 void Client::sendGenericRequest(Request::Type type) {
     GenericRequest request{_userId, _username};
-    sendRequest({{type, 0, _userId}, request.serialize()});
+    sendRequest({{type, _userId}, request.serialize()});
 }
 
 Request Client::completeAuth(const std::vector<unsigned char> &secret,
                              Request::Type type) {
     CompleteAuthRequest request(_rsa.sign(secret), _username);
-    return {{type, 2, _userId}, request.serialize()};
+    return {{type, _userId}, request.serialize()};
 }
 
 

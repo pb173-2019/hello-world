@@ -40,6 +40,8 @@ Response Server::handleUserRequest(const Request &request) {
             return updateKeyBundle(request);
         case Request::Type::GET_RECEIVERS_BUNDLE:
             return sendKeyBundle(request);
+        case Request::Type::CHECK_INCOMING:
+            return checkIncoming(request);
         default:
             throw Error("Invalid operation.");
     }
@@ -63,8 +65,7 @@ Response Server::registerUser(const Request &request) {
     }
     _transmission->registerConnection(registerRequest.name);
 
-    Response r = {{Response::Type::CHALLENGE_RESPONSE_NEEDED, request.header.messageNumber,
-                   request.header.userId}, challengeBytes};
+    Response r = {{Response::Type::CHALLENGE_RESPONSE_NEEDED, request.header.userId}, challengeBytes};
     sendReponse(registerRequest.name, r, getManagerPtr(registerRequest.name, false));
     return r;
 }
@@ -106,7 +107,7 @@ Response Server::completeAuthentication(const Request &request, bool newUser) {
 
     Response r;
     if (newUser)
-        r = {{Response::Type::USER_REGISTERED, 0, generatedId},{}};
+        r = {{Response::Type::USER_REGISTERED, generatedId}, {}};
     else
         r = checkEvent(request);
 
@@ -138,8 +139,7 @@ Response Server::authenticateUser(const Request &request) {
     _transmission->registerConnection(authenticateRequest.name);
 
 
-    Response r = {{Response::Type::CHALLENGE_RESPONSE_NEEDED, request.header.messageNumber,
-                   request.header.userId}, challengeBytes};
+    Response r = {{Response::Type::CHALLENGE_RESPONSE_NEEDED, request.header.userId}, challengeBytes};
     sendReponse(authenticateRequest.name, r, getManagerPtr(authenticateRequest.name, false));
     return r;
 }
@@ -154,8 +154,15 @@ Response Server::getOnline(const Request &request) {
         ids.push_back(data.id);
     }
 
-    Response r = {{Response::Type::USERLIST, request.header.messageNumber, request.header.userId},
+    Response r = {{Response::Type::USERLIST, request.header.userId},
                   UserListReponse{{users.begin(), users.end()}, ids}.serialize()};
+    sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
+    return r;
+}
+
+Response Server::checkIncoming(const Request &request) {
+    GenericRequest curRequest = GenericRequest::deserialize(request.payload);
+    Response r = checkEvent(request);
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }
@@ -167,11 +174,11 @@ Response Server::deleteAccount(const Request &request) {
     data.id = curRequest.id;
     Response r;
     if (!_database->remove({curRequest.id, curRequest.name, "", {}})) {
-        r = {{Response::Type::FAILED_TO_DELETE_USER, request.header.messageNumber, request.header.userId}, {}};
+        r = {{Response::Type::FAILED_TO_DELETE_USER, request.header.userId}, {}};
     } else {
         _database->removeBundle(curRequest.id);
         _database->deleteAllData(curRequest.id);
-        r = {{Response::Type::OK, 0, 0}, {}};
+        r = {{Response::Type::OK, 0}, {}};
     }
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     logout(curRequest.name);
@@ -180,7 +187,7 @@ Response Server::deleteAccount(const Request &request) {
 
 Response Server::logOut(const Request &request) {
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
-    Response r {{Response::Type::OK, request.header.messageNumber, request.header.userId}, {}};
+    Response r {{Response::Type::OK, request.header.userId}, {}};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     logout(curRequest.name);
     return r;
@@ -214,7 +221,7 @@ Response Server::findUsers(const Request &request) {
         response.online.push_back(user->name);
         response.ids.push_back(user->id);
     }
-    Response r = {{Response::Type::USERLIST, 0, 0}, response.serialize()};
+    Response r = {{Response::Type::USERLIST, request.header.userId}, response.serialize()};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }
@@ -229,7 +236,7 @@ Response Server::forward(const Request &request) {
     const std::set<std::string> &users = _transmission->getOpenConnections();
     if (users.find(receiver) != users.end())  {
         //todo message id?
-        r = {{Response::Type::RECEIVE, 0, request.header.userId}, request.payload};
+        r = {{Response::Type::RECEIVE, request.header.userId}, request.payload};
         sendReponse(receiver, r, getManagerPtr(receiver, true));
     } else {
         _database->insertData(request.header.userId, request.payload);
@@ -255,7 +262,7 @@ Response Server::sendKeyBundle(const Request &request) {
     else
         _database->updateBundle(request.header.userId, keys.serialize());
 
-    Response r{{Response::Type::RECEIVER_BUNDLE_SENT, 0, request.header.userId}, bundle};
+    Response r{{Response::Type::RECEIVER_BUNDLE_SENT, request.header.userId}, bundle};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }
@@ -265,19 +272,19 @@ Response Server::checkEvent(const Request& request) {
         // step one: old keys: if time stored + 2 weeks < now
         uint64_t time = _database->getBundleTimestamp(request.header.userId);
         if (time + 14*24*3600 < getTimestampOf(nullptr))
-            return {{Response::Type::BUNDLE_UPDATE_NEEDED, request.header.messageNumber, request.header.userId}, {}};
+            return {{Response::Type::BUNDLE_UPDATE_NEEDED, request.header.userId}, {}};
 
         // step two: one-time keys emptied //todo should be implemented or just wait for 2week period?
         KeyBundle<C25519> keys = KeyBundle<C25519>::deserialize(_database->selectBundle(request.header.userId));
         if (keys.oneTimeKeys.empty())
-            return {{Response::Type::BUNDLE_UPDATE_NEEDED, request.header.messageNumber, request.header.userId}, {}};
+            return {{Response::Type::BUNDLE_UPDATE_NEEDED, request.header.userId}, {}};
 
         // step three: new messages
         std::vector<unsigned char> msg = _database->selectData(request.header.userId);
         if (!msg.empty())
-            return {{Response::Type::RECEIVE_OLD, request.header.messageNumber, request.header.userId}, std::move(msg)};
+            return {{Response::Type::RECEIVE_OLD, request.header.userId}, std::move(msg)};
     }
-    return {{Response::Type::OK, request.header.messageNumber, request.header.userId}, {}};
+    return {{Response::Type::OK, request.header.userId}, {}};
 }
 
 ServerToClientManager *Server::getManagerPtr(const std::string &username, bool trusted) {
@@ -320,7 +327,7 @@ void Server::sendReponse(const std::string &username, const Response &response, 
 }
 
 Response Server::updateKeyBundle(const Request &request) {
-    Response r = {{Response::Type::OK, 0, request.header.userId}, {}};
+    Response r = {{Response::Type::OK, request.header.userId}, {}};
     _database->insertBundle(request.header.userId, request.payload);
 
     //todo for file manager we need his username, but in future use ids only
