@@ -317,7 +317,52 @@ TEST_CASE("one client recieves multiple message") {
 }
 
 TEST_CASE("Reaction to problems") {
-    //TODO : emit disconnected after trying to connect non existent Server
-    //TODO: emit disconnected after being prematurely disconnected
+    SECTION("connecting to wrong address") {
+
+        TestCallback cCallback;
+        detail::RequireEmitted e;
+
+        ClientSocket client(&cCallback, "Alice");
+
+        QObject::connect(&client, SIGNAL(disconnected()), &e, SLOT(done()));
+
+        client.setHostPort(5000);
+        client.setHostAddress("255.255.255.255");
+        client.init(); // should emit disconnect right here (no QCoreApp needed)
+
+
+        CHECK(e.emmited);
+    }
+    SECTION("Client prematurely disconnected") {
+            int argc = 1;
+            char name[] = "test 1";
+            char * argv[2] = {name, NULL};
+            QCoreApplication a(argc, argv);
+
+            detail::RequireEmitted e;
+
+            detail::MocServer server;
+            server.setConnectionCallback([ptr = &a](detail::MocServer *s,detail::Connection *c) {
+                c->closing();
+            });
+            server.start();
+
+            TestCallback cCallback;
+
+            ClientSocket client(&cCallback, "Alice");
+
+            QObject::connect(&client, SIGNAL(disconnected()), &e, SLOT(done()));
+            QObject::connect(&client, SIGNAL(disconnected()), &a, SLOT(quit()));
+
+        client.setHostPort(5000);
+            client.setHostAddress("0.0.0.0");
+            client.init();
+
+
+            a.exec();
+
+            CHECK(e.emmited);
+
+    }
 
 }

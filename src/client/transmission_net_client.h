@@ -28,37 +28,29 @@ public:
     explicit ClientSocket(Callable<void, std::stringstream &&> *callback,
                         std::string username,
                         const std::string& addr = "",
-                         uint16_t port = 500, QObject *parent = nullptr)
+                         uint16_t port = 5000, QObject *parent = nullptr)
                          ;
 
     void setHostAddress(const std::string& address);
     void setHostPort(uint16_t port);
 
-
     // Copying is not available
     ClientSocket(const ClientSocket &other) = delete;
-
     ClientSocket &operator=(const ClientSocket &other) = delete;
-
     ~ClientSocket() override {
-
         QObject::disconnect(_socket.get(), SIGNAL(stateChanged(QAbstractSocket::SocketState)), this, SLOT(_state_change(QAbstractSocket::SocketState)));
     };
 
     void send(std::iostream &data) override;
-
     void closeConnection() ;
-
 Q_SIGNALS:
     void disconnected();
 public Q_SLOTS:
     void receive() override;
     void init();
     void onError(QAbstractSocket::SocketError socketError);
-
 private Q_SLOTS:
     void _state_change(QAbstractSocket::SocketState state);
-
 private:
     bool wait_connected();
 };

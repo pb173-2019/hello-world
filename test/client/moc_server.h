@@ -62,6 +62,9 @@ namespace helloworld {
             };
 
             void closing() {
+                if(_socket->state() != QAbstractSocket::SocketState::ClosingState
+                || _socket->state() != QAbstractSocket::SocketState::UnconnectedState)
+                    _socket->disconnectFromHost();
                 emit closed(this);
             }
 
@@ -168,11 +171,14 @@ namespace helloworld {
 
         class RequireEmitted : public QObject {
             Q_OBJECT
-            bool emmited{false};
         public:
+
+            bool emmited{false};
             RequireEmitted() : QObject(nullptr) {}
 
+
         public Q_SLOTS:
+
             void done() {
                 emmited = true;
             };

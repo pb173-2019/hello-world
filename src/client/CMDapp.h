@@ -17,147 +17,137 @@
 #include "../shared/rsa_2048.h"
 #include "transmission_net_client.h"
 #include "client.h"
+#include <atomic>
+
+
 namespace helloworld {
 
     class CMDApp : public QObject {
     Q_OBJECT
         static constexpr uint16_t default_port = 5000;
+
+        // 80 is default, which might not be actual length, but it's generally
+        // considered as standard (won't matter when we create GUI)
+        static constexpr int line_length = 80;
+
+        static constexpr const char* ApplicationName = "Hello World!";
+        static constexpr int MajorVersion = 0, MinorVersion = 1;
+        static const char *Authors[3];
+
+        std::atomic_bool _running{false};
         std::istream &is;
         std::ostream &os;
         std::unique_ptr<Client> client;
         std::string username;
+
+        bool loggedIn{false};
+
+        struct Command {
+            using CMDfunc_t = void(*)(CMDApp*);
+            const char * name;
+            CMDfunc_t call;
+            const char *info;
+
+            enum Status {None, Disconnected, Connected, LoggedOut,  LoggedIn} required;
+            void print(std::ostream& os) const;
+        };
+
+
+        const std::vector<Command> commands{
+            {"help", &CMDApp::help_command, "prints help message", Command::Status::None},
+            //{"keyGen", &CMDApp::generateKeypair_command, "generate new keys, used from next session onward", Command::Status::None},
+            {"connect", &CMDApp::connect_command, "connect to server", Command::Status::Disconnected},
+            {"login", &CMDApp::login_command, "log in as existing user", Command::Status::LoggedOut},
+            {"register", &CMDApp::register_command, "register new user", Command::Status::LoggedOut},
+
+            {"send", &CMDApp::unimplemented_command, "send message to user", Command::Status::LoggedIn},
+            {"online", &CMDApp::unimplemented_command, "get list of online users", Command::Status::LoggedIn},
+            {"messages", &CMDApp::unimplemented_command, "get list of new messages", Command::Status::LoggedIn},
+
+            {"logout", &CMDApp::logout_command, "log out, but stay connected", Command::Status::LoggedIn},
+            {"disconnect", &CMDApp::disconnect_command, "disconnect from current server", Command::Status::Connected},
+
+            {"quit", &CMDApp::quit_command, "close this application", Command::Status::None}
+        };
+
+
+
     public:
-        CMDApp(std::istream &is, std::ostream &os, QObject *parent = nullptr)
-                : QObject(parent), is(is), os(os) {
-        }
+        CMDApp(std::istream &is, std::ostream &os, QObject *parent = nullptr);
 
     Q_SIGNALS:
-
         void close();
-
     public Q_SLOTS:
-
-        void disconnected() {
-            os << "You've been disconnected from server\n";
-            printInfoMessage();
-        };
-        void init() {
-            printInfoMessage();
-
-            loop();
-        };
+        /**
+         * reaction to disconnect
+         */
+        void disconnected();
+        /**
+         * start aplication
+         */
+        void init();
     private:
-        void printInfoMessage() {
-            os << "Hello world v0.1\n";
-            os << "*******************************\n"
-               << "0 - Quit\n"
-               << "1 - Generate keypair\n"
-               << "2 - Connect to server\n"
-               << "3 - Help\n";
-            if (client && client->ready()) {
-                os << "4 - Register account\n";
-                os << "5 - Login\n";
-                os << "6 - Disconnect";
-            }
-        }
+        /**
+         * creats nice messagge about current version of programs
+         * (name, version, authors - viz implementation)
+         * @return string containing version info
+         */
+        std::string _versionInfo() const;
 
-        void loop() {
-            while (true) {
+        /**
+         * creates nice welcome message from app name and version
+         * @return string containing welcome message
+         */
+        std::string _welcomeMessage() const;
+        /**
+         * checks whether application is in required state
+         * @param required state/status
+         * @return true if it is in required state, false otherwise
+         */
+        bool _checkStatus(Command::Status required);
+        /**
+         * main application loop
+         */
+        void _loop();
+        /**
+         * quit_command helper (emits signal)
+         */
+        void _quit();
 
-                int choice;
-                os << "> ";
-                is >> choice;
-                {
-                    std::string tmp;
-                    std::getline(is, tmp);
-                }
-                std::string password;
-                switch (choice) {
+        /**
+         * genereates new key pair
+         * @param password password to encrypt private key
+         */
+        void _generateKeypair(const std::string &password);
 
-                    case 0:
-                        emit close();
-                        return;
-                    case 1:
-                        if (username.empty())
-                            username = getInput("Username: ");
-                        password = getInput("Password: ");
-                        generateKeypair(username, password);
-                        break;
-                    case 2: {
-                        if (!client) {
-                            if (username.empty())
-                                username = getInput("Username: ");
-                            password = getInput("Password: ");
-                            createClient(username, password);
-                        }
-                        auto c = dynamic_cast<ClientSocket *>(client->getTransmisionManger());
-                        if (c != nullptr) {
-                            std::string ip = getInput("IP address: ");
-                            c->setHostAddress(ip);
-                            c->setHostPort(default_port);
-                            QObject::connect(c, SIGNAL(disconnected()),
-                                             this, SLOT(disconnected()));
-                            c->init();
-                        }
-                        }
-                        break;
-                    case 3:
-                        printInfoMessage();
-                        break;
-                    case 4:
-                        checkConnection();
-                        client->createAccount(username + "_pub.pem");
-                        break;
-                    case 5:
-                        checkConnection();
-                        client->login();
-                        break;
-                    case 6:
-                        checkConnection();
-                        {
-                            auto c = dynamic_cast<ClientSocket *>(client->getTransmisionManger());
-                            if (c != nullptr) {
-                                c->closeConnection();
-                            }
+        /*
+         * static functions representing different commands
+         */
+        static void help_command(CMDApp *app);
+        static void quit_command(CMDApp *app);
+        static void unimplemented_command(CMDApp *app);
+        static void connect_command(CMDApp *app) ;
+        static void login_command(CMDApp *app);
+        static void logout_command(CMDApp *app);
+        static void register_command(CMDApp *app);
+        static void disconnect_command(CMDApp *app);
+        //static void generateKeypair_command(CMDApp *app); // maybe not neccessary?
 
-                        }
-                        break;
-                    default:
-                        std::cout << "Invalid choice.\n";
-                        break;
-                }
-                std::fill(password.begin(), password.end(), 0);
-            }
-        };
 
-        void checkConnection() {
-            if (!client || !client->ready()) {
-                throw std::runtime_error("Not connected to server.");
-            }
-        }
+        /**
+         * gets input from application input stream
+         * @param prompt to display to user
+         * @return users input
+         */
+        std::string getInput(const std::string &prompt);
 
-        void generateKeypair(const std::string &username,
-                             const std::string &password) {
-            RSAKeyGen keygen;
-            keygen.savePrivateKeyPassword(username + "_priv.pem", password);
-            keygen.savePublicKey(username + "_pub.pem");
-        }
-
-        void createClient(const std::string &username,
-                             const std::string &password) {
-            client =
-                    std::make_unique<Client>(username, username + "_priv.pem",
-                                             password);
-            client->setTransmissionManager(std::make_unique<ClientSocket>(client.get(), username));
-        }
-
-        std::string getInput(const std::string &prompt) {
-            os << prompt;
-            os.flush();
-            std::string data;
-            std::getline(is, data);
-            return data;
-        }
+        /**
+         * get option from user
+         * @param prompt to display to user
+         * @param options from which user should choose
+         * @return index of option (-1 on error)
+         */
+        int getOption(std::string prompt, std::vector<char> options);
 
     };
 };

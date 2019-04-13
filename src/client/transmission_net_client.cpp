@@ -35,9 +35,10 @@ ClientSocket::ClientSocket(Callable<void, std::stringstream &&> *callback,
         void ClientSocket::send(std::iostream &data)  {
             std::stringstream inBase;
             _base64.fromStream(data, inBase);
-            inBase << '\0';
-            if (!wait_connected())
+            inBase << '\0'; // to different distinguish messages
+            if (!wait_connected()) {
                 return;
+            }
             QByteArray qdata(inBase.str().data(), inBase.str().size());
             _socket->write(qdata);
             _socket->flush();
@@ -50,7 +51,7 @@ ClientSocket::ClientSocket(Callable<void, std::stringstream &&> *callback,
         }
 
 
-        void ClientSocket::onError(QAbstractSocket::SocketError socketError) {
+        void ClientSocket::onError(QAbstractSocket::SocketError /*socketError*/) {
             emit disconnected();
         }
 
@@ -66,14 +67,16 @@ ClientSocket::ClientSocket(Callable<void, std::stringstream &&> *callback,
         }
 
         void ClientSocket::init() {
-
-            _status = OK;
             _socket->connectToHost(_address, _port);
-            _socket->waitForConnected();
+            if(!_socket->waitForConnected()) {
+                emit disconnected();
+                _status = NEED_INIT;
+            } else {
+                _status = OK;
+            }
         }
 
         void ClientSocket::_state_change(QAbstractSocket::SocketState state) {
-
             if (_status != NEED_INIT
                 && state == QAbstractSocket::SocketState::UnconnectedState)
             {
@@ -94,7 +97,6 @@ ClientSocket::ClientSocket(Callable<void, std::stringstream &&> *callback,
                 return false;
             }
             return true;
-            //TODO: handle disconnet during waiting
         }
 
 
