@@ -24,8 +24,6 @@
 #include "../shared/utils.h"
 
 
-
-
 namespace helloworld {
 
 /**
@@ -35,6 +33,7 @@ class ServerFiles : public ServerTransmissionManager {
 
     Base64 _base64;
     std::set<std::string> _files;
+    std::string _lastNew;
 
 public:
     explicit ServerFiles(Callable<void, bool, const std::string&, std::stringstream&&>* callback) :
@@ -89,7 +88,10 @@ public:
             throw Error("Could not finish transmission.\n");
         }
 
-        Callable<void, bool, const std::string&, std::stringstream&&>::call(callback, exists(name),
+        bool existing = exists(name);
+        if (!existing) _lastNew = name;
+
+        Callable<void, bool, const std::string&, std::stringstream&&>::call(callback, std::move(existing),
                 name, std::move(result));
     }
 
@@ -98,6 +100,7 @@ public:
      * @param connection
      */
     void registerConnection(const std::string& username) override {
+        _lastNew = "";
         if (username.empty())
             return;
         bool inserted = _files.emplace(username).second;
@@ -106,12 +109,20 @@ public:
         }
     }
 
+    void discardNewConnection(const std::vector<unsigned char>& data) override {
+        std::stringstream toSend;
+        write_n(toSend, data);
+        send(_lastNew, toSend);
+        _lastNew = "";
+    }
+
     /**
      * Release connection
      * @param connection
      */
-    void removeConnection(const std::string& username) override {
+    bool removeConnection(const std::string& username) override {
         _files.erase(username);
+        return true;
     }
 
     /**
@@ -128,7 +139,7 @@ public:
         return false;
     }
 
-    const std::set<std::string>& getOpenConnections() override {
+    std::set<std::string> getOpenConnections() override {
         return _files;
     }
 };

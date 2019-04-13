@@ -306,7 +306,6 @@ ServerToClientManager *Server::getManagerPtr(const std::string &username, bool t
 void Server::sendReponse(const std::string &username, const Response &response, ServerToClientManager *manager) {
     std::stringstream result;
     if (manager == nullptr) {
-        //unable to get session to correctly encrypt reponse
         result = std::move(_genericManager.returnErrorGeneric());
     } else {
         result = std::move(manager->parseOutgoing(response));

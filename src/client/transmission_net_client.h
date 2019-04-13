@@ -13,6 +13,7 @@
 #include "../shared/transmission.h"
 #include "../shared/base_64.h"
 #include "../shared/utils.h"
+
 namespace helloworld {
 
 class ClientSocket : public QObject, public UserTransmissionManager {

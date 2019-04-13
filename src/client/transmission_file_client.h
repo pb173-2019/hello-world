@@ -32,7 +32,6 @@ namespace helloworld {
 class ClientFiles : public UserTransmissionManager {
 
     Base64 _base64;
-    std::string unique_identifier;
 
 public:
     explicit ClientFiles(Callable<void, std::stringstream &&> *callback,

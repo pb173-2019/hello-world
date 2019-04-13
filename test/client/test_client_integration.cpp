@@ -16,12 +16,16 @@ TEST_CASE("Create key for aliceabc") {
     RSAKeyGen keygen;
     keygen.savePrivateKeyPassword("aliceabc_priv.pem", "hunter2");
     keygen.savePublicKey("aliceabc_pub.pem");
+
+    Server server;
+    server.dropDatabase(); //prevents database data from other testing
 }
 
 TEST_CASE("Scenario 1: create, logout, login, delete.") {
     Network::setEnabled(true);
 
     Server server;
+
     Client client("aliceabc", "aliceabc_priv.pem", "hunter2");
     client.setTransmissionManager(std::make_unique<ClientFiles>(&client, client.name()));
 

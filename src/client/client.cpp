@@ -15,8 +15,7 @@ Client::Client(std::string username,
             const std::string &password)
     : _username(std::move(username)),
       _password(password),
-      _x3dh(std::make_unique<X3DH>(_username, _password))
-       {
+      _x3dh(std::make_unique<X3DH>(_username, _password)) {
 
     _rsa.loadPrivateKey(clientPrivKeyFilename, password);
 }
@@ -171,11 +170,20 @@ void Client::sendData(uint32_t receiverId, const std::vector<unsigned char> &dat
         SendData toSend(time, _username, message.serialize());
         sendRequest({{Request::Type::SEND, receiverId}, toSend.serialize()});
     } else {
-        //simple message stacking into one file, in future maybe add some separator policy
+        bool first = true;
+        std::ifstream in{std::to_string(receiverId) + ".msg"};
+        if (in) first = false;
+        in.close();
+
+        //simple message stacking into one file, in future maybe add some separator policy (now using ---)
         std::ofstream out{std::to_string(receiverId) + ".msg", std::ios::binary | std::ios_base::app};
+        if (! first)
+            out << "---\n";
+
         write_n(out, data);
         out.close();
-        requestKeyBundle(receiverId);
+        //request only if not requested before (e.g. multiple 1st messages)
+        if (first) requestKeyBundle(receiverId);
     }
 }
 
@@ -189,6 +197,7 @@ void Client::sendInitialMessage(const Response &response) {
     std::vector<unsigned char> data(size);
     read_n(in, data.data(), data.size());
     in.close();
+    remove(file.c_str());
 
     auto now =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -204,7 +213,6 @@ void Client::sendInitialMessage(const Response &response) {
     request.AEADenrypted = message.serialize();
 
     sendRequest({{Request::Type::SEND, response.header.userId}, request.serialize()});
-    remove(file.c_str());
 }
 
 void Client::receiveData(const Response &response) {
