@@ -51,8 +51,12 @@ public:
         other._owned = false;
     }
 
-    //rewriting not available, just moving on construction
-    ServerSocket &operator=(ServerSocket &&other) = delete;
+    ServerSocket &operator=(ServerSocket &&other) {
+        socket->~QTcpSocket();
+        socket = other.socket;
+        other._owned = false;
+        return *this;
+    }
 
     ~ServerSocket() override {
         if (_owned) socket->~QTcpSocket();

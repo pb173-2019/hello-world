@@ -9,6 +9,4 @@ add_executable(${PROJECT_NAME} main.cpp
         sqlite_database.cpp
         transmission_net_server.h
         )
-target_link_libraries(${PROJECT_NAME}
-  mbedcrypto shared sqlite3
-)
+target_link_libraries(${PROJECT_NAME} mbedcrypto shared sqlite3  Qt5::Network Qt5::Core)
