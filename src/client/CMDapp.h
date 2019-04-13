@@ -9,16 +9,10 @@
 
 #ifndef HELLOWORLD_CMDAPP_H
 #define HELLOWORLD_CMDAPP_H
-#include <iostream>
-#include <iomanip>
-#include <QObject>
-#include <QCoreApplication>
-#include <QThread>
-#include "../shared/rsa_2048.h"
-#include "transmission_net_client.h"
-#include "client.h"
-#include <atomic>
 
+#include <atomic>
+#include <QObject>
+#include "client.h"
 
 namespace helloworld {
 
