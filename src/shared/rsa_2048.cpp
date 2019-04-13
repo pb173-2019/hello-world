@@ -121,7 +121,7 @@ void RSA2048::loadPrivateKey(const std::string &keyFile, const std::string &key,
 
     std::ifstream input{keyFile, std::ios::in | std::ios::binary};
     if (!input)
-        return;
+        throw Error("cannot open key file.");
 
     if (!key.empty()) {
         std::stringstream decrypted;

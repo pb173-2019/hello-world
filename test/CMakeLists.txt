@@ -4,6 +4,9 @@ configure_file(${CMAKE_SOURCE_DIR}/src/keys/server_pub.pem ${CMAKE_CURRENT_BINAR
 
 file(GLOB client_test_src "./client/*.h" "./client/*.cpp"
         ../src/client/client.cpp
+        ../src/client/transmission_net_client.h
+        ../src/client/transmission_net_client.cpp
+
         ../src/server/database_server.h
         ../src/server/file_database.cpp
         ../src/server/file_database.h
@@ -13,7 +16,7 @@ file(GLOB client_test_src "./client/*.h" "./client/*.cpp"
         ../src/server/sqlite_database.h
         )
 add_executable(client_test test_main.cpp ${client_test_src})
-target_link_libraries(client_test shared sqlite3)
+target_link_libraries(client_test shared sqlite3 Qt5::Network Qt5::Core)
 add_test(client_test_execute client_test)
 
 file(GLOB server_test_src "./server/*.h" "./server/*.cpp"

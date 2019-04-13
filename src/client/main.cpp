@@ -19,9 +19,9 @@ int main(int argc , char ** argv ) {
     QObject::connect(&CMDThread, SIGNAL(started()), &mainApp, SLOT(init()));
     QObject::connect(&mainApp, SIGNAL(close()), &CMDThread, SLOT(quit()));
 
+    mainApp.moveToThread(&CMDThread);
     CMDThread.start(QThread::Priority::NormalPriority);
 
-    mainApp.moveToThread(&CMDThread);
 
     return a.exec();
 }
