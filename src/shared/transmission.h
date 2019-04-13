@@ -65,42 +65,47 @@ public:
     virtual void receive() = 0;
 
     /**
-   * Mark some connection as opened
-   * @param connection
-   */
+     * Mark some connection as opened
+     * @param connection
+     */
     virtual void registerConnection(const std::string &usrname) = 0;
+
+    /**
+     * Discard new connection, when created but refused to communicate with
+     *
+     * @param data error msg to end before closing connection
+     */
+    virtual void discardNewConnection(const std::vector<unsigned char> &data) = 0;
 
     /**
      * Release connection
      * @param connection
      */
-    virtual void removeConnection(const std::string &usrname) = 0;
+    virtual bool removeConnection(const std::string &usrname) = 0;
 
     /**
      * Get online user list
      */
-    virtual const std::set<std::string> &getOpenConnections() = 0;
-
-
+    virtual std::set<std::string> getOpenConnections() = 0;
 };
 
 class UserTransmissionManager {
 public:
-    enum Status {OK, NEED_INIT};
+    enum Status {
+        OK, NEED_INIT
+    };
 protected:
     /**
      * Function that can handle receive() output
      */
-     Status _status;
+    Status _status;
     Callable<void, std::stringstream &&> *callback;
     std::string username;
 
 public:
     explicit UserTransmissionManager(Callable<void, std::stringstream &&> *callback,
                                      std::string username, Status status)
-                                     : _status(status)
-                                     , callback(callback)
-                                     , username(std::move(username)) {
+            : _status(status), callback(callback), username(std::move(username)) {
         if (callback == nullptr)
             throw Error("Null not allowed.");
     };
@@ -110,6 +115,7 @@ public:
     void setCallback(Callable<void, std::stringstream &&> *newCallback) {
         callback = newCallback;
     }
+
     // Copying is not available
     UserTransmissionManager(const UserTransmissionManager &other) = delete;
 
@@ -132,14 +138,17 @@ public:
     virtual void receive() = 0;
 };
 
+
+
+
 // a bit ugly way to notify server that the "socket" has arrived
 using server_socket = void (ServerTransmissionManager::*)();
 using client_socket = void (UserTransmissionManager::*)();
 
 class Network {
     static server_socket server_callback;
-    static ServerTransmissionManager* server_instance;
-    static std::map<std::string, std::pair<client_socket, UserTransmissionManager*>> connection_callbacks;
+    static ServerTransmissionManager *server_instance;
+    static std::map<std::string, std::pair<client_socket, UserTransmissionManager *>> connection_callbacks;
     static std::vector<std::pair<std::string, std::vector<unsigned char>>> delayed;
 
     static bool enabled;
@@ -164,7 +173,7 @@ public:
      * Set server instance's transmission manager to receive messages
      * done automatically in constructor
      */
-    static void setServer(server_socket serverCallback, ServerTransmissionManager* server) {
+    static void setServer(server_socket serverCallback, ServerTransmissionManager *server) {
         server_callback = serverCallback;
         server_instance = server;
     }
@@ -173,7 +182,8 @@ public:
      * Add user's connection manager to receive data from server
      * done automatically in constructor
      */
-    static void addConnection(const std::string &username, std::pair<client_socket, UserTransmissionManager*> client) {
+    static void
+    addConnection(const std::string &username, std::pair<client_socket, UserTransmissionManager *> client) {
         connection_callbacks.emplace(username, client);
     }
 
@@ -202,7 +212,7 @@ public:
     /*
      * Return current blocked message sender (<name>.tcp) format
      */
-    static const std::string* getBlockedMsgSender() {
+    static const std::string *getBlockedMsgSender() {
         if (delayed.empty())
             return nullptr;
         return &(delayed.end() - 1)->first;
@@ -227,8 +237,6 @@ public:
      */
     static void sendToUser(const std::string &username);
 };
-
-
 } //namespace helloworld
 
 #endif //HELLOWORLD_TRANSMISSION_H

@@ -14,7 +14,7 @@ if (MSVC)
     SET (CMAKE_CPP_FLAGS "${CMAKE_CPP_FLAGS} /EHsc")
 endif()
 
-find_package(Qt5Network REQUIRED)
+find_package(Qt5Network REQUIRED PATHS C:/Qt/Tools/QtCreator/bin)
 find_package(Qt5Core REQUIRED)
 
 #set(CMAKE_INCLUDE_CURRENT_DIR ON)

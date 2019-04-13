@@ -158,7 +158,6 @@ public:
     SendData& getMessage() { return _incomming; }
 
 
-
     //
     // TESTING PURPOSE METHODS SECTION
     //

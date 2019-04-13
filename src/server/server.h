@@ -54,14 +54,16 @@ public:
      * @brief This function is called when transmission manager discovers new
      *        incoming request
      *
-     * @param username username of incoming connection, 0 if not opened (e.g. authentication needed)
-     * @param data decoded data, ready to process (if 0, use server key to encrypt)
+     * @param hasSessionKey false if first connection (e.g. session key not established) maybe not needed
+     *        (use empty name)
+     * @param username username of incoming connection, empty if not opened (e.g. authentication needed)
+     * @param data decoded data, ready to process (if username empty, use server key to encrypt)
      */
     void callback(bool hasSessionKey, const std::string &username, std::stringstream &&data) override {
         Request request;
         Response response;
         try {
-            if (!hasSessionKey) {
+            if (!hasSessionKey || username.empty()) {
                 request = _genericManager.parseIncoming(std::move(data));
             } else {
                 auto existing = _connections.find(username);

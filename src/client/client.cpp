@@ -15,8 +15,7 @@ Client::Client(std::string username,
             const std::string &password)
     : _username(std::move(username)),
       _password(password),
-      _x3dh(std::make_unique<X3DH>(_username, _password))
-       {
+      _x3dh(std::make_unique<X3DH>(_username, _password)) {
 
     _rsa.loadPrivateKey(clientPrivKeyFilename, password);
 }
