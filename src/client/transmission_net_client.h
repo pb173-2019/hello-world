@@ -46,6 +46,8 @@ public:
     void closeConnection() ;
 Q_SIGNALS:
     void disconnected();
+    void received();
+    void sent();
 public Q_SLOTS:
     void receive() override;
     void init();

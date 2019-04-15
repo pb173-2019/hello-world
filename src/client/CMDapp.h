@@ -12,6 +12,8 @@
 
 #include <atomic>
 #include <QObject>
+#include <mutex>
+#include <condition_variable>
 #include "client.h"
 
 namespace helloworld {
@@ -34,7 +36,9 @@ namespace helloworld {
         std::unique_ptr<Client> client;
         std::string username;
 
-        bool loggedIn{false};
+        bool loggedIn{false}, _pause{false}, _init{false}, _connected{false};
+
+        enum {nothing ,message, login, search}  waitingFor{nothing};
 
         struct Command {
             using CMDfunc_t = void(*)(CMDApp*);
@@ -49,20 +53,24 @@ namespace helloworld {
 
         const std::vector<Command> commands{
             {"help", &CMDApp::help_command, "prints help message", Command::Status::None},
-            //{"keyGen", &CMDApp::generateKeypair_command, "generate new keys, used from next session onward", Command::Status::None},
             {"connect", &CMDApp::connect_command, "connect to server", Command::Status::Disconnected},
-            {"login", &CMDApp::login_command, "log in as existing user", Command::Status::LoggedOut},
-            {"register", &CMDApp::register_command, "register new user", Command::Status::LoggedOut},
 
-            {"send", &CMDApp::unimplemented_command, "send message to user", Command::Status::LoggedIn},
-            {"online", &CMDApp::unimplemented_command, "get list of online users", Command::Status::LoggedIn},
-            {"messages", &CMDApp::unimplemented_command, "get list of new messages", Command::Status::LoggedIn},
+            // automatic after connection
+            //{"login", &CMDApp::login_command, "log in as existing user", Command::Status::LoggedOut},
+            //{"register", &CMDApp::register_command, "register new user", Command::Status::LoggedOut},
 
+            {"send", &CMDApp::send_command, "send message to user", Command::Status::LoggedIn},
+            {"online", &CMDApp::online_command, "get list of online users", Command::Status::LoggedIn},
+            {"find", &CMDApp::find_command, "find user", Command::Status::LoggedIn},
+            {"recv", &CMDApp::messages_command, "recieve awaiting messages", Command::Status::LoggedIn},
             {"logout", &CMDApp::logout_command, "log out, but stay connected", Command::Status::LoggedIn},
-            {"disconnect", &CMDApp::disconnect_command, "disconnect from current server", Command::Status::Connected},
+
+            // automatic after logout
+            //{"disconnect", &CMDApp::disconnect_command, "disconnect from current server", Command::Status::Connected},
 
             {"quit", &CMDApp::quit_command, "close this application", Command::Status::None}
         };
+
 
 
 
@@ -77,9 +85,21 @@ namespace helloworld {
          */
         void disconnected();
         /**
-         * start aplication
+         * init application on start
          */
         void init();
+        /**
+         * actions trigered on receive
+         */
+        void onRecieve();
+        /**
+         * action trigered on general event (nothing yer)
+         */
+        void event();
+        /**
+         * main application loop (called repeatedly)
+         */
+        void _loop();
     private:
         /**
          * creats nice messagge about current version of programs
@@ -99,10 +119,7 @@ namespace helloworld {
          * @return true if it is in required state, false otherwise
          */
         bool _checkStatus(Command::Status required);
-        /**
-         * main application loop
-         */
-        void _loop();
+
         /**
          * quit_command helper (emits signal)
          */
@@ -113,6 +130,7 @@ namespace helloworld {
          * @param password password to encrypt private key
          */
         void _generateKeypair(const std::string &password);
+
 
         /*
          * static functions representing different commands
@@ -125,6 +143,10 @@ namespace helloworld {
         static void logout_command(CMDApp *app);
         static void register_command(CMDApp *app);
         static void disconnect_command(CMDApp *app);
+        static void online_command(CMDApp *app);
+        static void find_command(CMDApp *app);
+        static void send_command(CMDApp *app);
+        static void messages_command(CMDApp *app);
         //static void generateKeypair_command(CMDApp *app); // maybe not neccessary?
 
 

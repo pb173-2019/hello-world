@@ -3,6 +3,8 @@
 #include "../../src/client/client.h"
 #include "../../src/server/server.h"
 #include "../../src/client/transmission_file_client.h"
+#include "../../src/server/transmission_file_server.h"
+
 using namespace helloworld;
 // will always start from 1
 static bool alice_on = true;
@@ -122,6 +124,8 @@ TEST_CASE("Random testing 1:1 messaging") {
     Network::setEnabled(true);
 
     Server server;
+    server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
+
     Random random;
 
     Client alice("alice", "alice_messaging.pem", "123456");

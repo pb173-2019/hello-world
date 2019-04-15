@@ -48,19 +48,21 @@ public:
     ServerSocket &operator=(const ServerSocket &other) = delete;
 
     ServerSocket(ServerSocket &&other) {
+        username = other.username;
         socket = other.socket;
         other._owned = false;
     }
 
     ServerSocket &operator=(ServerSocket &&other) {
-        socket->~QTcpSocket();
+
+        username = other.username;
         socket = other.socket;
         other._owned = false;
         return *this;
     }
 
     ~ServerSocket() override {
-        if (_owned) socket->~QTcpSocket();
+        if (_owned) socket->aboutToClose();
     }
 };
 
@@ -81,12 +83,16 @@ public slots:
      */
     void discoverConnection() {
         _lastIncomming = _server.nextPendingConnection();
+        connect(_lastIncomming, SIGNAL(readyRead()), this, SLOT(receive()));
+        emit conn(_lastIncomming->peerAddress(), _lastIncomming->peerPort());
     }
 
     void updateConnection(QAbstractSocket::SocketState state) {
         switch (state) {
             case QAbstractSocket::SocketState::UnconnectedState: {
                 QTcpSocket *sender = static_cast<QTcpSocket *>(QObject::sender());
+                emit disconn(sender->peerAddress(), sender->peerPort());
+
                 removeConnection(sender);
                 break;
             }
@@ -98,19 +104,29 @@ public slots:
     void receive() override {
         //todo ugly, ugly
         QTcpSocket *sender = static_cast<QTcpSocket *>(QObject::sender());
+        emit recieved(sender->peerAddress(), sender->peerPort());
         QByteArray data = sender->readAll();
 
         std::stringstream received{};
         received.write(data.data(), data.size());
+        std::string msg;
+        while (std::getline(received, msg, '\0')) {
+            std::stringstream result{}, from(msg);
+            _base64.toStream(from, result);
 
-        std::stringstream result{};
-        _base64.toStream(received, result);
-
-        const std::string &name = getName(sender);
-        //todo invalid, name might be empty, the server CANNOT count on name being valid value
-        Callable<void, bool, const std::string &, std::stringstream &&>::call(callback, name.empty(),
-                                                                              name, std::move(result));
+            const std::string name = getName(sender);
+            //todo invalid, name might be empty, the server CANNOT count on name being valid value
+            Callable<void, bool, const std::string &, std::stringstream &&>::call(callback, !name.empty(),
+                                                                                  name, std::move(result));
+        }
     }
+
+
+    Q_SIGNALS:
+    void conn(QHostAddress, quint16);
+    void disconn(QHostAddress, quint16);
+    void sent(QHostAddress, quint16);
+    void recieved(QHostAddress, quint16);
 
 public:
     explicit ServerTCP(Callable<void, bool, const std::string &, std::stringstream &&> *callback,
@@ -132,14 +148,19 @@ public:
         data.seekg(0, std::ios::beg);
         std::stringstream toSend;
         _base64.fromStream(data, toSend);
-
-        QTcpSocket *client = getSocket(usrname);
+        toSend << '\0';
+        QTcpSocket *client = nullptr;
+        if (exists(usrname))
+            client = getSocket(usrname);
+        else
+            client = _lastIncomming;
         //todo ugly, ugly, ugly
         size_t length = getSize(toSend);
         std::vector<char> bytes(length);
         toSend.read(bytes.data(), length);
 
         client->write(bytes.data(), bytes.size());
+        emit sent(client->peerAddress(), client->peerPort());
     }
 
     /**
@@ -150,7 +171,6 @@ public:
         if (username.empty())
             return;
 
-        connect(_lastIncomming, SIGNAL(readyRead()), this, SLOT(receive()));
         connect(_lastIncomming, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this,
                 SLOT(updateConnection(QAbstractSocket::SocketState)));
         _connections.emplace_back(_lastIncomming, username);
@@ -162,7 +182,10 @@ public:
      * @param data data to send before discarding the connectino
      */
     void discardNewConnection(const std::vector<unsigned char> &data) override {
+        emit disconn(_lastIncomming->peerAddress(), _lastIncomming->peerPort());
         _lastIncomming->write(reinterpret_cast<const char *>(data.data()), data.size());
+
+        disconnect(_lastIncomming, SIGNAL(readyRead()), this, SLOT(recieve()));
         _lastIncomming->~QTcpSocket();
         _lastIncomming = nullptr;
     }
@@ -175,6 +198,8 @@ public:
     bool removeConnection(const std::string &username) override {
         for (auto i = _connections.begin(); i < _connections.end(); i++) {
             if (i->username == username) {
+                emit disconn(i->socket->peerAddress(), i->socket->peerPort());
+                disconnect(i->socket, SIGNAL(readyRead()), this, SLOT(recieve()));
                 _connections.erase(i);
                 return true;
             }

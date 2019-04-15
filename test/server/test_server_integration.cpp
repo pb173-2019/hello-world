@@ -1,4 +1,3 @@
-#include <utility>
 
 #include <utility>
 
@@ -9,6 +8,7 @@
 #include "../../src/shared/responses.h"
 #include "../../src/server/server.h"
 #include "../../src/client/transmission_file_client.h"
+#include "../../src/server/transmission_file_server.h"
 #include "../../src/shared/connection_manager.h"
 
 using namespace helloworld;
@@ -118,6 +118,7 @@ TEST_CASE("Create keys") {
 TEST_CASE("Scenario 1: create, logout, login, delete server") {
 
     Server server;
+    server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
     ClientMock client{"alice"};
     client._connection = std::make_unique<ClientToServerManager>("2b7e151628aed2a6abf7158809cf4f3c", "server_pub.pem");
@@ -202,6 +203,7 @@ void registerUserRoutine(Server& server, ClientMock& client) {
 TEST_CASE("Scenario 2: get online users.") {
 
     Server server;
+    server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
     ClientMock client1{"alice"};
     ClientMock client2{"bob"};

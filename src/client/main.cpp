@@ -2,7 +2,7 @@
 
 #include <QObject>
 #include <QCoreApplication>
-#include <QThread>
+#include <QTimer>
 #include "../shared/rsa_2048.h"
 #include "client.h"
 #include "CMDapp.h"
@@ -11,17 +11,13 @@ using namespace helloworld;
 
 int main(int argc , char ** argv ) {
     QCoreApplication a(argc, argv);
-    // T
-    QThread CMDThread;
-    CMDApp mainApp(std::cin, std::cout);
+    CMDApp * mainApp = new CMDApp(std::cin, std::cout, &a);
+    QTimer *t = new QTimer(&a);
+    t->setInterval(0);
+    QObject::connect(t, SIGNAL(timeout()), mainApp, SLOT(_loop()));
+    QObject::connect(mainApp, SIGNAL(close()), &a, SLOT(quit()));
+    QObject::connect(mainApp, SIGNAL (close()), mainApp, SLOT (deleteLater()));
 
-    QObject::connect(&CMDThread, SIGNAL(finished()), &a, SLOT(quit()));
-    QObject::connect(&CMDThread, SIGNAL(started()), &mainApp, SLOT(init()));
-    QObject::connect(&mainApp, SIGNAL(close()), &CMDThread, SLOT(quit()));
-
-    mainApp.moveToThread(&CMDThread);
-    CMDThread.start(QThread::Priority::NormalPriority);
-
-
+    t->start();
     return a.exec();
 }

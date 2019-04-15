@@ -37,9 +37,14 @@ std::string CMDApp::_welcomeMessage() const {
 
 
 void CMDApp::disconnected() {
-    loggedIn = false;
-    os << "You've been disconnected from server\n";
-    os << "try help if you dont know what to do\n";
+    if (_connected) {
+        _pause = false;
+        _connected = false;
+        loggedIn = false;
+        client->getUsers().clear();
+        os << "You've been disconnected from server\n";
+        os << "try help if you dont know what to do\n";
+    }
 };
 void CMDApp::init() {
     os << _welcomeMessage();
@@ -53,8 +58,10 @@ void CMDApp::init() {
                                          password);
     } catch (Error& /*e*/) {
         if (getOption("Coludn't load user keys.\n"
-                      "Do you want to create new keys?", {'y', 'n'}) == 1)
+                      "Do you want to create new keys?", {'y', 'n'}) == 1) {
+            emit close();
             return;
+        }
 
         _generateKeypair(password);
         client =
@@ -65,7 +72,7 @@ void CMDApp::init() {
     os << "hint: Try \"help\"\n";
     _running = true;
     std::fill(password.begin(), password.end(), 0);
-    _loop();
+    _init = true;
 };
 
 std::string CMDApp::_versionInfo() const {
@@ -111,26 +118,38 @@ void CMDApp::connect_command(CMDApp *app) {
         clientSocket->setHostAddress(ipAddress);
 
         QObject::connect(clientSocket, SIGNAL(disconnected()), app, SLOT(disconnected()));
+        QObject::connect(clientSocket, SIGNAL(sent()), app, SLOT(event()));
+        QObject::connect(clientSocket, SIGNAL(received()), app, SLOT(onRecieve()));
+        QObject::connect(clientSocket, SIGNAL(received()), app, SLOT(event()));
+
+
         clientSocket->init();
     }
+    app->_connected = true;
+    auto opt = app->getOption("Do you already have account on this server ?", {'y', 'n'});
+    if ( opt == 0 ) {
+        login_command(app);
+    } else {
+        register_command(app);
+    }
 }
-
+void CMDApp::online_command(CMDApp *app) {
+    app->client->getUsers().clear();
+    app->client->sendGetOnline();
+    app->_pause = true;
+}
 void CMDApp::login_command(CMDApp *app) {
     app->client->login();
-    //TODO: Change from active waiting
-    while(app->client->getId() == 0);
-    app->os << "login successfull\n";
+    app->_pause = true;
 }
 void CMDApp::logout_command(CMDApp *app) {
     app->client->logout();
-
     app->loggedIn = false;
+    disconnect_command(app);
 }
 void CMDApp::register_command(CMDApp *app) {
-    app->client->createAccount("server_pub.pem");
-    //TODO: Change from active waiting
-    while(app->client->getId() == 0);
-    app->os << "registration successfull\n";
+    app->client->createAccount(app->client->name() + "_pub.pem");
+    app->_pause = true;
 
 }
 void CMDApp::disconnect_command(CMDApp *app) {
@@ -141,6 +160,31 @@ void CMDApp::disconnect_command(CMDApp *app) {
     } else  {
         app->os << "Cannot be disconnected\n";
     }
+}
+
+
+void CMDApp::find_command(CMDApp *app) {
+    std::string query = app->getInput("Query");
+    app->client->sendFindUsers(query);
+    app->_pause = true;
+}
+void CMDApp::send_command(CMDApp *app) {
+    std::string sid = app->getInput("ID");
+    std::stringstream helper{sid};
+    int id = -1;
+    helper >> id;
+    if (helper.fail() || id < 0) {
+        app->os << "Invalid ID\n";
+        return;
+    }
+    std::string msg = app->getInput("Message");
+    std::vector<unsigned char> data(msg.begin(), msg.end());
+    app->client->sendData(id, data);
+
+}
+
+void CMDApp::messages_command(CMDApp *app) {
+    app->client->checkForMessages();
 }
 
 bool CMDApp::_checkStatus(Command::Status required) {
@@ -167,22 +211,28 @@ bool CMDApp::_checkStatus(Command::Status required) {
 }
 
 void CMDApp::_loop() {
-    while (_running) {
+        if (_pause)
+            return;
+        if (!_init)
+        {
+            init();
+        }
 
         std::string command = getInput("");
         auto cmd = std::find_if(commands.begin(), commands.end(),
                                 [&command](const Command& c) { return c.name == command; });
         if (cmd == commands.end()) {
             os << "Invalid command\n";
-            continue;
+            return;
         }
 
         if (_checkStatus(cmd->required))
             cmd->call(this);
         else
             os << "Invalid command\n";
-    }
-    emit close();
+
+    if (!_running)
+        emit close();
 };
 
 
@@ -229,6 +279,37 @@ int CMDApp::getOption(std::string prompt, std::vector<char> options) {
         }
     }
     return result;
+}
+
+void CMDApp::onRecieve() {
+
+    auto& users = client->getUsers();
+    auto& recieved = client->getMessage();
+    if (!loggedIn &&
+        client->getId() != 0) {
+        os << "succesfull login\n";
+        loggedIn = true;
+        _pause = false;
+    } else if (loggedIn && client->getUsers().size() != 0) {
+        os << "Users:\n\tID\tNAME\n";
+        for ( auto & i: users) {
+            os << '\t' << i.first << "\t" << i.second << "\n";
+        }
+        _pause = false;
+        users.clear();
+    }
+    if(!recieved.date.empty()) {
+        os << "New message:\n";
+        os << recieved.from << "(" << recieved.date.substr(0, recieved.date.size() - 1) << ") : ";
+        std::copy(recieved.data.begin(), recieved.data.end(), std::ostream_iterator<unsigned char>(os));
+        os << '\n';
+
+        recieved.date = ""; // marked as read
+    }
+}
+
+void CMDApp::event() {
+    // maybe later
 }
 
 

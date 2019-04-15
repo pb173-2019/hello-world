@@ -101,8 +101,8 @@ public:
     /**
      * @brief Returns the userlist requested in send*()
      */
-    const std::map<uint32_t, std::string> &getUsers() { return _userList; }
-
+    const std::map<uint32_t, std::string> &getUsers() const { return _userList; }
+    std::map<uint32_t, std::string> &getUsers() { return _userList; }
     /**
      * @brief Just ask server whether messages available
      */

@@ -18,6 +18,7 @@ TEST_CASE("Create key for aliceabc") {
     keygen.savePublicKey("aliceabc_pub.pem");
 
     Server server;
+    server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
     server.dropDatabase(); //prevents database data from other testing
 }
 
@@ -25,6 +26,7 @@ TEST_CASE("Scenario 1: create, logout, login, delete.") {
     Network::setEnabled(true);
 
     Server server;
+    server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
     Client client("aliceabc", "aliceabc_priv.pem", "hunter2");
     client.setTransmissionManager(std::make_unique<ClientFiles>(&client, client.name()));
@@ -54,6 +56,7 @@ TEST_CASE("Scenario 2: getting users from database.") {
     Network::setEnabled(true);
 
     Server server;
+    server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
     Client aliceabc("aliceabc", "aliceabc_priv.pem", "hunter2");
     aliceabc.setTransmissionManager(std::make_unique<ClientFiles>(&aliceabc, aliceabc.name()));
@@ -99,6 +102,8 @@ TEST_CASE("Incorrect authentications") {
     Network::setEnabled(true);
 
     Server server;
+    server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
+
     Client aliceabc("aliceabc", "aliceabc_priv.pem", "hunter2");
     aliceabc.setTransmissionManager(std::make_unique<ClientFiles>(&aliceabc, aliceabc.name()));
 
@@ -136,6 +141,8 @@ TEST_CASE("Messages exchange - two users online, establish the X3DH shared secre
     Network::setEnabled(true);
 
     Server server;
+    server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
+
     Client aliceabc("aliceabc", "aliceabc_priv.pem", "hunter2");
     aliceabc.setTransmissionManager(std::make_unique<ClientFiles>(&aliceabc, aliceabc.name()));
     aliceabc.createAccount("aliceabc_pub.pem");
