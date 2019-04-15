@@ -3,6 +3,7 @@
 #include <fstream>
 #include "catch.hpp"
 
+#include "../../src/server/transmission_file_server.h"
 #include "../../src/shared/requests.h"
 #include "../../src/server/server.h"
 #include "../../src/shared/curve_25519.h"
@@ -43,6 +44,7 @@ TEST_CASE("Create key") {
 
 TEST_CASE("Add new user") {
     Server server;
+    server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
     std::string name = "alice";
 
@@ -76,6 +78,8 @@ TEST_CASE("Add new user") {
 
 TEST_CASE("User authentication") {
     Server server;
+    server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
+
     std::string name = "alice";
 
     auto response = registerAlice(server, name);
@@ -124,6 +128,7 @@ TEST_CASE("User authentication") {
 
 TEST_CASE("Delete & logout") {
     Server server;
+    server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
     std::string name = "alice";
 
     auto response = registerAlice(server, name);
@@ -152,6 +157,7 @@ TEST_CASE("Delete & logout") {
 
 TEST_CASE("Get list") {
     Server server;
+    server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
     std::string name = "alice";
 
     SECTION("Expected users in list") {
@@ -179,6 +185,7 @@ TEST_CASE("Get list") {
 
 TEST_CASE("Key Bundles") {
     Server server;
+    server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
     uint32_t id = 3;
     
     KeyBundle<C25519> bundle;

@@ -11,7 +11,6 @@
 namespace helloworld {
 
 Server::Server() : _database(std::make_unique<ServerSQLite>("test_db1")),
-                   _transmission(std::make_unique<ServerFiles>(this)),
                    _genericManager("server_priv.pem",
                                    "323994cfb9da285a5d9642e1759b224a",
                                    "2b7e151628aed2a6abf7158809cf4f3c") {}

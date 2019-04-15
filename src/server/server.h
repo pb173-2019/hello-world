@@ -21,7 +21,7 @@
 #include "../shared/rsa_2048.h"
 #include "../shared/connection_manager.h"
 #include "../shared/requests.h"
-#include "transmission_file_server.h"
+#include "../shared/transmission.h"
 #include "database_server.h"
 
 namespace helloworld {
@@ -49,6 +49,14 @@ class Server : public Callable<void, bool, const std::string &, std::stringstrea
 
 public:
     Server();
+
+    ServerTransmissionManager *getTransmisionManger() {
+        return _transmission.get();
+    }
+
+    void setTransmissionManager(std::unique_ptr<ServerTransmissionManager>&& ptr) {
+        _transmission = std::move(ptr);
+    }
 
     /**
      * @brief This function is called when transmission manager discovers new
