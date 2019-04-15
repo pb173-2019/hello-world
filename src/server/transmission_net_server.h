@@ -35,7 +35,7 @@ Q_OBJECT
     bool _owned = true;
 
 public:
-    QTcpSocket *socket;
+    QTcpSocket *socket{nullptr};
     std::string username;
 
     explicit ServerSocket(QTcpSocket *socket, std::string username, QObject *parent = nullptr) :
@@ -48,15 +48,20 @@ public:
     ServerSocket &operator=(const ServerSocket &other) = delete;
 
     ServerSocket(ServerSocket &&other) {
-        username = other.username;
-        socket = other.socket;
+        if (socket)
+            // removes it in next iteration of event loop
+            socket->deleteLater();
+        username = std::move(other.username);
+        socket = std::move(other.socket);
         other._owned = false;
     }
 
     ServerSocket &operator=(ServerSocket &&other) {
-
-        username = other.username;
-        socket = other.socket;
+        if (socket)
+            // removes it in next iteration of event loop
+            socket->deleteLater();
+        username = std::move(other.username);
+        socket = std::move(other.socket);
         other._owned = false;
         return *this;
     }
@@ -198,8 +203,8 @@ public:
     bool removeConnection(const std::string &username) override {
         for (auto i = _connections.begin(); i < _connections.end(); i++) {
             if (i->username == username) {
-                emit disconn(i->socket->peerAddress(), i->socket->peerPort());
-                disconnect(i->socket, SIGNAL(readyRead()), this, SLOT(recieve()));
+
+                disconnect(i->socket, SIGNAL(readyRead()), this, SLOT(receive()));
                 _connections.erase(i);
                 return true;
             }
