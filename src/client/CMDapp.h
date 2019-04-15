@@ -38,7 +38,6 @@ namespace helloworld {
 
         bool loggedIn{false}, _pause{false}, _init{false}, _connected{false};
 
-        int _skip{0};
 
         struct Command {
             using CMDfunc_t = void(*)(CMDApp*);
@@ -166,5 +165,5 @@ namespace helloworld {
         int getOption(std::string prompt, std::vector<char> options);
 
     };
-};
+}
 #endif //HELLOWORLD_CMDAPP_H

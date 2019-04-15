@@ -11,6 +11,8 @@
 
 using namespace helloworld;
 
+constexpr const char* localhost = "127.0.0.1";
+
 struct TestCallback : public Callable<void, std::stringstream&&> {
     std::deque<std::string> recieved;
     int n{0}, m{INT_MAX};
@@ -47,7 +49,7 @@ void connect_clients_n(int n) {
     for (int i = 0; i < n; i++) {
         ClientSocket client(&cCallback, "Alice");
         client.setHostPort(5000);
-        client.setHostAddress("0.0.0.0");
+        client.setHostAddress(localhost);
         client.init();
     }
     a.exec();
@@ -77,7 +79,7 @@ void send_client_m(std::string msg) {
 
             ClientSocket client(&cCallback, "Alice");
             client.setHostPort(5000);
-            client.setHostAddress("0.0.0.0");
+            client.setHostAddress(localhost);
             client.init();
             std::stringstream ss(msg);
             client.send(ss);
@@ -110,7 +112,7 @@ void send_nclients_m(int n, std::string msg) {
         for (int i = 0; i < n; i++) {
             ClientSocket client(&cCallback, "Alice");
             client.setHostPort(5000);
-            client.setHostAddress("0.0.0.0");
+            client.setHostAddress(localhost);
             client.init();
             std::stringstream ss(msg);
             client.send(ss);
@@ -145,7 +147,7 @@ void client_send_nm(int n, std::string msg) {
 
             ClientSocket client(&cCallback, "Alice");
             client.setHostPort(5000);
-            client.setHostAddress("0.0.0.0");
+            client.setHostAddress(localhost);
             client.init();
         for (int i = 0; i < n; i++) {
             std::stringstream ss(msg);
@@ -186,7 +188,7 @@ void client_recieve_nm(int n, std::string msg) {
 
         ClientSocket client(&cCallback, "Alice");
         client.setHostPort(5000);
-        client.setHostAddress("0.0.0.0");
+        client.setHostAddress(localhost);
         client.init();
 
         a.exec();
@@ -223,7 +225,7 @@ void client_recieve_m(std::string msg) {
 
             ClientSocket client(&cCallback, "Alice");
             client.setHostPort(5000);
-            client.setHostAddress("0.0.0.0");
+            client.setHostAddress(localhost);
             client.init();
 
         a.exec();
@@ -355,7 +357,7 @@ TEST_CASE("Reaction to problems") {
             QObject::connect(&client, SIGNAL(disconnected()), &a, SLOT(quit()));
 
         client.setHostPort(5000);
-            client.setHostAddress("0.0.0.0");
+            client.setHostAddress(localhost);
             client.init();
 
 

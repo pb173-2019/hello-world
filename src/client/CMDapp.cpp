@@ -45,7 +45,7 @@ void CMDApp::disconnected() {
         os << "You've been disconnected from server\n";
         os << "try help if you dont know what to do\n";
     }
-};
+}
 void CMDApp::init() {
     os << _welcomeMessage();
 
@@ -73,7 +73,7 @@ void CMDApp::init() {
     _running = true;
     std::fill(password.begin(), password.end(), 0);
     _init = true;
-};
+}
 
 std::string CMDApp::_versionInfo() const {
     std::stringstream out;
@@ -140,6 +140,7 @@ void CMDApp::online_command(CMDApp *app) {
 }
 void CMDApp::login_command(CMDApp *app) {
     app->client->login();
+    app->os << "login";
     app->_pause = true;
 }
 void CMDApp::logout_command(CMDApp *app) {
@@ -149,6 +150,7 @@ void CMDApp::logout_command(CMDApp *app) {
 }
 void CMDApp::register_command(CMDApp *app) {
     app->client->createAccount(app->client->name() + "_pub.pem");
+    app->os << "register";
     app->_pause = true;
 
 }
@@ -180,8 +182,7 @@ void CMDApp::send_command(CMDApp *app) {
     std::string msg = app->getInput("Message");
     std::vector<unsigned char> data(msg.begin(), msg.end());
     app->client->sendData(id, data);
-    app->_skip = 1;
-    app->_pause = true;
+
 
 }
 
@@ -235,7 +236,7 @@ void CMDApp::_loop() {
 
     if (!_running)
         emit close();
-};
+}
 
 
 void CMDApp::_generateKeypair(const std::string &password) {
@@ -289,7 +290,7 @@ void CMDApp::onRecieve() {
     auto& recieved = client->getMessage();
     if (!loggedIn &&
         client->getId() != 0) {
-        os << "succesfull login\n";
+        os << " success\n";
         loggedIn = true;
         _pause = false;
     } else if (loggedIn && client->getUsers().size() != 0) {
@@ -306,15 +307,9 @@ void CMDApp::onRecieve() {
         std::copy(recieved.data.begin(), recieved.data.end(), std::ostream_iterator<unsigned char>(os));
         os << '\n';
 
-        recieved.date = ""; // marked as read
+        recieved = {}; // clear
     }
 
-    if (_skip == 1) {
-        _pause = false;
-        _skip = 0;
-    } else if(_skip > 0) {
-        --_skip;
-    }
 }
 
 void CMDApp::event() {
