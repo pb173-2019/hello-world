@@ -38,7 +38,7 @@ namespace helloworld {
 
         bool loggedIn{false}, _pause{false}, _init{false}, _connected{false};
 
-        enum {nothing ,message, login, search}  waitingFor{nothing};
+        int _skip{0};
 
         struct Command {
             using CMDfunc_t = void(*)(CMDApp*);

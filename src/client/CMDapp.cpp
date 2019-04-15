@@ -180,6 +180,8 @@ void CMDApp::send_command(CMDApp *app) {
     std::string msg = app->getInput("Message");
     std::vector<unsigned char> data(msg.begin(), msg.end());
     app->client->sendData(id, data);
+    app->_skip = 1;
+    app->_pause = true;
 
 }
 
@@ -305,6 +307,13 @@ void CMDApp::onRecieve() {
         os << '\n';
 
         recieved.date = ""; // marked as read
+    }
+
+    if (_skip == 1) {
+        _pause = false;
+        _skip = 0;
+    } else if(_skip > 0) {
+        --_skip;
     }
 }
 
