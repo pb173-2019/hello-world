@@ -215,7 +215,7 @@ public:
     static const std::string *getBlockedMsgSender() {
         if (delayed.empty())
             return nullptr;
-        return &(delayed.end() - 1)->first;
+        return &(delayed.back().first);
     }
 
     /*

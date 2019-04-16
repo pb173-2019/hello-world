@@ -16,29 +16,34 @@
 
 namespace helloworld {
 
-class DoubleRatchet {
-    static const int MAX_SKIP = 1000;
-
-private:
-    DoubleRatchetAdapter ext;
-    DHPair _DHs;        // DH Ratchet key pair (the “sending” or “self” ratchet key)
-    key _DHr;           // DH Ratchet public key (the “received” or “remote” key)
-    key _RK;            // 32-byte Root Key
-    key _CKs, _CKr;     // 32-byte Chain Keys for sending and receiving
-    size_t _Ns, _Nr;    // Message numbers for sending and receiving
-    size_t _PN;         // Number of messages in previous sending chain
+struct DRState {
+    DHPair DHs;    // DH Ratchet key pair (the “sending” or “self” ratchet key)
+    key DHr;    // DH Ratchet public key (the “received” or “remote” key)
+    key RK;            // 32-byte Root Key
+    key CKs, CKr;     // 32-byte Chain Keys for sending and receiving
+    size_t Ns, Nr;    // Message numbers for sending and receiving
+    size_t PN;         // Number of messages in previous sending chain
     std::map<std::pair<key, size_t>, key>
-        _MKSKIPPED;    // Dictionary of skipped-over message keys, indexed
+        MKSKIPPED;    // Dictionary of skipped-over message keys, indexed
                        // by ratchet public key and message number. Raises an
                        // exception if too many elements are stored
-    key _AD;           // additional data from X3DH
+    key AD;           // additional data from X3DH
+};
 
-    key TrySkippedMessageKeys(const MessageHeader &header, const key &ciphertext,
-                              const key &hmac);
+class DoubleRatchet {
+    static const int MAX_SKIP = 1000;
+    DRState _state;
+
+   private:
+    DoubleRatchetAdapter ext;
+
+    key TrySkippedMessageKeys(const MessageHeader &header,
+                              const key &ciphertext, const key &hmac);
     void SkipMessageKeys(size_t until);
     void DHRatchet(const MessageHeader &header);
+    std::vector<unsigned char> TryRatchetDecrypt(const Message &message);
 
-public:
+   public:
     /**
      * @brief Create DoubleRatchetObject (RatchetInitAlice)
      *
