@@ -10,7 +10,7 @@
 #include "../../src/shared/utils.h"
 
 using namespace helloworld;
-
+constexpr const int test_time_limit = 10;
 constexpr const char* localhost = "127.0.0.1";
 
 struct TestCallback : public Callable<void, std::stringstream&&> {
@@ -52,7 +52,9 @@ void connect_clients_n(int n) {
         client.setHostAddress(localhost);
         client.init();
     }
-    a.exec();
+        QTimer::singleShot(test_time_limit * 1000, &a, SLOT(quit()));
+
+        a.exec();
 
     CHECK(server.getConnectionCounter() == n);
     }
@@ -83,6 +85,7 @@ void send_client_m(std::string msg) {
             client.init();
             std::stringstream ss(msg);
             client.send(ss);
+        QTimer::singleShot(test_time_limit * 1000, &a, SLOT(quit()));
 
         a.exec();
 
@@ -117,6 +120,8 @@ void send_nclients_m(int n, std::string msg) {
             std::stringstream ss(msg);
             client.send(ss);
         }
+        QTimer::singleShot(test_time_limit * 1000, &a, SLOT(quit()));
+
         a.exec();
         CHECK(server.recieved.size() == n);
         for(auto& i: server.recieved) {
@@ -153,6 +158,8 @@ void client_send_nm(int n, std::string msg) {
             std::stringstream ss(msg);
             client.send(ss);
         }
+        QTimer::singleShot(test_time_limit * 1000, &a, SLOT(quit()));
+
         a.exec();
         CHECK(server.recieved.size() == n);
         for(auto& i: server.recieved) {
@@ -190,6 +197,7 @@ void client_recieve_nm(int n, std::string msg) {
         client.setHostPort(5000);
         client.setHostAddress(localhost);
         client.init();
+        QTimer::singleShot(test_time_limit * 1000, &a, SLOT(quit()));
 
         a.exec();
 
@@ -227,6 +235,7 @@ void client_recieve_m(std::string msg) {
             client.setHostPort(5000);
             client.setHostAddress(localhost);
             client.init();
+        QTimer::singleShot(test_time_limit * 1000, &a, SLOT(quit()));
 
         a.exec();
 
@@ -360,7 +369,7 @@ TEST_CASE("Reaction to problems") {
             client.setHostAddress(localhost);
             client.init();
 
-
+            QTimer::singleShot(test_time_limit * 1000, &a, SLOT(quit()));
             a.exec();
 
             CHECK(e.emmited);
