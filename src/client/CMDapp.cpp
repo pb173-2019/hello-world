@@ -49,6 +49,7 @@ void CMDApp::disconnected() {
 void CMDApp::init() {
     os << _welcomeMessage();
 
+    _init = true;
     username = getInput("Username");
     // TODO: find sefer way to get password
     std::string password = getInput("Password");
@@ -72,7 +73,6 @@ void CMDApp::init() {
     os << "hint: Try \"help\"\n";
     _running = true;
     std::fill(password.begin(), password.end(), 0);
-    _init = true;
 }
 
 std::string CMDApp::_versionInfo() const {
@@ -214,13 +214,11 @@ bool CMDApp::_checkStatus(Command::Status required) {
 }
 
 void CMDApp::_loop() {
-        if (_pause)
-            return;
-        if (!_init)
-        {
-            init();
-        }
 
+        if (!_init)
+            init();
+        if (_pause || !_running)
+            return;
         std::string command = getInput("");
         auto cmd = std::find_if(commands.begin(), commands.end(),
                                 [&command](const Command& c) { return c.name == command; });
