@@ -12,12 +12,52 @@
 
 #include <atomic>
 #include <QObject>
+#include <QThread>
 #include <mutex>
 #include <condition_variable>
 #include "client.h"
 
 namespace helloworld {
+    class Worker : public QObject {
+        std::istream &is;
+    Q_OBJECT
+    public:
+        Worker(std::istream& is) : QObject(nullptr), is(is) {};
+    public slots:
+        void doWork() {
+            std::ws(is);
+            std::string data;
+            std::getline(is, data);
+            emit read(QString::fromStdString(data));
+        }
+    signals:
+        void read(QString);
+    };
+    class cinPoll : public QObject {
+        Q_OBJECT
+        std::istream& is;
+        QThread * thread;
 
+    public:
+        cinPoll(std::istream& is, QObject * parent = nullptr) : QObject(parent), is(is){
+        }
+
+    public slots:
+        void start() {
+
+            Worker *worker = new Worker(is);
+            thread = new QThread();
+            worker->moveToThread(thread);
+            connect(thread, &QThread::finished, worker, &QObject::deleteLater);
+            connect(thread, &QThread::started, worker, &Worker::doWork);
+            connect(worker, &Worker::read, this, &cinPoll::read);
+            thread->start();
+        }
+
+    signals:
+        void read(QString);
+
+    };
     class CMDApp : public QObject {
     Q_OBJECT
         static constexpr uint16_t default_port = 5000;
@@ -78,6 +118,7 @@ namespace helloworld {
 
     Q_SIGNALS:
         void close();
+        void poll();
     public Q_SLOTS:
         /**
          * reaction to disconnect
@@ -98,7 +139,7 @@ namespace helloworld {
         /**
          * main application loop (called repeatedly)
          */
-        void _loop();
+        void _loop(QString);
     private:
         /**
          * creats nice messagge about current version of programs

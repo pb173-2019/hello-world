@@ -12,12 +12,13 @@ using namespace helloworld;
 int main(int argc , char ** argv ) {
     QCoreApplication a(argc, argv);
     CMDApp * mainApp = new CMDApp(std::cin, std::cout, &a);
-    QTimer *t = new QTimer(&a);
-    t->setInterval(10);
-    QObject::connect(t, SIGNAL(timeout()), mainApp, SLOT(_loop()));
+    cinPoll * poll = new cinPoll(std::cin, &a);
+
+    QObject::connect(poll, &cinPoll::read, mainApp, &CMDApp::_loop);
+    QObject::connect(mainApp, &CMDApp::poll, poll, &cinPoll::start);
     QObject::connect(mainApp, SIGNAL(close()), &a, SLOT(quit()));
     QObject::connect(mainApp, SIGNAL (close()), mainApp, SLOT (deleteLater()));
 
-    t->start();
+    mainApp->init();
     return a.exec();
 }
