@@ -14,7 +14,9 @@
 
 #include <map>
 #include <memory>
+#include <functional>
 #include <string>
+#include <QtCore/QObject>
 
 #include "../shared/random.h"
 #include "../shared/request_response.h"
@@ -36,17 +38,18 @@ struct Challenge {
     UserData userData;
     std::unique_ptr<ServerToClientManager> manager;
     std::vector<unsigned char> secret;
-
     Challenge(UserData userData, std::vector<unsigned char> secret, const std::string &sessionKey)
             : userData(std::move(userData)), secret(std::move(secret)),
               manager(std::make_unique<ServerToClientManager>(sessionKey)) {}
 };
 
 
-class Server : public Callable<void, bool, const std::string &, std::stringstream &&> {
+class Server : public QObject, public Callable<void, bool, const std::string &, std::stringstream &&> {
     //rsa maximum encryption length of 126 bytes
+    Q_OBJECT
     static const size_t CHALLENGE_SECRET_LENGTH = 126;
 
+    std::function<void(const std::string&)> log{[](const std::string&){}};
 public:
     Server();
 
@@ -56,6 +59,10 @@ public:
 
     void setTransmissionManager(std::unique_ptr<ServerTransmissionManager>&& ptr) {
         _transmission = std::move(ptr);
+    }
+
+    void setLogging(const std::function<void(const std::string&)> &foo) {
+        log = foo;
     }
 
     /**
@@ -285,6 +292,18 @@ public:
      * @return ptr to user manager, nullptr if failed
      */
     ServerToClientManager* getManagerPtr(const std::string& username,  bool trusted);
+
+    public slots:
+    void cleanAfterConenction(QString qname) {
+        auto name = qname.toStdString();
+        auto chalangeIt = _requestsToConnect.find(name);
+        if (chalangeIt != _requestsToConnect.end())
+            _requestsToConnect.erase(chalangeIt);
+
+        auto connectionIt = _connections.find(name);
+        if (connectionIt != _connections.end())
+            _connections.erase(connectionIt);
+    }
 };
 
 }    // namespace helloworld

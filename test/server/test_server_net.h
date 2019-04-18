@@ -147,6 +147,31 @@ namespace helloworld {
             }
         }
     };
+
+    struct RegOnFirstMsg : public QObject, public Callable<void, bool, const std::string&, std::stringstream&&>{
+        Q_OBJECT
+    public:
+        ServerTCP *server;
+        std::deque<std::pair<std::string,std::string> > received;
+        int counter{1};
+
+        void callback(bool registered, const std::string& name, std::stringstream&& ss) {
+            if (!registered) {
+                server->registerConnection(ss.str());
+            }
+            else {
+                received.emplace_back(name, ss.str());
+                counter--;
+                if (counter == 0) {
+                    emit done();
+                }
+            }
+
+        }
+
+    signals:
+        void done();
+    };
 }
 
 #endif //HELLOWORLD_TEST_SERVER_NET_H

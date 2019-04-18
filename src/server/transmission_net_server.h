@@ -87,6 +87,7 @@ public slots:
      * Called on new incomming connection
      */
     void discoverConnection() {
+
         _lastIncomming = _server.nextPendingConnection();
         connect(_lastIncomming, SIGNAL(readyRead()), this, SLOT(receive()));
         emit conn(_lastIncomming->peerAddress(), _lastIncomming->peerPort());
@@ -97,7 +98,9 @@ public slots:
             case QAbstractSocket::SocketState::UnconnectedState: {
                 QTcpSocket *sender = static_cast<QTcpSocket *>(QObject::sender());
                 emit disconn(sender->peerAddress(), sender->peerPort());
-
+                auto name = getName(sender);
+                if (name != "")
+                    emit clossedConnection(QString::fromStdString(name));
                 removeConnection(sender);
                 break;
             }
@@ -130,6 +133,7 @@ public slots:
     Q_SIGNALS:
     void conn(QHostAddress, quint16);
     void disconn(QHostAddress, quint16);
+    void clossedConnection(QString);
     void sent(QHostAddress, quint16);
     void recieved(QHostAddress, quint16);
 
@@ -173,13 +177,14 @@ public:
      * @param connection
      */
     void registerConnection(const std::string &username) override {
+        QTcpSocket *sender = static_cast<QTcpSocket *>(QObject::sender());
+
         if (username.empty())
             return;
 
-        connect(_lastIncomming, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this,
+        connect(sender, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this,
                 SLOT(updateConnection(QAbstractSocket::SocketState)));
-        _connections.emplace_back(_lastIncomming, username);
-        _lastIncomming = nullptr;
+        _connections.emplace_back(sender, username);
     }
 
     /**
@@ -187,12 +192,12 @@ public:
      * @param data data to send before discarding the connectino
      */
     void discardNewConnection(const std::vector<unsigned char> &data) override {
-        emit disconn(_lastIncomming->peerAddress(), _lastIncomming->peerPort());
-        _lastIncomming->write(reinterpret_cast<const char *>(data.data()), data.size());
+        QTcpSocket *sender = static_cast<QTcpSocket *>(QObject::sender());
+        emit disconn(sender->peerAddress(), sender->peerPort());
+        sender->write(reinterpret_cast<const char *>(data.data()), data.size());
 
-        disconnect(_lastIncomming, SIGNAL(readyRead()), this, SLOT(recieve()));
-        _lastIncomming->~QTcpSocket();
-        _lastIncomming = nullptr;
+        disconnect(sender, SIGNAL(readyRead()), this, SLOT(recieve()));
+        sender->deleteLater();
     }
 
     /**

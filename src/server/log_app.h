@@ -31,7 +31,7 @@ namespace helloworld {
             connect(ptr, SIGNAL(sent(QHostAddress, quint16)), this, SLOT(onSend(QHostAddress, quint16)));
             connect(ptr, SIGNAL(recieved(QHostAddress, quint16)), this, SLOT(onReceive(QHostAddress, quint16)));
             connect(ptr, SIGNAL(disconn(QHostAddress, quint16)), this, SLOT(onDisconnect(QHostAddress, quint16)));
-
+            connect(ptr, &ServerTCP::clossedConnection, server.get(), &Server::cleanAfterConenction);
 
             os << "listening on ";
             QList<QHostAddress> list = QNetworkInterface::allAddresses();
@@ -45,6 +45,12 @@ namespace helloworld {
 
             }
             os << "\n";
+
+            server->setLogging([this](const std::string& msg) { log(msg); });
+        }
+
+        void log(const std::string& logmsg) {
+            os << logmsg << std::endl;
         }
 
         ~LogApp() { os << "closing App\n"; }

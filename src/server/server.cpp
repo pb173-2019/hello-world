@@ -62,6 +62,7 @@ Response Server::registerUser(const Request &request) {
     if (!inserted) {
         throw Error("User " + userData.name + " is already in the process of verification.");
     }
+    log("Registration: " + registerRequest.name);
     _transmission->registerConnection(registerRequest.name);
 
     Response r = {{Response::Type::CHALLENGE_RESPONSE_NEEDED, request.header.userId}, challengeBytes};
@@ -109,7 +110,7 @@ Response Server::completeAuthentication(const Request &request, bool newUser) {
         r = {{Response::Type::USER_REGISTERED, generatedId}, {}};
     else
         r = checkEvent(request);
-
+    log("Authentification succes: " + curRequest.name);
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }
@@ -136,6 +137,7 @@ Response Server::authenticateUser(const Request &request) {
         throw Error("User with given name is already in the process of verification.");
     }
     _transmission->registerConnection(authenticateRequest.name);
+    log("Log in: " + authenticateRequest.name);
 
 
     Response r = {{Response::Type::CHALLENGE_RESPONSE_NEEDED, request.header.userId}, challengeBytes};
@@ -156,6 +158,7 @@ Response Server::getOnline(const Request &request) {
     Response r = {{Response::Type::USERLIST, request.header.userId},
                   UserListReponse{{users.begin(), users.end()}, ids}.serialize()};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
+
     return r;
 }
 
@@ -181,6 +184,8 @@ Response Server::deleteAccount(const Request &request) {
     }
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     logout(curRequest.name);
+    log("Deleting account: " + curRequest.name);
+
     return r;
 }
 
@@ -189,6 +194,7 @@ Response Server::logOut(const Request &request) {
     Response r {{Response::Type::OK, request.header.userId}, {}};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     logout(curRequest.name);
+
     return r;
 }
 
@@ -199,6 +205,7 @@ void Server::logout(const std::string &name) {
                     std::to_string(deleted));
     }
     _transmission->removeConnection(name);
+    log("Logging out: " + name);
 }
 
 void Server::dropDatabase() { _database->drop(); }
