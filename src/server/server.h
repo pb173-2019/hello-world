@@ -87,7 +87,7 @@ public:
                     if (pending == _requestsToConnect.end())
                         throw Error("No such connection available.");
 
-                    request = pending->second->manager->parseIncoming(std::move(data));
+                    request = pending->second.first->manager->parseIncoming(std::move(data));
                 } else {
                     request = existing->second->parseIncoming(std::move(data));
                 }
@@ -156,7 +156,7 @@ private:
     Random _random;
     GenericServerManager _genericManager;
     std::map<std::string, std::unique_ptr<ServerToClientManager>> _connections;
-    std::map<std::string, std::unique_ptr<Challenge>> _requestsToConnect;
+    std::map<std::string, std::pair<std::unique_ptr<Challenge>, bool> > _requestsToConnect;
     std::unique_ptr<ServerDatabase> _database;
     std::unique_ptr<ServerTransmissionManager> _transmission;
 

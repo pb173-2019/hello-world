@@ -22,6 +22,8 @@ Client::Client(std::string username,
 
 void Client::callback(std::stringstream &&data) {
     Response response = _connection->parseIncoming(std::move(data));
+    if (_userId == 0)
+        _userId = response.header.userId;
     switch (response.header.type) {
         case Response::Type::OK:
             return;

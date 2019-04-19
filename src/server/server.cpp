@@ -57,7 +57,11 @@ Response Server::registerUser(const Request &request) {
 
     std::vector<unsigned char> challengeBytes = _random.get(CHALLENGE_SECRET_LENGTH);
     bool inserted = _requestsToConnect.emplace(userData.name,
-            std::make_unique<Challenge>(userData, challengeBytes, registerRequest.sessionKey)).second;
+                                               std::make_pair(
+        std::make_unique<Challenge>(userData, challengeBytes, registerRequest.sessionKey),
+        true
+                                               )
+                                               ).second;
 
     if (!inserted) {
         throw Error("User " + userData.name + " is already in the process of verification.");
@@ -70,7 +74,8 @@ Response Server::registerUser(const Request &request) {
     return r;
 }
 
-Response Server::completeAuthentication(const Request &request, bool newUser) {
+// Changed
+Response Server::completeAuthentication(const Request &request, bool /*newUser*/) {
     CompleteAuthRequest curRequest =
             CompleteAuthRequest::deserialize(request.payload);
 
@@ -80,37 +85,39 @@ Response Server::completeAuthentication(const Request &request, bool newUser) {
     }
 
     RSA2048 rsa;
-
-    if (!newUser) {
+    uint32_t generatedId = 0;
+    if (!registration->second.second) {
         UserData user{0, curRequest.name, "", {}};
         UserData result = std::move(_database->select(user));
+        generatedId = result.id;
         if (result.name.empty()) {
             throw Error("User with given name is not registered.");
         }
         rsa.setPublicKey(result.publicKey);
 
     } else {
-        rsa.setPublicKey(registration->second->userData.publicKey);
+        rsa.setPublicKey(registration->second.first->userData.publicKey);
     }
 
-    if (!rsa.verify(curRequest.secret, registration->second->secret)) {
+    if (!rsa.verify(curRequest.secret, registration->second.first->secret)) {
         throw Error("Cannot verify public key owner.");
     }
 
-    bool emplaced = _connections.emplace(curRequest.name, std::move(registration->second->manager)).second;
+    bool emplaced = _connections.emplace(curRequest.name, std::move(registration->second.first->manager)).second;
     if (!emplaced)
         throw Error("Invalid authentication under an online account.");
 
-    uint32_t generatedId = 0;
-    if (newUser) generatedId = _database->insert(registration->second->userData, true);
+
+    if (registration->second.second) generatedId = _database->insert(registration->second.first->userData, true);
     _requestsToConnect.erase(curRequest.name);
 
     Response r;
-    if (newUser)
+    if (registration->second.second)
         r = {{Response::Type::USER_REGISTERED, generatedId}, {}};
     else
         r = checkEvent(request);
     log("Authentification succes: " + curRequest.name);
+    r.header.userId = generatedId;
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }
@@ -130,8 +137,10 @@ Response Server::authenticateUser(const Request &request) {
     std::vector<unsigned char> challengeBytes = _random.get(CHALLENGE_SECRET_LENGTH);
 
     bool inserted = _requestsToConnect.emplace(authenticateRequest.name,
-            std::make_unique<Challenge>(userData, challengeBytes,
-                    authenticateRequest.sessionKey)).second;
+            std::make_pair(
+                    std::make_unique<Challenge>(userData, challengeBytes,
+                    authenticateRequest.sessionKey),
+                    false)).second;
 
     if (!inserted) {
         throw Error("User with given name is already in the process of verification.");
@@ -147,6 +156,7 @@ Response Server::authenticateUser(const Request &request) {
 
 Response Server::getOnline(const Request &request) {
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
+    log("getOnline: " + curRequest.name);
 
     const std::set<std::string> &users = _transmission->getOpenConnections();
     std::vector<uint32_t> ids;
@@ -164,6 +174,8 @@ Response Server::getOnline(const Request &request) {
 
 Response Server::checkIncoming(const Request &request) {
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
+    log("checkIncoming: " + curRequest.name);
+
     Response r = checkEvent(request);
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
@@ -220,7 +232,10 @@ std::vector<std::string> Server::getUsers(const std::string &query) {
 }
 
 Response Server::findUsers(const Request &request) {
+
     GetUsers curRequest = GetUsers::deserialize(request.payload);
+    log("Find User: " + curRequest.name + " (" + curRequest.query + ")");
+
     UserListReponse response;
     const auto &users = _database->selectLike({0, curRequest.query, "", {}});
     for (const auto &user : users) {
@@ -255,6 +270,7 @@ Response Server::sendKeyBundle(const Request &request) {
     //for file transmission manager to use it to sent it back
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
 
+    log("sendKeyBundle: " + curRequest.name);
     std::vector<unsigned char> bundle = _database->selectBundle(request.header.userId);
     if (bundle.empty())
         throw Error("Could not find bundle for user " + std::to_string(request.header.userId));
@@ -274,6 +290,8 @@ Response Server::sendKeyBundle(const Request &request) {
 }
 
 Response Server::checkEvent(const Request& request) {
+    log("checking events");
+
     if (request.header.userId != 0) {
         // step one: old keys: if time stored + 2 weeks < now
         uint64_t time = _database->getBundleTimestamp(request.header.userId);
@@ -302,8 +320,8 @@ ServerToClientManager *Server::getManagerPtr(const std::string &username, bool t
         }
     } else {
         auto found = _requestsToConnect.find(username);
-        if (found != _requestsToConnect.end() && found->second->manager != nullptr) {
-            mngr = &(*(found->second->manager));
+        if (found != _requestsToConnect.end() && found->second.first->manager != nullptr) {
+            mngr = &(*(found->second.first->manager));
         }
     }
     return mngr;
@@ -332,6 +350,8 @@ void Server::sendReponse(const std::string &username, const Response &response, 
 }
 
 Response Server::updateKeyBundle(const Request &request) {
+    log("updateKeys");
+
     Response r = {{Response::Type::OK, request.header.userId}, {}};
     _database->insertBundle(request.header.userId, request.payload);
 

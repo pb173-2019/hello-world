@@ -50,7 +50,7 @@ namespace helloworld {
         }
 
         void log(const std::string& logmsg) {
-            os << logmsg << std::endl;
+            os << logmsg << '\n';
         }
 
         ~LogApp() { os << "closing App\n"; }

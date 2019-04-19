@@ -122,8 +122,15 @@ void CMDApp::connect_command(CMDApp *app) {
         QObject::connect(clientSocket, SIGNAL(received()), app, SLOT(onRecieve()));
         QObject::connect(clientSocket, SIGNAL(received()), app, SLOT(event()));
 
-
+        app->os << "Connetcting...";
+        app->os.flush();
         clientSocket->init();
+        if (clientSocket->status() == UserTransmissionManager::Status::OK)
+            app->os << "\rConnection succesful\n";
+        else {
+            app->os << "\rConnection failed\n";
+            return;
+        }
     }
     app->_connected = true;
     auto opt = app->getOption("Do you already have account on this server ?", {'y', 'n'});
