@@ -1,5 +1,6 @@
 #include "catch.hpp"
 
+#include "../../src/shared/utils.h"
 #include "../../src/client/client.h"
 #include "../../src/client/transmission_file_client.h"
 #include "../../src/server/server.h"
@@ -16,15 +17,6 @@ static constexpr size_t LOGIN = 2;
 static constexpr size_t LOGOUT = 3;
 static constexpr size_t REGISTER = 4;
 static constexpr size_t DELETE_ACC = 5;
-
-std::ostream& operator<<(std::ostream& in,
-                         const std::vector<unsigned char>& data) {
-    for (unsigned char c : data) {
-        in << static_cast<int>(c) << ',';
-    }
-    in << "\n";
-    return in;
-}
 
 void callRandomMethod(Client& alice, Client& bob, size_t rand, Random& random,
                       bool checkValid) {
