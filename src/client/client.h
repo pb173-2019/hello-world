@@ -23,7 +23,6 @@
 #include "../shared/requests.h"
 #include "../shared/rsa_2048.h"
 #include "../shared/user_data.h"
-#include "secure_channel.h"
 #include "../shared/transmission.h"
 
 namespace helloworld {

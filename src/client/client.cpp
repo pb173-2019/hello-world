@@ -235,7 +235,6 @@ void Client::receiveData(const Response &response) {
     }
 }
 
-
 void Client::parseUsers(const helloworld::Response &response) {
     _userList.clear();
     UserListReponse online = UserListReponse::deserialize(response.payload);

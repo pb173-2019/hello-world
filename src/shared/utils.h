@@ -191,6 +191,8 @@ uint64_t getTimestampOf(time_t* timer);
  */
 std::string getFile(const std::string& suffix);
 
+std::ostream& operator<<(std::ostream& out, const std::vector<unsigned char> & data);
+
 }    // namespace helloworld
 
 #endif    // HELLOWORLD_SHARED_UTILS_H_

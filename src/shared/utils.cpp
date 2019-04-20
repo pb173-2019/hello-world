@@ -174,5 +174,13 @@ std::string getFile(const std::string &suffix) {
     return file;
 }
 
+std::ostream& operator<<(std::ostream& out, const std::vector<unsigned char> & data) {
+    for (auto& c : data) {
+        out << static_cast<int>(c) << ",";
+    }
+    out << "\n";
+    return out;
+}
+
 
 } //namespace helloworld
