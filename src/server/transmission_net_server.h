@@ -19,6 +19,7 @@
 #include <sstream>
 #include <set>
 #include <cstring>
+#include <memory>
 
 #include <QtCore>
 #include <QtNetwork>
