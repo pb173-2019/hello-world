@@ -17,6 +17,7 @@
 #include <functional>
 #include <string>
 #include <QtCore/QObject>
+#include <QReadWriteLock>
 
 #include "../shared/random.h"
 #include "../shared/request_response.h"
@@ -81,6 +82,7 @@ public:
             if (!hasSessionKey || username.empty()) {
                 request = _genericManager.parseIncoming(std::move(data));
             } else {
+                QReadLocker lock(&_connectionLock);
                 auto existing = _connections.find(username);
                 if (existing == _connections.end()) {
                     auto pending = _requestsToConnect.find(username);
@@ -95,12 +97,14 @@ public:
 
             handleUserRequest(request);
         } catch (Error &ex) {
-            std::cerr << ex.what() << std::endl;
+            log(std::string() + "Error: " + ex.what());
+            QReadLocker lock(&_connectionLock);
             sendReponse(username,
                     {{Response::Type::GENERIC_SERVER_ERROR, request.header.userId}, ex.serialize()},
                     getManagerPtr(username, true));
         } catch (std::exception& generic) {
-            std::cerr << generic.what() << std::endl;
+            log(std::string() + "Error: generic error");
+            QReadLocker lock(&_connectionLock);
             sendReponse(username, {{Response::Type::GENERIC_SERVER_ERROR, request.header.userId},
                                    from_string(generic.what()) }, getManagerPtr(username, true));
         }
@@ -129,7 +133,7 @@ public:
     //or gets notified by TCP
     void getRequest() {
         _transmission->receive();
-    };
+    }
     
     //to get to database
     const ServerDatabase& getDatabase() {
@@ -139,7 +143,7 @@ public:
     //delete connection id (username) to treat new request as new connection
     void simulateNewChannel(const std::string& old) {
         _transmission->removeConnection(old);
-    };
+    }
     void restoreOldChannel(const std::string& old) {
         _transmission->registerConnection(old);
     }
@@ -155,8 +159,11 @@ public:
 private:
     Random _random;
     GenericServerManager _genericManager;
+    QReadWriteLock _connectionLock;
     std::map<std::string, std::unique_ptr<ServerToClientManager>> _connections;
+    QReadWriteLock _requestLock;
     std::map<std::string, std::pair<std::unique_ptr<Challenge>, bool> > _requestsToConnect;
+
     std::unique_ptr<ServerDatabase> _database;
     std::unique_ptr<ServerTransmissionManager> _transmission;
 
@@ -177,11 +184,10 @@ public:
      * @brief Verify the signature and authenticate user
      *
      * @param connectionId temporarily removed connection id
-     * @param newUser true if user just registered (will insert database info)
      * @param request request from client
      * @return Response OK if user was registered
      */
-    Response completeAuthentication(const Request &request, bool newUser);
+    Response completeAuthentication(const Request &request);
 
     /**
      * @brief Authenticate user by his knowledge of private key.
@@ -303,6 +309,7 @@ public:
         auto connectionIt = _connections.find(name);
         if (connectionIt != _connections.end())
             _connections.erase(connectionIt);
+        log("cleaning after: " + qname.toStdString());
     }
 };
 

@@ -20,251 +20,193 @@
 #include <set>
 #include <cstring>
 
+#include <QtCore>
+#include <QtNetwork>
+#include <QThread>
+#include <qreadwritelock.h>
+#include <QThreadStorage>
+
 #include "../shared/transmission.h"
 #include "../shared/base_64.h"
 #include "../shared/utils.h"
-
-#include <QtCore>
-#include <QtNetwork>
+#include "net_utils.h"
 
 namespace helloworld {
+class ServerTCP;
 
 class ServerSocket : public QObject {
 Q_OBJECT
 
     bool _owned = true;
-
+    ServerTCP *server;
 public:
     QTcpSocket *socket{nullptr};
     std::string username;
 
-    explicit ServerSocket(QTcpSocket *socket, std::string username, QObject *parent = nullptr) :
-            QObject(parent), socket(socket), username(std::move(username)) {
-    }
+    explicit ServerSocket(QTcpSocket *socket, std::string username, ServerTCP * server, QObject *parent = nullptr);
 
     // Copying is not available
     ServerSocket(const ServerSocket &other) = delete;
-
     ServerSocket &operator=(const ServerSocket &other) = delete;
 
-    ServerSocket(ServerSocket &&other) {
-        if (socket)
-            // removes it in next iteration of event loop
-            socket->deleteLater();
-        username = std::move(other.username);
-        socket = std::move(other.socket);
-        other._owned = false;
-    }
+    ServerSocket(ServerSocket &&other);
+    ServerSocket &operator=(ServerSocket &&other);
 
-    ServerSocket &operator=(ServerSocket &&other) {
-        if (socket)
-            // removes it in next iteration of event loop
+    ~ServerSocket() {
+        if (_owned && socket)
             socket->deleteLater();
-        username = std::move(other.username);
-        socket = std::move(other.socket);
-        other._owned = false;
-        return *this;
     }
+public Q_SLOTS:
+    /**
+     * @brief receive data from socket
+     */
+    void receive();
 
-    ~ServerSocket() override {
-        if (_owned) socket->aboutToClose();
-    }
+    /**
+     * @brief updateConnection check whether socket was disconnected
+     * @param state new socket state
+     */
+    void updateConnection(QAbstractSocket::SocketState state);
+
+    /**
+     * @brief send data (slot so it can be called in sockets thread)
+     * @param data to send
+     */
+    void send(QByteArray data);
+Q_SIGNALS:
+    /**
+     * @brief disconnected signal on disconnect
+     */
+    void disconnected(const QTcpSocket *);
 };
 
+class SocketManager : public QObject {
+    Q_OBJECT
+    ServerTCP *server;
+public:
+    EventThread *thread; // Custom thread runing event loop
+    std::vector<ServerSocket *> ownedSockets;
+    QReadWriteLock lock;
+    SocketManager(ServerTCP * server, QObject *parent = nullptr);
+public slots:
+    /**
+     * @brief emplace new connection into thread
+     * @param socket socket to store in thread
+     * @param name username of user connected to socket
+     */
+    void emplace(QTcpSocket *socket, const std::string& name);
+    /**
+     * @brief remove socket from this thread
+     * @param socket pointer to socket whic to remove
+     * @return true on success false otherwise
+     */
+    bool remove(const QTcpSocket *socket);
+    /**
+     * @brief toRegister (just because std string cant be done by default)
+     * @param socket
+     * @param name
+     */
+    void toRegister(QTcpSocket *socket,const QString &name);
+signals:
+    /**
+     * @brief removed signal called upon removal of socket
+     */
+    void removed(QString);
+};
 
 class ServerTCP : public QObject, public ServerTransmissionManager {
-Q_OBJECT
+    friend ServerSocket;
+
+    // must be destroyed after all threads finish (not before)
+    static QThreadStorage<PtrWrap<QTcpSocket>> _lastSending;
+
+    Q_OBJECT
 
     Base64 _base64;
-    std::vector<ServerSocket> _connections;
-
+    std::vector<std::unique_ptr<SocketManager>> _threads;
     QTcpServer _server;
-    QTcpSocket *_lastIncomming;
+public:
+    QReadWriteLock lock;
 
 public slots:
 
     /**
      * Called on new incomming connection
      */
-    void discoverConnection() {
+    void discoverConnection();
 
-        _lastIncomming = _server.nextPendingConnection();
-        connect(_lastIncomming, SIGNAL(readyRead()), this, SLOT(receive()));
-        emit conn(_lastIncomming->peerAddress(), _lastIncomming->peerPort());
-    }
+    void updateConnection(QAbstractSocket::SocketState state);
 
-    void updateConnection(QAbstractSocket::SocketState state) {
-        switch (state) {
-            case QAbstractSocket::SocketState::UnconnectedState: {
-                QTcpSocket *sender = static_cast<QTcpSocket *>(QObject::sender());
-                emit disconn(sender->peerAddress(), sender->peerPort());
-                auto name = getName(sender);
-                if (name != "")
-                    emit clossedConnection(QString::fromStdString(name));
-                removeConnection(sender);
-                break;
-            }
-            default:
-                break;
-        }
-    }
+    void receive() override;
 
-    void receive() override {
-        //todo ugly, ugly
-        QTcpSocket *sender = static_cast<QTcpSocket *>(QObject::sender());
-        emit recieved(sender->peerAddress(), sender->peerPort());
-        QByteArray data = sender->readAll();
-
-        std::stringstream received{};
-        received.write(data.data(), data.size());
-        std::string msg;
-        while (std::getline(received, msg, '\0')) {
-            std::stringstream result{}, from(msg);
-            _base64.toStream(from, result);
-
-            const std::string name = getName(sender);
-            //todo invalid, name might be empty, the server CANNOT count on name being valid value
-            Callable<void, bool, const std::string &, std::stringstream &&>::call(callback, !name.empty(),
-                                                                                  name, std::move(result));
-        }
-    }
-
-
+private slots:
+    /**
+     * @brief cleanAfter just to allow simpler signal propagation
+     *          about socket deletion to server
+     * @param name associated with deleted socket
+     */
+    void cleanAfter(QString name);
     Q_SIGNALS:
     void conn(QHostAddress, quint16);
     void disconn(QHostAddress, quint16);
-    void clossedConnection(QString);
-    void sent(QHostAddress, quint16);
-    void recieved(QHostAddress, quint16);
 
+    void clossedConnection(QString);
+
+    void toRegister(QTcpSocket *, QString);
+    void forward(QByteArray);
 public:
     explicit ServerTCP(Callable<void, bool, const std::string &, std::stringstream &&> *callback,
-                       QObject *parent = nullptr) : QObject(parent),
-            ServerTransmissionManager(callback) {
-
-        _server.listen(QHostAddress::Any, 5000);
-        connect(&_server, SIGNAL(newConnection()), this, SLOT(discoverConnection()));
-    };
+                       QObject *parent = nullptr);
 
     // Copying is not available
     ServerTCP(const ServerTCP &other) = delete;
-
     ServerTCP &operator=(const ServerTCP &other) = delete;
-
     ~ServerTCP() override = default;
 
-    void send(const std::string &usrname, std::iostream &data) override {
-        data.seekg(0, std::ios::beg);
-        std::stringstream toSend;
-        _base64.fromStream(data, toSend);
-        toSend << '\0';
-        QTcpSocket *client = nullptr;
-        if (exists(usrname))
-            client = getSocket(usrname);
-        else
-            client = _lastIncomming;
-        //todo ugly, ugly, ugly
-        size_t length = getSize(toSend);
-        std::vector<char> bytes(length);
-        toSend.read(bytes.data(), length);
-
-        client->write(bytes.data(), bytes.size());
-        emit sent(client->peerAddress(), client->peerPort());
-    }
+    void send(const std::string &usrname, std::iostream &data) override;
 
     /**
      * Mark some connection as opened
      * @param connection
      */
-    void registerConnection(const std::string &username) override {
-        QTcpSocket *sender = static_cast<QTcpSocket *>(QObject::sender());
-
-        if (username.empty())
-            return;
-
-        connect(sender, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this,
-                SLOT(updateConnection(QAbstractSocket::SocketState)));
-        _connections.emplace_back(sender, username);
-    }
+    void registerConnection(const std::string &username) override;
 
     /**
      * Called when new connection fails -> server sends generic error and calls destructor
      * @param data data to send before discarding the connectino
      */
-    void discardNewConnection(const std::vector<unsigned char> &data) override {
-        QTcpSocket *sender = static_cast<QTcpSocket *>(QObject::sender());
-        emit disconn(sender->peerAddress(), sender->peerPort());
-        sender->write(reinterpret_cast<const char *>(data.data()), data.size());
-
-        disconnect(sender, SIGNAL(readyRead()), this, SLOT(recieve()));
-        sender->deleteLater();
-    }
-
+    void discardNewConnection(const std::vector<unsigned char> &data) override;
     /**
      * Release connection
      * @param connection7
      * @return true if connection deleted
      */
-    bool removeConnection(const std::string &username) override {
-        for (auto i = _connections.begin(); i < _connections.end(); i++) {
-            if (i->username == username) {
-
-                disconnect(i->socket, SIGNAL(readyRead()), this, SLOT(receive()));
-                _connections.erase(i);
-                return true;
-            }
-        }
-        return false;
-    }
+    bool removeConnection(const std::string &username) override;
 
     /**
      * Check filename for its connection
      * @param filename name to check
      * @return 0 if no connection found, otherwise >0
      */
-    bool exists(const std::string &username) {
-        return getSocket(username) != nullptr;
-    }
+    bool exists(const std::string &username);
 
     /**
      * Get names of all connected users
      * @return
      */
     //todo will return even auth-waiting users ! consider the consequence
-    std::set<std::string> getOpenConnections() override {
-        std::set<std::string> names;
-        for (const auto &con : _connections) {
-            names.emplace(con.username);
-        }
-        return names;
-    }
+    std::set<std::string> getOpenConnections() override;
 
 private:
+
+    SocketManager * minThread();
+
+    void _receive(QTcpSocket *sender, const std::string& name = "");
+    void _send(QTcpSocket *receiver, QByteArray& data);
     //todo maybe use hashmap or treemap - better than O(n)
-    QTcpSocket *getSocket(const std::string &username) {
-        for (const auto &con : _connections) {
-            if (con.username == username)
-                return con.socket;
-        }
-        return nullptr;
-    }
-
-    std::string getName(const QTcpSocket *client) {
-        for (const auto &con : _connections) {
-            if (con.socket == client)
-                return con.username;
-        }
-        return "";
-    }
-
-    void removeConnection(const QTcpSocket *client) {
-        for (auto i = _connections.begin(); i < _connections.end(); i++) {
-            if (i->socket == client) {
-                _connections.erase(i);
-                return;
-            }
-        }
-    }
+    QTcpSocket *getSocket(const std::string &username);
+    std::string getName(const QTcpSocket *client);
+    void removeConnection(const QTcpSocket *client);
 };
 
 } //namespace helloworld
