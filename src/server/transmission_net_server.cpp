@@ -225,7 +225,7 @@ namespace helloworld {
         assert(sender);
         emit disconn(sender->peerAddress(), sender->peerPort());
         sender->write(reinterpret_cast<const char *>(data.data()),
-                      static_cast<ssize_t>(data.size()));
+                      static_cast<long long>(data.size()));
 
         disconnect(sender, SIGNAL(readyRead()), this, SLOT(recieve()));
         sender->deleteLater();
