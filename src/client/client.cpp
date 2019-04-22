@@ -22,6 +22,8 @@ Client::Client(std::string username,
 
 void Client::callback(std::stringstream &&data) {
     Response response = _connection->parseIncoming(std::move(data));
+    if (_userId == 0)
+        _userId = response.header.userId;
     switch (response.header.type) {
         case Response::Type::OK:
             return;
@@ -30,9 +32,7 @@ void Client::callback(std::stringstream &&data) {
             return;
         case Response::Type::CHALLENGE_RESPONSE_NEEDED:
             sendRequest(completeAuth(response.payload,
-                                     (_userId == 0)
-                                         ? Request::Type::CREATE_COMPLETE
-                                         : Request::Type::LOGIN_COMPLETE));
+                                      Request::Type::CREATE_COMPLETE)); // change create complete to auth complete
             return;
         case Response::Type::USER_REGISTERED:
             _userId = response.header.userId;

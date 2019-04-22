@@ -49,30 +49,30 @@ void CMDApp::disconnected() {
 void CMDApp::init() {
     os << _welcomeMessage();
 
+    _init = true;
     username = getInput("Username");
     // TODO: find sefer way to get password
     std::string password = getInput("Password");
     try {
+        std::cout << "Trying to load keys...";
+        std::cout.flush();
         client =
                 std::make_unique<Client>(username, username + "_priv.pem",
                                          password);
     } catch (Error& /*e*/) {
-        if (getOption("Coludn't load user keys.\n"
-                      "Do you want to create new keys?", {'y', 'n'}) == 1) {
-            emit close();
-            return;
-        }
-
+        std::cout << "\rGenerating new keys...";
+        std::cout.flush();
         _generateKeypair(password);
         client =
                 std::make_unique<Client>(username, username + "_priv.pem",
                                          password);
     }
+    std::cout << "\rKeys loaded successfuly\n";
     client->setTransmissionManager(std::make_unique<ClientSocket>(client.get(), username));
     os << "hint: Try \"help\"\n";
     _running = true;
     std::fill(password.begin(), password.end(), 0);
-    _init = true;
+    emit poll();
 }
 
 std::string CMDApp::_versionInfo() const {
@@ -122,8 +122,15 @@ void CMDApp::connect_command(CMDApp *app) {
         QObject::connect(clientSocket, SIGNAL(received()), app, SLOT(onRecieve()));
         QObject::connect(clientSocket, SIGNAL(received()), app, SLOT(event()));
 
-
+        app->os << "Connetcting...";
+        app->os.flush();
         clientSocket->init();
+        if (clientSocket->status() == UserTransmissionManager::Status::OK)
+            app->os << "\rConnection succesful\n";
+        else {
+            app->os << "\rConnection failed\n";
+            return;
+        }
     }
     app->_connected = true;
     auto opt = app->getOption("Do you already have account on this server ?", {'y', 'n'});
@@ -213,19 +220,16 @@ bool CMDApp::_checkStatus(Command::Status required) {
     return false;
 }
 
-void CMDApp::_loop() {
-        if (_pause)
-            return;
-        if (!_init)
-        {
-            init();
-        }
+void CMDApp::_loop(QString input) {
 
-        std::string command = getInput("");
+        if (_pause || !_running)
+            return;
         auto cmd = std::find_if(commands.begin(), commands.end(),
-                                [&command](const Command& c) { return c.name == command; });
+                                [&input](const Command& c) { return c.name == input.toStdString(); });
         if (cmd == commands.end()) {
             os << "Invalid command\n";
+
+            emit poll();
             return;
         }
 
@@ -236,6 +240,8 @@ void CMDApp::_loop() {
 
     if (!_running)
         emit close();
+    else
+        emit poll();
 }
 
 
@@ -298,6 +304,7 @@ void CMDApp::onRecieve() {
         for ( auto & i: users) {
             os << '\t' << i.first << "\t" << i.second << "\n";
         }
+
         _pause = false;
         users.clear();
     }

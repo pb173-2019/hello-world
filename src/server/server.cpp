@@ -20,11 +20,11 @@ Response Server::handleUserRequest(const Request &request) {
         case Request::Type::CREATE:
             return registerUser(request);
         case Request::Type::CREATE_COMPLETE:
-            return completeAuthentication(request, true);
+            return completeAuthentication(request);
         case Request::Type::LOGIN:
             return authenticateUser(request);
         case Request::Type::LOGIN_COMPLETE:
-            return completeAuthentication(request, false);
+            return completeAuthentication(request); // changed
         case Request::Type::GET_ONLINE:
             return getOnline(request);
         case Request::Type::FIND_USERS:
@@ -56,12 +56,20 @@ Response Server::registerUser(const Request &request) {
     }
 
     std::vector<unsigned char> challengeBytes = _random.get(CHALLENGE_SECRET_LENGTH);
+    {
+    QWriteLocker lock(&_requestLock);
     bool inserted = _requestsToConnect.emplace(userData.name,
-            std::make_unique<Challenge>(userData, challengeBytes, registerRequest.sessionKey)).second;
+                                               std::make_pair(
+        std::make_unique<Challenge>(userData, challengeBytes, registerRequest.sessionKey),
+        true
+                                               )
+                                               ).second;
 
     if (!inserted) {
         throw Error("User " + userData.name + " is already in the process of verification.");
     }
+    }
+    log("Registration: " + registerRequest.name);
     _transmission->registerConnection(registerRequest.name);
 
     Response r = {{Response::Type::CHALLENGE_RESPONSE_NEEDED, request.header.userId}, challengeBytes};
@@ -69,47 +77,57 @@ Response Server::registerUser(const Request &request) {
     return r;
 }
 
-Response Server::completeAuthentication(const Request &request, bool newUser) {
+// Changed
+Response Server::completeAuthentication(const Request &request) {
     CompleteAuthRequest curRequest =
             CompleteAuthRequest::deserialize(request.payload);
 
+    QReadLocker lock(&_requestLock);
     auto registration = _requestsToConnect.find(curRequest.name);
     if (registration == _requestsToConnect.end()) {
         throw Error("No pending registration for provided username.");
     }
 
-    RSA2048 rsa;
 
-    if (!newUser) {
+    RSA2048 rsa;
+    uint32_t generatedId = 0;
+    if (!registration->second.second) {
         UserData user{0, curRequest.name, "", {}};
-        UserData result = std::move(_database->select(user));
+        UserData result = _database->select(user);
+        generatedId = result.id;
         if (result.name.empty()) {
             throw Error("User with given name is not registered.");
         }
         rsa.setPublicKey(result.publicKey);
 
     } else {
-        rsa.setPublicKey(registration->second->userData.publicKey);
+        rsa.setPublicKey(registration->second.first->userData.publicKey);
     }
 
-    if (!rsa.verify(curRequest.secret, registration->second->secret)) {
+    if (!rsa.verify(curRequest.secret, registration->second.first->secret)) {
         throw Error("Cannot verify public key owner.");
     }
 
-    bool emplaced = _connections.emplace(curRequest.name, std::move(registration->second->manager)).second;
+    lock.unlock();
+    QWriteLocker lock2(&_connectionLock);
+    bool emplaced = _connections.emplace(curRequest.name, std::move(registration->second.first->manager)).second;
     if (!emplaced)
         throw Error("Invalid authentication under an online account.");
+    lock2.unlock();
 
-    uint32_t generatedId = 0;
-    if (newUser) generatedId = _database->insert(registration->second->userData, true);
+    if (registration->second.second) generatedId = _database->insert(registration->second.first->userData, true);
+
+    QWriteLocker lock3(&_requestLock);
     _requestsToConnect.erase(curRequest.name);
+    lock3.unlock();
 
     Response r;
-    if (newUser)
+    if (registration->second.second)
         r = {{Response::Type::USER_REGISTERED, generatedId}, {}};
     else
         r = checkEvent(request);
-
+    log("Authentification succes: " + curRequest.name);
+    r.header.userId = generatedId;
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }
@@ -123,19 +141,26 @@ Response Server::authenticateUser(const Request &request) {
 
     if (result.name.empty())
         throw Error("User with given name is not registered.");
+
+    QReadLocker lock(&_connectionLock);
     if (_connections.find(authenticateRequest.name) != _connections.end())
         throw Error("User is online.");
+    lock.unlock();
 
     std::vector<unsigned char> challengeBytes = _random.get(CHALLENGE_SECRET_LENGTH);
 
+    QWriteLocker lock2(&_requestLock);
     bool inserted = _requestsToConnect.emplace(authenticateRequest.name,
-            std::make_unique<Challenge>(userData, challengeBytes,
-                    authenticateRequest.sessionKey)).second;
-
+            std::make_pair(
+                    std::make_unique<Challenge>(userData, challengeBytes,
+                    authenticateRequest.sessionKey),
+                    false)).second;
+    lock2.unlock();
     if (!inserted) {
         throw Error("User with given name is already in the process of verification.");
     }
     _transmission->registerConnection(authenticateRequest.name);
+    log("Log in: " + authenticateRequest.name);
 
 
     Response r = {{Response::Type::CHALLENGE_RESPONSE_NEEDED, request.header.userId}, challengeBytes};
@@ -145,6 +170,7 @@ Response Server::authenticateUser(const Request &request) {
 
 Response Server::getOnline(const Request &request) {
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
+    log("Get online: " + curRequest.name);
 
     const std::set<std::string> &users = _transmission->getOpenConnections();
     std::vector<uint32_t> ids;
@@ -156,11 +182,14 @@ Response Server::getOnline(const Request &request) {
     Response r = {{Response::Type::USERLIST, request.header.userId},
                   UserListReponse{{users.begin(), users.end()}, ids}.serialize()};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
+
     return r;
 }
 
 Response Server::checkIncoming(const Request &request) {
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
+    log("Check incoming: " + curRequest.name);
+
     Response r = checkEvent(request);
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
@@ -181,6 +210,8 @@ Response Server::deleteAccount(const Request &request) {
     }
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     logout(curRequest.name);
+    log("Deleting account: " + curRequest.name);
+
     return r;
 }
 
@@ -189,16 +220,20 @@ Response Server::logOut(const Request &request) {
     Response r {{Response::Type::OK, request.header.userId}, {}};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     logout(curRequest.name);
+
     return r;
 }
 
 void Server::logout(const std::string &name) {
+    QWriteLocker lock(&_connectionLock);
     size_t deleted = _connections.erase(name);
     if (deleted != 1) {
         throw Error("Attempt to close connection: connections closed: " +
                     std::to_string(deleted));
     }
+    lock.unlock();
     _transmission->removeConnection(name);
+    log("Logging out: " + name);
 }
 
 void Server::dropDatabase() { _database->drop(); }
@@ -213,7 +248,10 @@ std::vector<std::string> Server::getUsers(const std::string &query) {
 }
 
 Response Server::findUsers(const Request &request) {
+
     GetUsers curRequest = GetUsers::deserialize(request.payload);
+    log("Find User: " + curRequest.name + " ( query : " + curRequest.query + ")");
+
     UserListReponse response;
     const auto &users = _database->selectLike({0, curRequest.query, "", {}});
     for (const auto &user : users) {
@@ -248,6 +286,7 @@ Response Server::sendKeyBundle(const Request &request) {
     //for file transmission manager to use it to sent it back
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
 
+    log("sendKeyBundle: " + curRequest.name);
     std::vector<unsigned char> bundle = _database->selectBundle(request.header.userId);
     if (bundle.empty())
         throw Error("Could not find bundle for user " + std::to_string(request.header.userId));
@@ -267,6 +306,8 @@ Response Server::sendKeyBundle(const Request &request) {
 }
 
 Response Server::checkEvent(const Request& request) {
+    log("checking events");
+
     if (request.header.userId != 0) {
         // step one: old keys: if time stored + 2 weeks < now
         uint64_t time = _database->getBundleTimestamp(request.header.userId);
@@ -289,14 +330,16 @@ Response Server::checkEvent(const Request& request) {
 ServerToClientManager *Server::getManagerPtr(const std::string &username, bool trusted) {
     ServerToClientManager *mngr = nullptr;
     if (trusted) {
+        QReadLocker lock(&_connectionLock);
         auto found = _connections.find(username);
         if (found != _connections.end()) {
             mngr = &(*(found->second));
         }
     } else {
+        QReadLocker lock(&_requestLock);
         auto found = _requestsToConnect.find(username);
-        if (found != _requestsToConnect.end() && found->second->manager != nullptr) {
-            mngr = &(*(found->second->manager));
+        if (found != _requestsToConnect.end() && found->second.first->manager != nullptr) {
+            mngr = &(*(found->second.first->manager));
         }
     }
     return mngr;
@@ -325,11 +368,13 @@ void Server::sendReponse(const std::string &username, const Response &response, 
 }
 
 Response Server::updateKeyBundle(const Request &request) {
+
     Response r = {{Response::Type::OK, request.header.userId}, {}};
     _database->insertBundle(request.header.userId, request.payload);
 
     //todo for file manager we need his username, but in future use ids only
     UserData user = _database->select(request.header.userId);
+    log("Update keys: " + user.name);
     sendReponse(user.name, r, getManagerPtr(user.name, true));
     return r;
     }

@@ -20,7 +20,9 @@ target_link_libraries(client_test shared sqlite3 Qt5::Network Qt5::Core)
 add_test(client_test_execute client_test)
 
 file(GLOB server_test_src "./server/*.h" "./server/*.cpp"
+        ../src/server/net_utils.h
         ../src/server/transmission_net_server.h
+        ../src/server/transmission_net_server.cpp
         ../src/server/database_server.h
         ../src/server/file_database.cpp
         ../src/server/file_database.h
