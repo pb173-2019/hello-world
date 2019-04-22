@@ -203,7 +203,8 @@ namespace helloworld {
     }
 
     void ServerTCP::registerConnection(const std::string &username) {
-        QTcpSocket *sender = static_cast<QTcpSocket *>(QObject::sender());
+        QTcpSocket *sender = _lastSending.localData();
+        _lastSending.setLocalData({});
 
         if (username.empty())
             return;
