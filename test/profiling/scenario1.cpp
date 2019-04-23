@@ -90,6 +90,9 @@ int main() {
     users.push_back(&c17);
     users.push_back(&c18);
     users.push_back(&c19);
+    
+    std::cout << "Press enter to start profiling.\n";
+    std::cin.ignore();
 
     // ROUNDS times registration
     for (int i = 0; i < ROUNDS; i++) {

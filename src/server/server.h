@@ -55,6 +55,7 @@ public:
     Server();
 
     ServerTransmissionManager *getTransmisionManger() {
+        if (_transmission == nullptr) return nullptr;
         return _transmission.get();
     }
 

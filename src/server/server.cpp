@@ -56,23 +56,20 @@ Response Server::registerUser(const Request &request) {
     }
 
     std::vector<unsigned char> challengeBytes = _random.get(CHALLENGE_SECRET_LENGTH);
-    {
-    QWriteLocker lock(&_requestLock);
-    bool inserted = _requestsToConnect.emplace(userData.name,
-                                               std::make_pair(
-        std::make_unique<Challenge>(userData, challengeBytes, registerRequest.sessionKey),
-        true
-                                               )
-                                               ).second;
 
-    if (!inserted) {
-        throw Error("User " + userData.name + " is already in the process of verification.");
+    {
+        QWriteLocker lock(&_requestLock);
+        bool inserted = _requestsToConnect.emplace(userData.name,
+            std::make_pair(std::make_unique<Challenge>(userData, challengeBytes, registerRequest.sessionKey),
+                    true)).second;
+        if (!inserted)
+            throw Error("User " + userData.name + " is already in the process of verification.");
     }
-    }
+
     log("Registration: " + registerRequest.name);
     _transmission->registerConnection(registerRequest.name);
 
-    Response r = {{Response::Type::CHALLENGE_RESPONSE_NEEDED, request.header.userId}, challengeBytes};
+    Response r = {Response::Type::CHALLENGE_RESPONSE_NEEDED, request.header.userId, challengeBytes};
     sendReponse(registerRequest.name, r, getManagerPtr(registerRequest.name, false));
     return r;
 }
@@ -83,51 +80,48 @@ Response Server::completeAuthentication(const Request &request) {
             CompleteAuthRequest::deserialize(request.payload);
 
     QReadLocker lock(&_requestLock);
-    auto registration = _requestsToConnect.find(curRequest.name);
-    if (registration == _requestsToConnect.end()) {
+    auto authentication = _requestsToConnect.find(curRequest.name);
+    if (authentication == _requestsToConnect.end()) {
         throw Error("No pending registration for provided username.");
     }
-
+    lock.unlock();
 
     RSA2048 rsa;
-    uint32_t generatedId = 0;
-    if (!registration->second.second) {
+    uint32_t userId = 0;
+    if (!authentication->second.second) {
         UserData user{0, curRequest.name, "", {}};
         UserData result = _database->select(user);
-        generatedId = result.id;
+        userId = result.id;
         if (result.name.empty()) {
             throw Error("User with given name is not registered.");
         }
         rsa.setPublicKey(result.publicKey);
 
     } else {
-        rsa.setPublicKey(registration->second.first->userData.publicKey);
+        rsa.setPublicKey(authentication->second.first->userData.publicKey);
     }
 
-    if (!rsa.verify(curRequest.secret, registration->second.first->secret)) {
+    if (!rsa.verify(curRequest.secret, authentication->second.first->secret)) {
         throw Error("Cannot verify public key owner.");
     }
 
-    lock.unlock();
     QWriteLocker lock2(&_connectionLock);
-    bool emplaced = _connections.emplace(curRequest.name, std::move(registration->second.first->manager)).second;
+    bool emplaced = _connections.emplace(curRequest.name, std::move(authentication->second.first->manager)).second;
     if (!emplaced)
         throw Error("Invalid authentication under an online account.");
     lock2.unlock();
 
-    if (registration->second.second) generatedId = _database->insert(registration->second.first->userData, true);
+    if (authentication->second.second) userId = _database->insert(authentication->second.first->userData, true);
 
-    QWriteLocker lock3(&_requestLock);
+    QWriteLocker lock3(&_requestLock); //todo better lock.lockForWrite(); ?
     _requestsToConnect.erase(curRequest.name);
-    lock3.unlock();
+    lock3.unlock();                    //lock.unlock();
 
-    Response r;
-    if (registration->second.second)
-        r = {{Response::Type::USER_REGISTERED, generatedId}, {}};
-    else
-        r = checkEvent(request);
+    Response r = authentication->second.second ?
+            Response{Response::Type::USER_REGISTERED, userId} : checkEvent(request);
+
     log("Authentification succes: " + curRequest.name);
-    r.header.userId = generatedId;
+    r.header.userId = userId;
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }
@@ -162,8 +156,7 @@ Response Server::authenticateUser(const Request &request) {
     _transmission->registerConnection(authenticateRequest.name);
     log("Log in: " + authenticateRequest.name);
 
-
-    Response r = {{Response::Type::CHALLENGE_RESPONSE_NEEDED, request.header.userId}, challengeBytes};
+    Response r = {Response::Type::CHALLENGE_RESPONSE_NEEDED, request.header.userId, challengeBytes};
     sendReponse(authenticateRequest.name, r, getManagerPtr(authenticateRequest.name, false));
     return r;
 }
@@ -179,7 +172,7 @@ Response Server::getOnline(const Request &request) {
         ids.push_back(data.id);
     }
 
-    Response r = {{Response::Type::USERLIST, request.header.userId},
+    Response r = {Response::Type::USERLIST, request.header.userId,
                   UserListReponse{{users.begin(), users.end()}, ids}.serialize()};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
 
@@ -202,11 +195,11 @@ Response Server::deleteAccount(const Request &request) {
     data.id = curRequest.id;
     Response r;
     if (!_database->remove({curRequest.id, curRequest.name, "", {}})) {
-        r = {{Response::Type::FAILED_TO_DELETE_USER, request.header.userId}, {}};
+        r = {Response::Type::FAILED_TO_DELETE_USER, request.header.userId};
     } else {
         _database->removeBundle(curRequest.id);
         _database->deleteAllData(curRequest.id);
-        r = {{Response::Type::OK, 0}, {}};
+        r = {Response::Type::OK, 0};
     }
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     logout(curRequest.name);
@@ -217,7 +210,7 @@ Response Server::deleteAccount(const Request &request) {
 
 Response Server::logOut(const Request &request) {
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
-    Response r {{Response::Type::OK, request.header.userId}, {}};
+    Response r {Response::Type::OK, request.header.userId};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     logout(curRequest.name);
 
@@ -273,7 +266,7 @@ Response Server::forward(const Request &request) {
     const std::set<std::string> &users = _transmission->getOpenConnections();
     if (users.find(receiver) != users.end())  {
         //todo message id?
-        r = {{Response::Type::RECEIVE, request.header.userId}, request.payload};
+        r = {Response::Type::RECEIVE, request.header.userId, request.payload};
         sendReponse(receiver, r, getManagerPtr(receiver, true));
     } else {
         _database->insertData(request.header.userId, request.payload);
@@ -282,7 +275,6 @@ Response Server::forward(const Request &request) {
 }
 
 Response Server::sendKeyBundle(const Request &request) {
-    //todo remove all the Generic requests when implementing the network, it's just sending usernames
     //for file transmission manager to use it to sent it back
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
 
@@ -300,7 +292,7 @@ Response Server::sendKeyBundle(const Request &request) {
     else
         _database->updateBundle(request.header.userId, keys.serialize());
 
-    Response r{{Response::Type::RECEIVER_BUNDLE_SENT, request.header.userId}, bundle};
+    Response r{Response::Type::RECEIVER_BUNDLE_SENT, request.header.userId, bundle};
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }
@@ -312,19 +304,19 @@ Response Server::checkEvent(const Request& request) {
         // step one: old keys: if time stored + 2 weeks < now
         uint64_t time = _database->getBundleTimestamp(request.header.userId);
         if (time + 14*24*3600 < getTimestampOf(nullptr))
-            return {{Response::Type::BUNDLE_UPDATE_NEEDED, request.header.userId}, {}};
+            return {Response::Type::BUNDLE_UPDATE_NEEDED, request.header.userId};
 
         // step two: one-time keys emptied //todo should be implemented or just wait for 2week period?
         KeyBundle<C25519> keys = KeyBundle<C25519>::deserialize(_database->selectBundle(request.header.userId));
         if (keys.oneTimeKeys.empty())
-            return {{Response::Type::BUNDLE_UPDATE_NEEDED, request.header.userId}, {}};
+            return {Response::Type::BUNDLE_UPDATE_NEEDED, request.header.userId};
 
         // step three: new messages
         std::vector<unsigned char> msg = _database->selectData(request.header.userId);
         if (!msg.empty())
-            return {{Response::Type::RECEIVE_OLD, request.header.userId}, std::move(msg)};
+            return {Response::Type::RECEIVE_OLD, request.header.userId, std::move(msg)};
     }
-    return {{Response::Type::OK, request.header.userId}, {}};
+    return {Response::Type::OK, request.header.userId};
 }
 
 ServerToClientManager *Server::getManagerPtr(const std::string &username, bool trusted) {
@@ -369,7 +361,7 @@ void Server::sendReponse(const std::string &username, const Response &response, 
 
 Response Server::updateKeyBundle(const Request &request) {
 
-    Response r = {{Response::Type::OK, request.header.userId}, {}};
+    Response r = {Response::Type::OK, request.header.userId};
     _database->insertBundle(request.header.userId, request.payload);
 
     //todo for file manager we need his username, but in future use ids only

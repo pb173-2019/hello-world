@@ -98,26 +98,36 @@ struct Response {
 
     Header header;
     std::vector<unsigned char> payload;
+
+    Response() = default;
+    Response(Type type, uint32_t userId) : header(type, userId) {}
+    Response(Type type, uint32_t userId, std::vector<unsigned char> payload)
+                : header(type, userId), payload(std::move(payload)) {}
+    Response(Header header) : header(std::move(header)) {}
+    Response(Header header, std::vector<unsigned char> payload)
+                : header(std::move(header)), payload(std::move(payload)) {}
+
 };
 
-    class MessageNumberGenerator {
 
-        bool _set = false;
-        std::set<uint32_t > _unresolvedNumbers;
-        uint32_t _nIncomming = 0;
-        uint32_t _nOutgoing = 0;
-    public:
-        MessageNumberGenerator() : _nOutgoing(Random{}.getBounded(0, UINT32_MAX)) {}
+class MessageNumberGenerator {
 
-        bool checkIncomming(const Request& data);
+    bool _set = false;
+    std::set<uint32_t > _unresolvedNumbers;
+    uint32_t _nIncomming = 0;
+    uint32_t _nOutgoing = 0;
 
-        bool checkIncomming(const Response& data);
+public:
+    MessageNumberGenerator() : _nOutgoing(Random{}.getBounded(0, UINT32_MAX)) {}
 
-        void setNumber(Request& r);
+    bool checkIncomming(const Request& data);
 
-        void setNumber(Response& r);
+    bool checkIncomming(const Response& data);
 
-    };
+    void setNumber(Request& r);
+
+    void setNumber(Response& r);
+};
 
 
 } // namespace helloworld
