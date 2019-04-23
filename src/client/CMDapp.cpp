@@ -1,10 +1,10 @@
-
 #include <iostream>
 #include "../shared/rsa_2048.h"
 #include "transmission_net_client.h"
 #include "CMDapp.h"
-using namespace helloworld;
 
+using namespace helloworld;
+constexpr int max_timeout = 5000;
 const char *CMDApp::Authors[3] = {
     "Jiri Horak",
     "Adam Ivora",
@@ -17,7 +17,9 @@ void CMDApp::Command::print(std::ostream& os) const {
 }
 
 CMDApp::CMDApp(std::istream &is, std::ostream &os, QObject *parent)
-    : QObject(parent), is(is), os(os) {
+    : QObject(parent), is(is), os(os), timeout(new QTimer(this)) {
+    connect(timeout, &QTimer::timeout, this, &CMDApp::onTimer);
+    timeout->setInterval(max_timeout);
 }
 
 std::string CMDApp::_welcomeMessage() const {
@@ -37,10 +39,8 @@ std::string CMDApp::_welcomeMessage() const {
 
 
 void CMDApp::disconnected() {
-    if (_connected) {
-        _pause = false;
-        _connected = false;
-        loggedIn = false;
+    if (status >= State::Connected) {
+        status = Disconnected;
         client->getUsers().clear();
         os << "You've been disconnected from server\n";
         os << "try help if you dont know what to do\n";
@@ -49,26 +49,26 @@ void CMDApp::disconnected() {
 void CMDApp::init() {
     os << _welcomeMessage();
 
-    _init = true;
+    status = Disconnected;
+
     username = getInput("Username");
     // TODO: find sefer way to get password
     std::string password = getInput("Password");
     try {
-        std::cout << "Trying to load keys...";
-        std::cout.flush();
+        std::cout << "Trying to load keys...\n";
         client =
                 std::make_unique<Client>(username, username + "_priv.pem",
                                          password);
     } catch (Error& /*e*/) {
-        std::cout << "\rGenerating new keys...";
-        std::cout.flush();
+        std::cout << "Generating new keys...\n";
         _generateKeypair(password);
         client =
                 std::make_unique<Client>(username, username + "_priv.pem",
                                          password);
     }
-    std::cout << "\rKeys loaded successfuly\n";
+    std::cout << "Keys loaded successfuly\n";
     client->setTransmissionManager(std::make_unique<ClientSocket>(client.get(), username));
+    connect(client.get(), &Client::error, this, &CMDApp::onError);
     os << "hint: Try \"help\"\n";
     _running = true;
     std::fill(password.begin(), password.end(), 0);
@@ -118,54 +118,51 @@ void CMDApp::connect_command(CMDApp *app) {
         clientSocket->setHostAddress(ipAddress);
 
         QObject::connect(clientSocket, SIGNAL(disconnected()), app, SLOT(disconnected()));
-        QObject::connect(clientSocket, SIGNAL(sent()), app, SLOT(event()));
+        QObject::connect(clientSocket, SIGNAL(sent()), app, SLOT(onEvent()));
         QObject::connect(clientSocket, SIGNAL(received()), app, SLOT(onRecieve()));
-        QObject::connect(clientSocket, SIGNAL(received()), app, SLOT(event()));
+        QObject::connect(clientSocket, SIGNAL(received()), app, SLOT(onEvent()));
 
-        app->os << "Connetcting...";
+        app->os << "Connetcting...\n";
         app->os.flush();
         clientSocket->init();
         if (clientSocket->status() == UserTransmissionManager::Status::OK)
-            app->os << "\rConnection succesful\n";
+            app->os << "Connection succesful\n";
         else {
-            app->os << "\rConnection failed\n";
+            app->os << "Connection failed\n";
             return;
         }
     }
-    app->_connected = true;
-    auto opt = app->getOption("Do you already have account on this server ?", {'y', 'n'});
-    if ( opt == 0 ) {
-        login_command(app);
-    } else {
-        register_command(app);
-    }
+    app->status = Connected;
+    login_command(app);
+
 }
 void CMDApp::online_command(CMDApp *app) {
     app->client->getUsers().clear();
     app->client->sendGetOnline();
-    app->_pause = true;
+    app->timeout->start();
 }
 void CMDApp::login_command(CMDApp *app) {
+    app->status = LoggingIn;
     app->client->login();
-    app->os << "login";
-    app->_pause = true;
+    app->os << "trying to login\n";
+    app->timeout->start();
 }
 void CMDApp::logout_command(CMDApp *app) {
     app->client->logout();
-    app->loggedIn = false;
+    app->status = Connected;
     disconnect_command(app);
 }
 void CMDApp::register_command(CMDApp *app) {
+    app->status = Registering;
     app->client->createAccount(app->client->name() + "_pub.pem");
-    app->os << "register";
-    app->_pause = true;
-
+    app->os << "trying to register\n";
+    app->timeout->start();
 }
 void CMDApp::disconnect_command(CMDApp *app) {
     auto clientSocket = dynamic_cast<ClientSocket *>(app->client->getTransmisionManger());
     if (clientSocket != nullptr) {
         clientSocket->closeConnection();
-        app->loggedIn = false;
+        app->status = Disconnected;
     } else  {
         app->os << "Cannot be disconnected\n";
     }
@@ -175,7 +172,7 @@ void CMDApp::disconnect_command(CMDApp *app) {
 void CMDApp::find_command(CMDApp *app) {
     std::string query = app->getInput("Query");
     app->client->sendFindUsers(query);
-    app->_pause = true;
+    app->timeout->start();
 }
 void CMDApp::send_command(CMDApp *app) {
     std::string sid = app->getInput("ID");
@@ -189,8 +186,6 @@ void CMDApp::send_command(CMDApp *app) {
     std::string msg = app->getInput("Message");
     std::vector<unsigned char> data(msg.begin(), msg.end());
     app->client->sendData(id, data);
-
-
 }
 
 void CMDApp::messages_command(CMDApp *app) {
@@ -200,29 +195,23 @@ void CMDApp::messages_command(CMDApp *app) {
 bool CMDApp::_checkStatus(Command::Status required) {
     switch (required) {
     case Command::Status::None:
-        return true;
+        return status > State::Uninit;
     case Command::Status::Disconnected:
-        return !client->getTransmisionManger() ||
-                client->getTransmisionManger()->status()
-                ==
-                UserTransmissionManager::Status::NEED_INIT;
+        return status == State::Disconnected;
     case Command::Status::Connected:
-        return client->getTransmisionManger() &&
-                client->getTransmisionManger()->status()
-                ==
-                UserTransmissionManager::Status::OK;
+        return status >= State::Connected;
 
     case Command::Status::LoggedOut:
-        return !loggedIn && _checkStatus(Command::Status::Connected);
+        return status < State::LoggedIn;
     case Command::Status::LoggedIn:
-        return loggedIn;
+        return status >= State::LoggedIn;
     }
     return false;
 }
 
 void CMDApp::_loop(QString input) {
 
-        if (_pause || !_running)
+        if (!_running)
             return;
         auto cmd = std::find_if(commands.begin(), commands.end(),
                                 [&input](const Command& c) { return c.name == input.toStdString(); });
@@ -294,22 +283,26 @@ void CMDApp::onRecieve() {
 
     auto& users = client->getUsers();
     auto& recieved = client->getMessage();
-    if (!loggedIn &&
+    if (status < State::LoggedIn &&
         client->getId() != 0) {
+        if (status == State::Registering)
+            os << "registration";
+        else
+            os << "login";
         os << " success\n";
-        loggedIn = true;
-        _pause = false;
-    } else if (loggedIn && client->getUsers().size() != 0) {
+        timeout->stop();
+        status = LoggedIn;
+    } else if (status >= State::LoggedIn && client->getUsers().size() != 0) {
         os << "Users:\n\tID\tNAME\n";
         for ( auto & i: users) {
             os << '\t' << i.first << "\t" << i.second << "\n";
         }
 
-        _pause = false;
         users.clear();
+        timeout->stop();
     }
     if(!recieved.date.empty()) {
-        os << "New message:\n";
+        os << "New message:\n\t";
         os << recieved.from << "(" << recieved.date.substr(0, recieved.date.size() - 1) << ") : ";
         std::copy(recieved.data.begin(), recieved.data.end(), std::ostream_iterator<unsigned char>(os));
         os << '\n';
@@ -319,7 +312,26 @@ void CMDApp::onRecieve() {
 
 }
 
-void CMDApp::event() {
+void CMDApp::onError(QString string) {
+    timeout->stop();
+    if (status == State::LoggingIn) {
+        register_command(this);
+    } else if(status == State::Registering) {
+        os << "could not authentticate to server\n";
+        disconnect_command(this);
+    } else {
+        os << "Error: " << string.toStdString() << '\n';
+    }
+}
+
+void CMDApp::onTimer() {
+    if (status >= Connected) {
+        os << "Server timed out\n";
+        disconnect_command(this);
+    }
+}
+
+void CMDApp::onEvent() {
     // maybe later
 }
 

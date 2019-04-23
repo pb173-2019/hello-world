@@ -1,6 +1,8 @@
-//
-// Created by ivan on 9.4.19.
-//
+/*
+ * @file transmission_net_client.h
+ * @author Ivan Mitruk (469063@mail.muni.cz)
+ * @brief client network interface
+ */
 
 #ifndef HELLOWORLD_TRANSMISSION_NET_CLIENT_H
 #define HELLOWORLD_TRANSMISSION_NET_CLIENT_H

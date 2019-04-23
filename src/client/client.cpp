@@ -2,6 +2,7 @@
 #include <chrono>
 #include <ctime>
 #include <tuple>
+#include <QMetaMethod>
 
 #include "config.h"
 
@@ -12,8 +13,10 @@ namespace helloworld {
 
 Client::Client(std::string username,
             const std::string &clientPrivKeyFilename,
-            const std::string &password)
-    : _username(std::move(username)),
+            const std::string &password,
+            QObject *parent)
+    : QObject(parent),
+      _username(std::move(username)),
       _password(password),
       _x3dh(std::make_unique<X3DH>(_username, _password)) {
 
@@ -21,7 +24,17 @@ Client::Client(std::string username,
 }
 
 void Client::callback(std::stringstream &&data) {
-    Response response = _connection->parseIncoming(std::move(data));
+    Response response;
+    try {
+        response = _connection->parseIncoming(std::move(data));
+    } catch (Error& ex) {
+        static const QMetaMethod valueChangedSignal = QMetaMethod::fromSignal(&Client::error);
+        if (QObject::isSignalConnected(valueChangedSignal)) {
+            emit error(ex.what());
+            return;
+        }
+        throw ex;
+    }
     if (_userId == 0)
         _userId = response.header.userId;
     switch (response.header.type) {

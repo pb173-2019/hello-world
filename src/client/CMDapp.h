@@ -1,19 +1,16 @@
-//
-// Created by ivan on 10.4.19.
-//
-
 /*
- * JUST FOR VISUAL TESTING OF NET_CLIENT
+ * @file CMDApp.h
+ * @author Ivan Mitruk (469063@mail.muni.cz)
+ * @brief main client application
  *
  */
-
 #ifndef HELLOWORLD_CMDAPP_H
 #define HELLOWORLD_CMDAPP_H
 
 #include <atomic>
 #include <QObject>
 #include <QThread>
-#include <mutex>
+#include <QTimer>
 #include <condition_variable>
 #include "client.h"
 
@@ -67,7 +64,7 @@ namespace helloworld {
         static constexpr int line_length = 80;
 
         static constexpr const char* ApplicationName = "Hello World!";
-        static constexpr int MajorVersion = 0, MinorVersion = 1;
+        static constexpr int MajorVersion = 0, MinorVersion = 2;
         static const char *Authors[3];
 
         std::atomic_bool _running{false};
@@ -76,9 +73,8 @@ namespace helloworld {
         std::unique_ptr<Client> client;
         std::string username;
 
-        bool loggedIn{false}, _pause{false}, _init{false}, _connected{false};
-
-
+        enum State {Uninit, Disconnected, Connected, LoggingIn, Registering, LoggedIn} status{Uninit};
+        QTimer *timeout;
         struct Command {
             using CMDfunc_t = void(*)(CMDApp*);
             const char * name;
@@ -135,7 +131,15 @@ namespace helloworld {
         /**
          * action trigered on general event (nothing yer)
          */
-        void event();
+        void onEvent();
+        /**
+         * @brief onError called after server sends error message
+         */
+        void onError(QString);
+        /**
+         * @brief onTimer called after timer runs out
+         */
+        void onTimer();
         /**
          * main application loop (called repeatedly)
          */
