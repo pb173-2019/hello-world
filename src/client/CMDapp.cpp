@@ -6,18 +6,18 @@
 using namespace helloworld;
 constexpr int max_timeout = 5000;
 const char *CMDApp::Authors[3] = {
-    "Jiri Horak",
-    "Adam Ivora",
-    "Ivan Mitruk"
+        "Jiri Horak",
+        "Adam Ivora",
+        "Ivan Mitruk"
 };
 
-void CMDApp::Command::print(std::ostream& os) const {
+void CMDApp::Command::print(std::ostream &os) const {
     os << name << std::string(15 - std::string(name).size(), ' ');
     os << info;
 }
 
 CMDApp::CMDApp(std::istream &is, std::ostream &os, QObject *parent)
-    : QObject(parent), is(is), os(os), timeout(new QTimer(this)) {
+        : QObject(parent), is(is), os(os), timeout(new QTimer(this)) {
     connect(timeout, &QTimer::timeout, this, &CMDApp::onTimer);
     timeout->setInterval(max_timeout);
 }
@@ -29,9 +29,9 @@ std::string CMDApp::_welcomeMessage() const {
         << "." << MinorVersion;
     out << "/*" << std::string(line_length - 4, '*') << "*/\n"
         << "*" << std::string(line_length - 2, ' ') << "*\n"
-        << "*" << std::string((line_length - 2 - msg.str().size())/2, ' ')
+        << "*" << std::string((line_length - 2 - msg.str().size()) / 2, ' ')
         << msg.str()
-        << std::string((line_length - 2 - msg.str().size())/2, ' ') << "*\n"
+        << std::string((line_length - 2 - msg.str().size()) / 2, ' ') << "*\n"
         << "*" << std::string(line_length - 2, ' ') << "*\n"
         << "/*" << std::string(line_length - 4, '*') << "*/\n";
     return out.str();
@@ -46,6 +46,7 @@ void CMDApp::disconnected() {
         os << "try help if you dont know what to do\n";
     }
 }
+
 void CMDApp::init() {
     os << _welcomeMessage();
 
@@ -59,7 +60,7 @@ void CMDApp::init() {
         client =
                 std::make_unique<Client>(username, username + "_priv.pem",
                                          password);
-    } catch (Error& /*e*/) {
+    } catch (Error & /*e*/) {
         std::cout << "Generating new keys...\n";
         _generateKeypair(password);
         client =
@@ -82,7 +83,7 @@ std::string CMDApp::_versionInfo() const {
     auto _begin = std::begin(Authors);
     auto _end = std::end(Authors);
     for (; _begin != _end;) {
-        out <<  *_begin;
+        out << *_begin;
         if (++_begin != _end)
             out << ", ";
     }
@@ -92,7 +93,7 @@ std::string CMDApp::_versionInfo() const {
 void CMDApp::help_command(CMDApp *app) {
 
     app->os << app->_versionInfo() << '\n';
-    for (auto & i: app->commands) {
+    for (auto &i: app->commands) {
         if (!app->_checkStatus(i.required))
             continue;
         app->os << '\t';
@@ -122,11 +123,11 @@ void CMDApp::connect_command(CMDApp *app) {
         QObject::connect(clientSocket, SIGNAL(received()), app, SLOT(onRecieve()));
         QObject::connect(clientSocket, SIGNAL(received()), app, SLOT(onEvent()));
 
-        app->os << "Connetcting...\n";
+        app->os << "Connecting...\n";
         app->os.flush();
         clientSocket->init();
         if (clientSocket->status() == UserTransmissionManager::Status::OK)
-            app->os << "Connection succesful\n";
+            app->os << "Connection successful \n";
         else {
             app->os << "Connection failed\n";
             return;
@@ -136,34 +137,39 @@ void CMDApp::connect_command(CMDApp *app) {
     login_command(app);
 
 }
+
 void CMDApp::online_command(CMDApp *app) {
     app->client->getUsers().clear();
     app->client->sendGetOnline();
     app->timeout->start();
 }
+
 void CMDApp::login_command(CMDApp *app) {
     app->status = LoggingIn;
     app->client->login();
     app->os << "trying to login\n";
     app->timeout->start();
 }
+
 void CMDApp::logout_command(CMDApp *app) {
     app->client->logout();
     app->status = Connected;
     disconnect_command(app);
 }
+
 void CMDApp::register_command(CMDApp *app) {
     app->status = Registering;
     app->client->createAccount(app->client->name() + "_pub.pem");
     app->os << "trying to register\n";
     app->timeout->start();
 }
+
 void CMDApp::disconnect_command(CMDApp *app) {
     auto clientSocket = dynamic_cast<ClientSocket *>(app->client->getTransmisionManger());
     if (clientSocket != nullptr) {
         clientSocket->closeConnection();
         app->status = Disconnected;
-    } else  {
+    } else {
         app->os << "Cannot be disconnected\n";
     }
 }
@@ -174,6 +180,7 @@ void CMDApp::find_command(CMDApp *app) {
     app->client->sendFindUsers(query);
     app->timeout->start();
 }
+
 void CMDApp::send_command(CMDApp *app) {
     std::string sid = app->getInput("ID");
     std::stringstream helper{sid};
@@ -194,43 +201,42 @@ void CMDApp::messages_command(CMDApp *app) {
 
 bool CMDApp::_checkStatus(Command::Status required) {
     switch (required) {
-    case Command::Status::None:
-        return status > State::Uninit;
-    case Command::Status::Disconnected:
-        return status == State::Disconnected;
-    case Command::Status::Connected:
-        return status >= State::Connected;
-
-    case Command::Status::LoggedOut:
-        return status < State::LoggedIn;
-    case Command::Status::LoggedIn:
-        return status >= State::LoggedIn;
+        case Command::Status::None:
+            return status > State::Uninit;
+        case Command::Status::Disconnected:
+            return status == State::Disconnected;
+        case Command::Status::Connected:
+            return status >= State::Connected;
+        case Command::Status::LoggedOut:
+            return status < State::LoggedIn;
+        case Command::Status::LoggedIn:
+            return status >= State::LoggedIn;
     }
     return false;
 }
 
 void CMDApp::_loop(QString input) {
 
-        if (!_running)
-            return;
-        auto cmd = std::find_if(commands.begin(), commands.end(),
-                                [&input](const Command& c) { return c.name == input.toStdString(); });
-        if (cmd == commands.end()) {
-            os << "Invalid command\n";
+    if (!_running)
+        return;
+    auto cmd = std::find_if(commands.begin(), commands.end(),
+                            [&input](const Command &c) { return c.name == input.toStdString(); });
+    if (cmd == commands.end()) {
+        os << "Invalid command\n";
 
-            emit poll();
-            return;
-        }
+        emit poll();
+        return;
+    }
 
-        if (_checkStatus(cmd->required))
-            cmd->call(this);
-        else
-            os << "Invalid command\n";
+    if (_checkStatus(cmd->required))
+        cmd->call(this);
+    else
+        os << "Invalid command\n";
 
     if (!_running)
-        emit close();
+            emit close();
     else
-        emit poll();
+            emit poll();
 }
 
 
@@ -255,15 +261,15 @@ int CMDApp::getOption(std::string prompt, std::vector<char> options) {
     std::stringstream optionSrting;
     optionSrting << "[";
     auto _begin = options.begin();
-    auto _end= options.end();
-    while(_begin!=_end) {
+    auto _end = options.end();
+    while (_begin != _end) {
         optionSrting << *_begin;
         if (++_begin != _end)
             optionSrting << "/";
     }
     optionSrting << "]";
 
-    os << prompt <<  optionSrting.str() << ": ";
+    os << prompt << optionSrting.str() << ": ";
     os.flush();
     int result = -1;
     while (result == -1 && is) {
@@ -272,7 +278,7 @@ int CMDApp::getOption(std::string prompt, std::vector<char> options) {
         for (unsigned i = 0; i < options.size(); ++i)
             if (opt == options[i])
                 result = static_cast<int>(i);
-        if(result == -1) {
+        if (result == -1) {
             os << "unrecgnized option use one of " << optionSrting.str() << '\n';
         }
     }
@@ -281,8 +287,8 @@ int CMDApp::getOption(std::string prompt, std::vector<char> options) {
 
 void CMDApp::onRecieve() {
 
-    auto& users = client->getUsers();
-    auto& recieved = client->getMessage();
+    auto &users = client->getUsers();
+    auto &recieved = client->getMessage();
     if (status < State::LoggedIn &&
         client->getId() != 0) {
         if (status == State::Registering)
@@ -294,14 +300,14 @@ void CMDApp::onRecieve() {
         status = LoggedIn;
     } else if (status >= State::LoggedIn && client->getUsers().size() != 0) {
         os << "Users:\n\tID\tNAME\n";
-        for ( auto & i: users) {
+        for (auto &i: users) {
             os << '\t' << i.first << "\t" << i.second << "\n";
         }
 
         users.clear();
         timeout->stop();
     }
-    if(!recieved.date.empty()) {
+    if (!recieved.date.empty()) {
         os << "New message:\n\t";
         os << recieved.from << "(" << recieved.date.substr(0, recieved.date.size() - 1) << ") : ";
         std::copy(recieved.data.begin(), recieved.data.end(), std::ostream_iterator<unsigned char>(os));
@@ -316,8 +322,8 @@ void CMDApp::onError(QString string) {
     timeout->stop();
     if (status == State::LoggingIn) {
         register_command(this);
-    } else if(status == State::Registering) {
-        os << "could not authentticate to server\n";
+    } else if (status == State::Registering) {
+        os << "could not authenticate to server\n";
         disconnect_command(this);
     } else {
         os << "Error: " << string.toStdString() << '\n';
