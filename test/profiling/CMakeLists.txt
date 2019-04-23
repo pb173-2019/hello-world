@@ -22,7 +22,7 @@ if (PROFILER)
             )
 
     add_executable(profiling1 scenario1.cpp ${sources_profiling})
-    target_link_libraries(profiling1 mbedcrypto shared sqlite3)
+    target_link_libraries(profiling1 mbedcrypto shared sqlite3 Qt5::Core)
 
     add_executable(setup setup.cpp)
     target_link_libraries(setup mbedcrypto shared)
