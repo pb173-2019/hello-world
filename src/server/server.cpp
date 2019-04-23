@@ -266,7 +266,7 @@ Response Server::forward(const Request &request) {
     const std::set<std::string> &users = _transmission->getOpenConnections();
     if (users.find(receiver) != users.end())  {
         //todo message id?
-        r = {Response::Type::RECEIVE, request.header.userId, request.payload};
+        r = {Response::Type::RECEIVE, request.header.userId, request.header.fromId, request.payload};
         sendReponse(receiver, r, getManagerPtr(receiver, true));
     } else {
         _database->insertData(request.header.userId, request.payload);

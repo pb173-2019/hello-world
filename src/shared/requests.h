@@ -218,16 +218,18 @@ struct GetUsers : public Serializable<GetUsers> {
 struct SendData : public Serializable<SendData> {
     std::string date;
     std::string from;
+    uint32_t fromId;
     std::vector<unsigned char> data;
 
     SendData() = default;
 
-    SendData(std::string date, std::string from, std::vector<unsigned char> data) :
-            date(std::move(date)), from(std::move(from)), data(std::move(data)) {}
+    SendData(std::string date, std::string from, uint32_t fromId, std::vector<unsigned char> data) :
+            date(std::move(date)), from(std::move(from)), fromId(fromId), data(std::move(data)) {}
 
     serialize::structure& serialize(serialize::structure& result) const override {
         serialize::serialize(date, result);
         serialize::serialize(from, result);
+        serialize::serialize(fromId, result);
         serialize::serialize(data, result);
         return result;
     }
@@ -240,6 +242,7 @@ struct SendData : public Serializable<SendData> {
         SendData result;
         result.date = serialize::deserialize<std::string>(data, from);
         result.from = serialize::deserialize<std::string>(data, from);
+        result.fromId = serialize::deserialize<decltype(result.fromId)>(data, from);
         result.data = serialize::deserialize<decltype(result.data)>(data, from);
 
         return result;

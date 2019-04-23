@@ -179,7 +179,7 @@ private:
 
     RSA2048 _rsa;
     std::unique_ptr<X3DH> _x3dh;
-    std::unique_ptr<DoubleRatchet> _doubleRatchetConnection;
+    std::map<uint32_t, DoubleRatchet> _ratchets;
     std::unique_ptr<UserTransmissionManager> _transmission;
     std::unique_ptr<ClientToServerManager> _connection = nullptr;
 
@@ -227,6 +227,10 @@ private:
      * @param keyFileName filename to archive
      */
     void archiveKey(const std::string &keyFileName);
+
+    bool hasRatchet(uint32_t id) const;
+
+    void decryptInitialMessage(SendData &sendData, Response::Type type);
 signals:
     void error(QString);
 };

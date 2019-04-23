@@ -32,10 +32,13 @@ struct Request {
         Type type = Type::LOGIN;
         uint32_t messageNumber = 0;
         uint32_t userId = 0;
+        uint32_t fromId = userId;
 
         Header() = default;
 
         Header(Type type, uint32_t userId) : type(type), userId(userId) {}
+
+        Header(Type type, uint32_t userId, uint32_t fromId) : type(type), userId(userId), fromId(fromId) {}
 
         serialize::structure& serialize(serialize::structure& result) const override;
         serialize::structure serialize() const override {
@@ -78,10 +81,13 @@ struct Response {
         Type type = Type::OK;
         uint32_t messageNumber = 0;
         uint32_t userId = 0;
+        uint32_t fromId = userId;
 
         Header() = default;
 
         Header(Type type, uint32_t userId) : type(type), userId(userId) {}
+
+        Header(Type type, uint32_t userId, uint32_t fromId) : type(type), userId(userId), fromId(fromId) {}
 
         serialize::structure& serialize(serialize::structure& result) const override;
         serialize::structure serialize() const override {
@@ -100,12 +106,16 @@ struct Response {
     std::vector<unsigned char> payload;
 
     Response() = default;
-    Response(Type type, uint32_t userId) : header(type, userId) {}
-    Response(Type type, uint32_t userId, std::vector<unsigned char> payload)
-                : header(type, userId), payload(std::move(payload)) {}
+    Response(Type type, uint32_t userId, uint32_t fromId) : header(type, userId, fromId) {}
+    Response(Type type, uint32_t userId, uint32_t fromId, std::vector<unsigned char> payload)
+                : header(type, userId, fromId), payload(std::move(payload)) {}
     Response(Header header) : header(std::move(header)) {}
     Response(Header header, std::vector<unsigned char> payload)
                 : header(std::move(header)), payload(std::move(payload)) {}
+
+    Response(Type type, uint32_t userId) : header(type, userId) {}
+    Response(Type type, uint32_t userId, std::vector<unsigned char> payload)
+                : header(type, userId), payload(std::move(payload)) {}
 
 };
 

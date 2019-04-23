@@ -1,8 +1,8 @@
 #include "client.h"
+#include <QMetaMethod>
 #include <chrono>
 #include <ctime>
 #include <tuple>
-#include <QMetaMethod>
 
 #include "config.h"
 
@@ -11,15 +11,12 @@
 
 namespace helloworld {
 
-Client::Client(std::string username,
-            const std::string &clientPrivKeyFilename,
-            const std::string &password,
-            QObject *parent)
+Client::Client(std::string username, const std::string &clientPrivKeyFilename,
+               const std::string &password, QObject *parent)
     : QObject(parent),
       _username(std::move(username)),
       _password(password),
       _x3dh(std::make_unique<X3DH>(_username, _password)) {
-
     _rsa.loadPrivateKey(clientPrivKeyFilename, password);
 }
 
@@ -27,16 +24,16 @@ void Client::callback(std::stringstream &&data) {
     Response response;
     try {
         response = _connection->parseIncoming(std::move(data));
-    } catch (Error& ex) {
-        static const QMetaMethod valueChangedSignal = QMetaMethod::fromSignal(&Client::error);
+    } catch (Error &ex) {
+        static const QMetaMethod valueChangedSignal =
+            QMetaMethod::fromSignal(&Client::error);
         if (QObject::isSignalConnected(valueChangedSignal)) {
             emit error(ex.what());
             return;
         }
         throw ex;
     }
-    if (_userId == 0)
-        _userId = response.header.userId;
+    if (_userId == 0) _userId = response.header.userId;
     switch (response.header.type) {
         case Response::Type::OK:
             return;
@@ -44,8 +41,10 @@ void Client::callback(std::stringstream &&data) {
             parseUsers(response);
             return;
         case Response::Type::CHALLENGE_RESPONSE_NEEDED:
-            sendRequest(completeAuth(response.payload,
-                                      Request::Type::CREATE_COMPLETE)); // change create complete to auth complete
+            sendRequest(completeAuth(
+                response.payload,
+                Request::Type::CREATE_COMPLETE));    // change create complete
+                                                     // to auth complete
             return;
         case Response::Type::USER_REGISTERED:
             _userId = response.header.userId;
@@ -67,7 +66,8 @@ void Client::callback(std::stringstream &&data) {
 }
 
 void Client::login() {
-    _connection = std::make_unique<ClientToServerManager>(to_hex(Random().get(SYMMETRIC_KEY_SIZE)), serverPub);
+    _connection = std::make_unique<ClientToServerManager>(
+        to_hex(Random().get(SYMMETRIC_KEY_SIZE)), serverPub);
     AuthenticateRequest request(_username, {});
     sendRequest({{Request::Type::LOGIN, _userId}, request.serialize()});
 }
@@ -79,7 +79,8 @@ void Client::logout() {
 
 void Client::createAccount(const std::string &pubKeyFilename) {
     _userId = 0;
-    _connection = std::make_unique<ClientToServerManager>(to_hex(Random().get(SYMMETRIC_KEY_SIZE)), serverPub);
+    _connection = std::make_unique<ClientToServerManager>(
+        to_hex(Random().get(SYMMETRIC_KEY_SIZE)), serverPub);
     std::ifstream input(pubKeyFilename);
     std::string publicKey((std::istreambuf_iterator<char>(input)),
                           std::istreambuf_iterator<char>());
@@ -174,28 +175,31 @@ void Client::archiveKey(const std::string &keyFileName) {
     }
 }
 
-void Client::sendData(uint32_t receiverId, const std::vector<unsigned char> &data) {
-    if (_doubleRatchetConnection) {
-        auto message = _doubleRatchetConnection->RatchetEncrypt(data);
+void Client::sendData(uint32_t receiverId,
+                      const std::vector<unsigned char> &data) {
+    if (hasRatchet(receiverId)) {
+        auto message = _ratchets.at(receiverId).RatchetEncrypt(data);
         auto now = std::chrono::system_clock::to_time_t(
             std::chrono::system_clock::now());
         std::string time = std::ctime(&now);
-        SendData toSend(time, _username, message.serialize());
-        sendRequest({{Request::Type::SEND, receiverId}, toSend.serialize()});
+        SendData toSend(time, _username, _userId, message.serialize());
+        sendRequest(
+            {{Request::Type::SEND, receiverId, _userId}, toSend.serialize()});
     } else {
         bool first = true;
         std::ifstream in{std::to_string(receiverId) + ".msg"};
         if (in) first = false;
         in.close();
 
-        //simple message stacking into one file, in future maybe add some separator policy (now using ---)
-        std::ofstream out{std::to_string(receiverId) + ".msg", std::ios::binary | std::ios_base::app};
-        if (! first)
-            out << "---\n";
+        // simple message stacking into one file, in future maybe add some
+        // separator policy (now using ---)
+        std::ofstream out{std::to_string(receiverId) + ".msg",
+                          std::ios::binary | std::ios_base::app};
+        if (!first) out << "---\n";
 
         write_n(out, data);
         out.close();
-        //request only if not requested before (e.g. multiple 1st messages)
+        // request only if not requested before (e.g. multiple 1st messages)
         if (first) requestKeyBundle(receiverId);
     }
 }
@@ -215,36 +219,51 @@ void Client::sendInitialMessage(const Response &response) {
     auto now =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     std::string time = std::ctime(&now);
-    SendData toSend(time, _username, data);
 
     X3DHRequest<C25519> request;
     X3DH::X3DHSecretPubKey secret;
     std::tie(request, secret) = _x3dh->setSecret(bundle);
-    _doubleRatchetConnection =
-        std::make_unique<DoubleRatchet>(secret.sk, secret.ad, secret.pubKey);
-    Message message = _doubleRatchetConnection->RatchetEncrypt(toSend.serialize());
+
+    _ratchets.emplace(response.header.userId,
+                      DoubleRatchet(secret.sk, secret.ad, secret.pubKey));
+    Message message = _ratchets.at(response.header.userId).RatchetEncrypt(data);
     request.AEADenrypted = message.serialize();
 
-    sendRequest({{Request::Type::SEND, response.header.userId}, request.serialize()});
+    SendData toSend(time, _username, _userId, request.serialize());
+    sendRequest({{Request::Type::SEND, response.header.userId, _userId},
+                 toSend.serialize()});
+}
+
+void Client::decryptInitialMessage(SendData &sendData, Response::Type type) {
+    std::vector<unsigned char> messageEncrypted;
+    X3DH::X3DHSecretKeyPair secret;
+    std::tie(messageEncrypted, secret) = _x3dh->getSecret(sendData.data, type);
+
+    _ratchets.emplace(
+        sendData.fromId,
+        DoubleRatchet(secret.sk, secret.ad, secret.pubKey, secret.privKey));
+
+    Message message = Message::deserialize(messageEncrypted);
+    auto decrypted = _ratchets.at(sendData.fromId).RatchetDecrypt(message);
+    if (!decrypted.empty()) {
+        sendData.data = decrypted;
+        _incomming = sendData;
+    } else {
+        _incomming = {};
+    }
 }
 
 void Client::receiveData(const Response &response) {
-    if (_doubleRatchetConnection) {
-        auto sendData = SendData::deserialize(response.payload);
-        auto receivedData = _doubleRatchetConnection->RatchetDecrypt(
-            Message::deserialize(sendData.data));
+    auto sendData = SendData::deserialize(response.payload);
+
+    if (hasRatchet(sendData.fromId)) {
+        auto receivedData =
+            _ratchets.at(sendData.fromId)
+                .RatchetDecrypt(Message::deserialize(sendData.data));
         sendData.data = receivedData;
         _incomming = sendData;
     } else {
-        std::vector<unsigned char> messageEncrypted;
-        X3DH::X3DHSecretKeyPair secret;
-        std::tie(messageEncrypted, secret) = _x3dh->getSecret(response);
-
-        _doubleRatchetConnection = std::make_unique<DoubleRatchet>(
-                secret.sk, secret.ad, secret.pubKey, secret.privKey);
-
-        Message message = Message::deserialize(messageEncrypted);
-        _incomming = SendData::deserialize(_doubleRatchetConnection->RatchetDecrypt(message));
+        decryptInitialMessage(sendData, response.header.type);
     }
 }
 
@@ -272,6 +291,9 @@ Request Client::completeAuth(const std::vector<unsigned char> &secret,
     return {{type, _userId}, request.serialize()};
 }
 
+bool Client::hasRatchet(uint32_t id) const {
+    return _ratchets.find(id) != _ratchets.end();
+}
 
 void ClientCleaner_Run() {
     std::string leftovers = getFile(".key");
@@ -281,7 +303,8 @@ void ClientCleaner_Run() {
     }
     leftovers = getFile(".pub");
     while (!leftovers.empty()) {
-        remove(leftovers.c_str());leftovers = getFile(".pub");
+        remove(leftovers.c_str());
+        leftovers = getFile(".pub");
         leftovers = getFile(".pub");
     }
     leftovers = getFile(".old");

@@ -24,7 +24,7 @@ struct Error : public std::exception, public Serializable<Error> {
 
     Error() = default;
 
-    explicit Error(std::string message) : message(std::move(message)) {}
+    explicit Error(std::string msg) : message(std::move(msg)) {}
 
     const char *what() const noexcept override { return message.c_str(); }
 
