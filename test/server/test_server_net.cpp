@@ -1,5 +1,5 @@
 //
-// Created by shockudt on 15.4.19.
+// Created by Ivan Mitruk on 15.4.19.
 //
 
 #include <QCoreApplication>

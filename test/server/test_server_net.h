@@ -1,5 +1,5 @@
 //
-// Created by shockudt on 15.4.19.
+// Created by Ivan Mitruk on 15.4.19.
 //
 
 #ifndef HELLOWORLD_TEST_SERVER_NET_H
@@ -83,11 +83,11 @@ namespace helloworld {
         void onEmmit() {
             emmited = true;
             emit recv();
-        };
+        }
 
         void onTimer() {
             emit recv();
-        };
+        }
     };
 
     struct signalReaction : public QObject {
@@ -99,10 +99,10 @@ namespace helloworld {
 
         void onEmmit(QHostAddress, quint16 ) {
             foo();
-        };
+        }
         void onEmmit() {
             foo();
-        };
+        }
     };
 
 

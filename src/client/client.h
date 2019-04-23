@@ -15,6 +15,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <QObject>
 
 #include "../shared/X3DH.h"
 #include "../shared/connection_manager.h"
@@ -27,12 +28,12 @@
 
 namespace helloworld {
 
-class Client : public Callable<void, std::stringstream &&> {
+class Client : public QObject, public Callable<void, std::stringstream &&> {
     static constexpr int SYMMETRIC_KEY_SIZE = 16;
-
+    Q_OBJECT
 public:
     Client(std::string username, const std::string &clientPrivKeyFilename,
-           const std::string &password);
+           const std::string &password, QObject *parent = nullptr);
 
 
     UserTransmissionManager *getTransmisionManger() {
@@ -226,6 +227,8 @@ private:
      * @param keyFileName filename to archive
      */
     void archiveKey(const std::string &keyFileName);
+signals:
+    void error(QString);
 };
 
 //separated from client as this is used as testing extension that deletes the *key, *pub, *old files
