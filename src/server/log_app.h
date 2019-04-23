@@ -29,9 +29,7 @@ namespace helloworld {
          * @param parent QT requirement
          */
         LogApp(std::ostream &os, QObject *parent = nullptr)
-                : QObject(parent)
-                , os(os)
-                , server(std::make_unique<Server>()){
+                : QObject(parent), os(os), server(std::make_unique<Server>()) {
 
             server->setTransmissionManager(std::make_unique<ServerTCP>(server.get()));
 
@@ -44,33 +42,32 @@ namespace helloworld {
             os << "listening on ";
             QList<QHostAddress> list = QNetworkInterface::allAddresses();
 
-            for(int nIter=0; nIter<list.count(); nIter++)
-
-            {
-                if(!list[nIter].isLoopback())
-                    if (list[nIter].protocol() == QAbstractSocket::IPv4Protocol )
+            for (int nIter = 0; nIter < list.count(); nIter++) {
+                if (!list[nIter].isLoopback())
+                    if (list[nIter].protocol() == QAbstractSocket::IPv4Protocol)
                         os << list[nIter].toString().toStdString();
 
             }
             os << "\n";
 
-            server->setLogging([this](const std::string& msg) { log(msg); });
+            server->setLogging([this](const std::string &msg) { log(msg); });
         }
 
         /**
          * @brief log logs message in thread safe way
          * @param logmsg message to log
          */
-        void log(const std::string& logmsg) {
+        void log(const std::string &logmsg) {
             QMutexLocker lock(&mutex);
             if (logThread)
-                os << "(thread#"<< QThread::currentThreadId() << ") " ;
+                os << "(thread#" << QThread::currentThreadId() << ") ";
             os << logmsg << '\n';
         }
 
         ~LogApp() { os << "closing App\n"; }
 
     public Q_SLOTS:
+
         /**
          * @brief onConnection slot called when server emits connection signal
          * @param addr ip address of connected user
@@ -79,8 +76,9 @@ namespace helloworld {
         void onConnection(QHostAddress addr, quint16 port) {
 
             os << "Connection from " << toStd(addr)
-                << ":" << port << "\n";
+               << ":" << port << "\n";
         }
+
         /**
          * @brief onDisconnect called on disconnection of user
          * @param addr address of disconnected user
@@ -91,21 +89,20 @@ namespace helloworld {
                << ":" << port << "\n";
         }
 
-     /**
-     * @brief toStd extracts ip addres from host address structure
-     * @param host address to extract ip from
-     * @return ip address
-     */
-    std::string toStd(QHostAddress& host) {
-        bool conversionOK = false;
-        QHostAddress ip4Address(host.toIPv4Address(&conversionOK));
-        QString ip4String;
-        if (conversionOK)
-        {
-            return ip4Address.toString().toStdString();
+        /**
+        * @brief toStd extracts ip addres from host address structure
+        * @param host address to extract ip from
+        * @return ip address
+        */
+        std::string toStd(QHostAddress &host) {
+            bool conversionOK = false;
+            QHostAddress ip4Address(host.toIPv4Address(&conversionOK));
+            QString ip4String;
+            if (conversionOK) {
+                return ip4Address.toString().toStdString();
+            }
+            return host.toString().toStdString();
         }
-        return host.toString().toStdString();
-    }
     };
 
 }

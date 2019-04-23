@@ -14,7 +14,7 @@
 #include <QThread>
 
 namespace helloworld {
-    ServerSocket::ServerSocket(QTcpSocket *socket, std::string username, ServerTCP * server, QObject *parent) :
+    ServerSocket::ServerSocket(QTcpSocket *socket, std::string username, ServerTCP *server, QObject *parent) :
             QObject(parent), server(server), socket(socket), username(std::move(username)) {
         socket->setParent(this);
         connect(socket, &QTcpSocket::readyRead, this, &ServerSocket::receive, Qt::QueuedConnection);
@@ -54,20 +54,21 @@ namespace helloworld {
                 break;
         }
     }
+
     void ServerSocket::send(QByteArray data) {
         socket->write(data.data(), data.size());
     }
 
 /*************************************************************************************/
 
-    SocketManager::SocketManager(ServerTCP * server, QObject *parent)
-        : QObject(parent), server(server), thread(new EventThread()) {
+    SocketManager::SocketManager(ServerTCP *server, QObject *parent)
+            : QObject(parent), server(server), thread(new EventThread()) {
         this->moveToThread(thread);
         thread->start();
     }
 
-    void SocketManager::emplace(QTcpSocket *socket, const std::string& name) {
-       lock.lockForWrite();
+    void SocketManager::emplace(QTcpSocket *socket, const std::string &name) {
+        lock.lockForWrite();
         socket->moveToThread(thread);
         ownedSockets.emplace_back(new ServerSocket(socket, name, server, this));
         connect(ownedSockets.back(), &ServerSocket::disconnected, this, &SocketManager::remove);
@@ -76,12 +77,12 @@ namespace helloworld {
 
     bool SocketManager::remove(const QTcpSocket *socket) {
         auto it = std::find_if(
-                    ownedSockets.begin(),
-                    ownedSockets.end(),
-                    [&socket](const ServerSocket *o) {
-                            return o->socket == socket;
-                        }
-                    );
+                ownedSockets.begin(),
+                ownedSockets.end(),
+                [&socket](const ServerSocket *o) {
+                    return o->socket == socket;
+                }
+        );
         if (it != ownedSockets.end()) {
             QWriteLocker lock1(&lock);
             auto name = QString::fromStdString((*it)->username);
@@ -92,9 +93,10 @@ namespace helloworld {
         return false;
     }
 
-    void SocketManager::toRegister(QTcpSocket *socket,const QString &name) {
-            emplace(socket, name.toStdString());
+    void SocketManager::toRegister(QTcpSocket *socket, const QString &name) {
+        emplace(socket, name.toStdString());
     }
+
 /*****************************************************************************/
 
     QThreadStorage<PtrWrap<QTcpSocket>> ServerTCP::_lastSending;
@@ -103,11 +105,11 @@ namespace helloworld {
         emit clossedConnection(std::move(name));
     }
 
-    SocketManager * ServerTCP::minThread() {
+    SocketManager *ServerTCP::minThread() {
         QReadLocker l(&lock);
         auto min = _threads.begin();
         auto _end = _threads.end();
-        for(auto i = min; i != _end; ++i) {
+        for (auto i = min; i != _end; ++i) {
             if ((*i)->ownedSockets.size() < (*min)->ownedSockets.size()) {
                 min = i;
             }
@@ -135,7 +137,7 @@ namespace helloworld {
         }
     }
 
-    void ServerTCP::_receive(QTcpSocket *sender, const std::string& name) {
+    void ServerTCP::_receive(QTcpSocket *sender, const std::string &name) {
         _lastSending.setLocalData(sender);
         QByteArray data = sender->readAll();
         std::stringstream received{};
@@ -158,8 +160,8 @@ namespace helloworld {
     }
 
     ServerTCP::ServerTCP(Callable<void, bool, const std::string &, std::stringstream &&> *callback,
-                       QObject *parent) : QObject(parent),
-            ServerTransmissionManager(callback) {
+                         QObject *parent) : QObject(parent),
+                                            ServerTransmissionManager(callback) {
 
         // start threads
         int optimal = QThread::idealThreadCount() - 1;
@@ -175,7 +177,7 @@ namespace helloworld {
         connect(&_server, SIGNAL(newConnection()), this, SLOT(discoverConnection()));
     }
 
-    void ServerTCP::_send(QTcpSocket *receiver, QByteArray& data) {
+    void ServerTCP::_send(QTcpSocket *receiver, QByteArray &data) {
         receiver->write(data.data(), data.size());
     };
 
@@ -187,17 +189,20 @@ namespace helloworld {
         toSend << '\0';
         QByteArray arr(toSend.str().data(), getSize(toSend));
         QTcpSocket *client = nullptr;
-        if (!usrname.empty() && exists(usrname)) {
-            client = getSocket(usrname);
+        if (!usrname.empty()) {
+
+            // TODO: use cv
+            while (!client)
+                client = getSocket(usrname);
 
             auto p = dynamic_cast<ServerSocket *>(client->parent());
-                connect(this, &ServerTCP::forward, p, &ServerSocket::send);
-                emit forward(arr);
-                disconnect(this, &ServerTCP::forward, p, &ServerSocket::send);
-                return ;
+            connect(this, &ServerTCP::forward, p, &ServerSocket::send);
+            emit forward(arr);
+            disconnect(this, &ServerTCP::forward, p, &ServerSocket::send);
+            return;
 
         }
-       client = _lastSending.localData();
+        client = _lastSending.localData();
 
         _send(client, arr);
     }
@@ -246,7 +251,7 @@ namespace helloworld {
         std::set<std::string> names;
         for (auto &thread : _threads) {
             thread->lock.lockForRead();
-            for (const auto& connection : thread->ownedSockets) {
+            for (const auto &connection : thread->ownedSockets) {
                 names.insert(connection->username);
             }
             thread->lock.unlock();
@@ -259,7 +264,7 @@ namespace helloworld {
         QReadLocker lock1(&lock);
         for (auto &thread : _threads) {
             QReadLocker lock2(&thread->lock);
-            for (const auto& connection : thread->ownedSockets)
+            for (const auto &connection : thread->ownedSockets)
                 if (username == connection->username) {
                     return connection->socket;
                 }
@@ -271,7 +276,7 @@ namespace helloworld {
         QReadLocker lock1(&lock);
         for (auto &thread : _threads) {
             QReadLocker lock2(&thread->lock);
-            for (const auto& connection : thread->ownedSockets)
+            for (const auto &connection : thread->ownedSockets)
                 if (client == connection->socket) {
                     return connection->username;
                 }
