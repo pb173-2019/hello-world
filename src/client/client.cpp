@@ -178,13 +178,19 @@ void Client::archiveKey(const std::string &keyFileName) {
 void Client::sendData(uint32_t receiverId,
                       const std::vector<unsigned char> &data) {
     if (hasRatchet(receiverId)) {
+        DoubleRatchet &ratchet = _ratchets.at(receiverId);
         auto message = _ratchets.at(receiverId).RatchetEncrypt(data);
         auto now = std::chrono::system_clock::to_time_t(
             std::chrono::system_clock::now());
         std::string time = std::ctime(&now);
-        SendData toSend(time, _username, _userId, message.serialize());
-        sendRequest(
-            {{Request::Type::SEND, receiverId, _userId}, toSend.serialize()});
+
+        if (ratchet.hasReceivedMessage()) {
+            SendData toSend(time, _username, _userId, false, message.serialize());
+            sendRequest({{Request::Type::SEND, receiverId, _userId},
+                         toSend.serialize()});
+        } else {
+            sendX3DHMessage(receiverId, time, message);
+        }
     } else {
         bool first = true;
         std::ifstream in{std::to_string(receiverId) + ".msg"};
@@ -200,7 +206,9 @@ void Client::sendData(uint32_t receiverId,
         write_n(out, data);
         out.close();
         // request only if not requested before (e.g. multiple 1st messages)
-        if (first) requestKeyBundle(receiverId);
+        if (first) {
+            requestKeyBundle(receiverId);
+        }
     }
 }
 
@@ -224,14 +232,23 @@ void Client::sendInitialMessage(const Response &response) {
     X3DH::X3DHSecretPubKey secret;
     std::tie(request, secret) = _x3dh->setSecret(bundle);
 
+    _initialMessages[response.header.userId] = request;
+
     _ratchets.emplace(response.header.userId,
                       DoubleRatchet(secret.sk, secret.ad, secret.pubKey));
     Message message = _ratchets.at(response.header.userId).RatchetEncrypt(data);
+
+    sendX3DHMessage(response.header.userId, time, message);
+}
+
+void Client::sendX3DHMessage(uint32_t receiverId, const std::string &time,
+                             const Message &message) {
+    auto request = _initialMessages.at(receiverId);
     request.AEADenrypted = message.serialize();
 
-    SendData toSend(time, _username, _userId, request.serialize());
-    sendRequest({{Request::Type::SEND, response.header.userId, _userId},
-                 toSend.serialize()});
+    SendData toSend(time, _username, _userId, true, request.serialize());
+    sendRequest(
+        {{Request::Type::SEND, receiverId, _userId}, toSend.serialize()});
 }
 
 void Client::decryptInitialMessage(SendData &sendData, Response::Type type) {
@@ -256,14 +273,14 @@ void Client::decryptInitialMessage(SendData &sendData, Response::Type type) {
 void Client::receiveData(const Response &response) {
     auto sendData = SendData::deserialize(response.payload);
 
-    if (hasRatchet(sendData.fromId)) {
+    if (sendData.x3dh) {
+        decryptInitialMessage(sendData, response.header.type);
+    } else {
         auto receivedData =
             _ratchets.at(sendData.fromId)
                 .RatchetDecrypt(Message::deserialize(sendData.data));
         sendData.data = receivedData;
         _incomming = sendData;
-    } else {
-        decryptInitialMessage(sendData, response.header.type);
     }
 }
 

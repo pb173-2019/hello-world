@@ -37,7 +37,7 @@ TEST_CASE("X3DH process test one-time keys present") {
         bobOneTime2.getPublicKey()
     };
 
-    SendData toSend{"1.3.2013", "user", 1, {1, 2, 3, 4}};
+    SendData toSend{"1.3.2013", "user", 1, true, {1, 2, 3, 4}};
 
     X3DH x3dh_alice(alice, alice_pwd);
     //setTimestamp() not needed in x3dh_alice as alice is not using .in()
@@ -150,7 +150,7 @@ TEST_CASE("X3DH process test no one time keys") {
     bundle.preKey = bobPreKey.getPublicKey();
     bundle.preKeySingiture = identity.sign(bundle.preKey);
 
-    SendData toSend{"1.3.2013", "user", 1, {1, 2, 3, 4}};
+    SendData toSend{"1.3.2013", "user", 1, true, {1, 2, 3, 4}};
 
     X3DH x3dh_alice(alice, alice_pwd);
     //setTimestamp() not needed in x3dh_alice as alice is not using .in()

@@ -180,6 +180,7 @@ private:
     RSA2048 _rsa;
     std::unique_ptr<X3DH> _x3dh;
     std::map<uint32_t, DoubleRatchet> _ratchets;
+    std::map<uint32_t, X3DHRequest<C25519>> _initialMessages;
     std::unique_ptr<UserTransmissionManager> _transmission;
     std::unique_ptr<ClientToServerManager> _connection = nullptr;
 
@@ -231,6 +232,8 @@ private:
     bool hasRatchet(uint32_t id) const;
 
     void decryptInitialMessage(SendData &sendData, Response::Type type);
+
+    void sendX3DHMessage(uint32_t receiverId, const std::string &time, const Message &message);
 signals:
     void error(QString);
 };

@@ -175,7 +175,6 @@ TEST_CASE("Random testing 1:1 messaging") {
         }
     }
 
-    // in main: commented -> will fail
     SECTION("The messages are delayed") {
         std::cout << "--------------------------------------\n"
                      "-----------DELAYED MESSAGES-----------\n"

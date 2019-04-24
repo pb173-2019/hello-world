@@ -1,5 +1,6 @@
 #include "catch.hpp"
 
+#include <chrono>
 #include <random>
 #include "../../src/client/client.h"
 #include "../../src/client/transmission_file_client.h"
@@ -39,13 +40,13 @@ class ClientAdapter {
 };
 
 class OneToNMock {
-    std::vector<ClientAdapter> _clients;
-    Server _server;
-    std::random_device _rd;
-    std::mt19937 _gen{_rd()};
+    std::random_device rd;
+    std::mt19937 _gen{rd()};
     std::uniform_int_distribution<> _dis;
     std::uniform_int_distribution<> _disVector{0, 500};
     std::uniform_int_distribution<> _disChar{0, 255};
+    std::vector<ClientAdapter> _clients;
+    Server _server;
 
    public:
     OneToNMock() = default;
@@ -75,20 +76,20 @@ class OneToNMock {
         }
     }
 
-    Client &send() {
-        Client &receiver = randomClient();
-        Client &sender = randomClient();
+    Client &send(const std::vector<unsigned char> &data) {
+        int x = _dis(_gen);
+        int y;
+        do
+            y = _dis(_gen);
+        while (y == x);
+        Client &receiver = *_clients[x].client;
+        Client &sender = *_clients[y].client;
 
-        if (sender.getId() == receiver.getId()) {
-            return send();
-        }
-
-        sender.sendData(receiver.getId(), randomData());
+        std::cout << sender.getId() << " -> " << receiver.getId() << "; ";
+        sender.sendData(receiver.getId(), data);
 
         return receiver;
     }
-
-    Client &randomClient() { return *_clients[_dis(_gen)].client; }
 
     std::vector<unsigned char> randomData() {
         auto gen = [&]() { return _disChar(_gen); };
@@ -106,13 +107,18 @@ class OneToNMock {
 
 TEST_CASE("1-to-N messaging") {
     Network::setEnabled(true);
+    Network::setProblematic(false);
 
-    OneToNMock mock(5);
-    mock.registerAllClients();
+    SECTION("random messages, all online") {
+        OneToNMock mock(5);
+        mock.registerAllClients();
 
-    for (int i = 0; i < 1000; i++) {
-        auto &receiver = mock.send();
-        CHECK(!receiver.getMessage().from.empty());
-        receiver.getMessage().from = "";
+        for (int i = 0; i < 1000; i++) {
+            auto data = mock.randomData();
+            auto &receiver = mock.send(data);
+            CHECK(!receiver.getMessage().from.empty());
+            CHECK(receiver.getMessage().data == data);
+            receiver.getMessage().from = "";
+        }
     }
 }
