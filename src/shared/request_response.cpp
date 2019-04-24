@@ -60,6 +60,7 @@ serialize::structure& Request::Header::serialize(serialize::structure& result) c
     serialize::serialize(static_cast<uint32_t >(type), result);
     serialize::serialize(messageNumber, result);
     serialize::serialize(userId, result);
+    serialize::serialize(fromId, result);
     return result;
 }
 
@@ -71,6 +72,8 @@ Request::Header Request::Header::deserialize(const serialize::structure &data, u
     ret.messageNumber =
             serialize::deserialize<decltype(ret.messageNumber)>(data, from);
     ret.userId =
+            serialize::deserialize<decltype(ret.userId)>(data, from);
+    ret.fromId =
             serialize::deserialize<decltype(ret.userId)>(data, from);
     return ret;
 }
@@ -84,6 +87,8 @@ Response::Header  Response::Header::deserialize(const serialize::structure &data
             serialize::deserialize<decltype(ret.messageNumber)>(data, from);
     ret.userId =
             serialize::deserialize<decltype(ret.userId)>(data, from);
+    ret.fromId =
+            serialize::deserialize<decltype(ret.userId)>(data, from);
     return ret;
 }
 
@@ -91,5 +96,6 @@ serialize::structure& Response::Header::serialize(serialize::structure& result) 
     serialize::serialize(static_cast<uint32_t >(type), result);
     serialize::serialize(messageNumber, result);
     serialize::serialize(userId, result);
+    serialize::serialize(fromId, result);
     return result;
 }

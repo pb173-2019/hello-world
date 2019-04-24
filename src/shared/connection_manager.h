@@ -52,7 +52,7 @@ protected:
     std::string _sessionKey;
     bool _established = false;
 
-    static constexpr int HEADER_ENCRYPTED_SIZE = 28;
+    static constexpr int HEADER_ENCRYPTED_SIZE = 32;
 public:
     explicit ConnectionManager(std::string sessionKey) : _sessionKey(std::move(sessionKey)) {};
 

@@ -24,7 +24,7 @@ DoubleRatchet::DoubleRatchet(std::vector<unsigned char> SK,
                              std::vector<unsigned char> AD,
                              std::vector<unsigned char> dh_public_key,
                              std::vector<unsigned char> dh_private_key)
-    : _state({}) {
+    : _state({}), _receivedMessage(true) {
     _state.DHs = {std::move(dh_public_key), std::move(dh_private_key)};
     _state.DHr = {};
     _state.RK = std::move(SK);
@@ -36,6 +36,8 @@ DoubleRatchet::DoubleRatchet(std::vector<unsigned char> SK,
     _state.MKSKIPPED = {};
     _state.AD = std::move(AD);
 }
+
+DoubleRatchet::DoubleRatchet(DRState state) : _state(std::move(state)) {}
 
 Message DoubleRatchet::RatchetEncrypt(
     const std::vector<unsigned char> &plaintext) {
@@ -52,7 +54,9 @@ std::vector<unsigned char> DoubleRatchet::RatchetDecrypt(
     const Message &message) {
     DRState oldState = _state;
     try {
-        return TryRatchetDecrypt(message);
+        auto result = TryRatchetDecrypt(message);
+        _receivedMessage = true;
+        return result;
     } catch (Error &e) {
         _state = oldState;
         return {};
