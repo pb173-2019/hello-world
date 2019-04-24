@@ -19,27 +19,34 @@ namespace helloworld {
         std::istream &is;
     Q_OBJECT
     public:
-        Worker(std::istream& is) : QObject(nullptr), is(is) {};
+        Worker(std::istream &is) : QObject(nullptr), is(is) {};
     public slots:
+
         void doWork() {
-            std::ws(is);
             std::string data;
-            std::getline(is, data);
+            while (data.empty()) {
+                std::ws(is);
+                std::getline(is, data);
+            }
             emit read(QString::fromStdString(data));
         }
+
     signals:
+
         void read(QString);
     };
+
     class cinPoll : public QObject {
-        Q_OBJECT
-        std::istream& is;
-        QThread * thread;
+    Q_OBJECT
+        std::istream &is;
+        QThread *thread;
 
     public:
-        cinPoll(std::istream& is, QObject * parent = nullptr) : QObject(parent), is(is){
+        cinPoll(std::istream &is, QObject *parent = nullptr) : QObject(parent), is(is) {
         }
 
     public slots:
+
         void start() {
 
             Worker *worker = new Worker(is);
@@ -52,9 +59,11 @@ namespace helloworld {
         }
 
     signals:
+
         void read(QString);
 
     };
+
     class CMDApp : public QObject {
     Q_OBJECT
         static constexpr uint16_t default_port = 5000;
@@ -63,7 +72,7 @@ namespace helloworld {
         // considered as standard (won't matter when we create GUI)
         static constexpr int line_length = 80;
 
-        static constexpr const char* ApplicationName = "Hello World!";
+        static constexpr const char *ApplicationName = "Hello World!";
         static constexpr int MajorVersion = 0, MinorVersion = 2;
         static const char *Authors[3];
 
@@ -73,77 +82,92 @@ namespace helloworld {
         std::unique_ptr<Client> client;
         std::string username;
 
-        enum State {Uninit, Disconnected, Connected, LoggingIn, Registering, LoggedIn} status{Uninit};
+        enum State {
+            Uninit, Disconnected, Connected, LoggingIn, Registering, LoggedIn
+        } status{Uninit};
         QTimer *timeout;
+
         struct Command {
-            using CMDfunc_t = void(*)(CMDApp*);
-            const char * name;
+            using CMDfunc_t = void (*)(CMDApp *);
+            const char *name;
             CMDfunc_t call;
             const char *info;
 
-            enum Status {None, Disconnected, Connected, LoggedOut,  LoggedIn} required;
-            void print(std::ostream& os) const;
+            enum Status {
+                None, Disconnected, Connected, LoggedOut, LoggedIn
+            } required;
+
+            void print(std::ostream &os) const;
         };
 
 
         const std::vector<Command> commands{
-            {"help", &CMDApp::help_command, "prints help message", Command::Status::None},
-            {"connect", &CMDApp::connect_command, "connect to server", Command::Status::Disconnected},
+                {"help",    &CMDApp::help_command,     "prints help message",         Command::Status::None},
+                {"connect", &CMDApp::connect_command,  "connect to server",           Command::Status::Disconnected},
 
-            // automatic after connection
-            //{"login", &CMDApp::login_command, "log in as existing user", Command::Status::LoggedOut},
-            //{"register", &CMDApp::register_command, "register new user", Command::Status::LoggedOut},
+                // automatic after connection
+                //{"login", &CMDApp::login_command, "log in as existing user", Command::Status::LoggedOut},
+                //{"register", &CMDApp::register_command, "register new user", Command::Status::LoggedOut},
 
-            {"send", &CMDApp::send_command, "send message to user", Command::Status::LoggedIn},
-            {"online", &CMDApp::online_command, "get list of online users", Command::Status::LoggedIn},
-            {"find", &CMDApp::find_command, "find user", Command::Status::LoggedIn},
-            {"recv", &CMDApp::messages_command, "recieve awaiting messages", Command::Status::LoggedIn},
-            {"logout", &CMDApp::logout_command, "log out, but stay connected", Command::Status::LoggedIn},
+                {"send",    &CMDApp::send_command,     "send message to user",        Command::Status::LoggedIn},
+                {"online",  &CMDApp::online_command,   "get list of online users",    Command::Status::LoggedIn},
+                {"find",    &CMDApp::find_command,     "find user",                   Command::Status::LoggedIn},
+                {"recv",    &CMDApp::messages_command, "recieve awaiting messages",   Command::Status::LoggedIn},
+                {"logout",  &CMDApp::logout_command,   "log out, but stay connected", Command::Status::LoggedIn},
 
-            // automatic after logout
-            //{"disconnect", &CMDApp::disconnect_command, "disconnect from current server", Command::Status::Connected},
+                // automatic after logout
+                //{"disconnect", &CMDApp::disconnect_command, "disconnect from current server", Command::Status::Connected},
 
-            {"quit", &CMDApp::quit_command, "close this application", Command::Status::None}
+                {"quit",    &CMDApp::quit_command,     "close this application",      Command::Status::None}
         };
-
-
 
 
     public:
         CMDApp(std::istream &is, std::ostream &os, QObject *parent = nullptr);
 
     Q_SIGNALS:
+
         void close();
+
         void poll();
+
     public Q_SLOTS:
+
         /**
          * reaction to disconnect
          */
         void disconnected();
+
         /**
          * init application on start
          */
         void init();
+
         /**
          * actions trigered on receive
          */
         void onRecieve();
+
         /**
          * action trigered on general event (nothing yer)
          */
         void onEvent();
+
         /**
          * @brief onError called after server sends error message
          */
         void onError(QString);
+
         /**
          * @brief onTimer called after timer runs out
          */
         void onTimer();
+
         /**
          * main application loop (called repeatedly)
          */
         void _loop(QString);
+
     private:
         /**
          * creats nice messagge about current version of programs
@@ -157,6 +181,7 @@ namespace helloworld {
          * @return string containing welcome message
          */
         std::string _welcomeMessage() const;
+
         /**
          * checks whether application is in required state
          * @param required state/status
@@ -180,18 +205,29 @@ namespace helloworld {
          * static functions representing different commands
          */
         static void help_command(CMDApp *app);
+
         static void quit_command(CMDApp *app);
+
         static void unimplemented_command(CMDApp *app);
-        static void connect_command(CMDApp *app) ;
+
+        static void connect_command(CMDApp *app);
+
         static void login_command(CMDApp *app);
+
         static void logout_command(CMDApp *app);
+
         static void register_command(CMDApp *app);
+
         static void disconnect_command(CMDApp *app);
+
         static void online_command(CMDApp *app);
+
         static void find_command(CMDApp *app);
+
         static void send_command(CMDApp *app);
+
         static void messages_command(CMDApp *app);
-        //static void generateKeypair_command(CMDApp *app); // maybe not neccessary?
+        //static void generateKeypair_command(CMDApp *app); // maybe not be neccessary ?
 
 
         /**
