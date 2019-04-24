@@ -113,11 +113,12 @@ Response Server::completeAuthentication(const Request &request) {
 
     if (authentication->second.second) userId = _database->insert(authentication->second.first->userData, true);
 
+    bool authenticationExists = authentication->second.second;
     QWriteLocker lock3(&_requestLock); //todo better lock.lockForWrite(); ?
     _requestsToConnect.erase(curRequest.name);
     lock3.unlock();                    //lock.unlock();
 
-    Response r = authentication->second.second ?
+    Response r = authenticationExists ?
             Response{Response::Type::USER_REGISTERED, userId} : checkEvent(request);
 
     log("Authentification succes: " + curRequest.name);
