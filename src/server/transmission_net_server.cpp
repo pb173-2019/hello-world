@@ -174,6 +174,8 @@ namespace helloworld {
 
         // start listenning
         _server.listen(QHostAddress::Any, 5000);
+        if (!_server.isListening())
+            throw std::runtime_error("Couldn't start a server");
         connect(&_server, SIGNAL(newConnection()), this, SLOT(discoverConnection()));
     }
 
