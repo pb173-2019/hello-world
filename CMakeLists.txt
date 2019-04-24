@@ -6,8 +6,8 @@ project(helloworld)
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
-SET(CMAKE_CXX_FLAGS "-g -pthread")
-SET(CMAKE_C_FLAGS "-g -pthread")
+SET(CMAKE_CXX_FLAGS -pthread)
+SET(CMAKE_C_FLAGS -pthread)
 # MSVC exceptions support
 if (MSVC)
     SET (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /EHsc")
