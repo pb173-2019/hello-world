@@ -76,7 +76,7 @@ namespace helloworld {
         Q_OBJECT
 
 
-            std::vector<std::unique_ptr<Connection>> _connections;
+            std::vector<Connection *> _connections;
 
 
             int counter, target;
@@ -136,8 +136,8 @@ namespace helloworld {
             };
 
             void onConnection() {
-                _connections.emplace_back(std::make_unique<Connection>(_server->nextPendingConnection()));
-                auto pLast = _connections.back().get();
+                _connections.emplace_back(new Connection(_server->nextPendingConnection(), this));
+                auto pLast = _connections.back();
                 QObject::connect(
                         pLast,
                         SIGNAL(messageRecieved(Connection*, std::string)),
@@ -152,17 +152,22 @@ namespace helloworld {
 
             };
             void connectionClosed(Connection *connection) {
-
-                _connections.erase(std::find_if(
+                auto it = std::find_if(
                         _connections.begin(),
                         _connections.end(),
-                        [connection](const auto& obj) { return connection == obj.get(); }
-                        ));
+                        [connection](const auto& obj) { return connection == obj; }
+                );
+                if (it == _connections.end())
+                    return;
+
+
+                disconnect(*it, SIGNAL(closed(Connection *)), this, SLOT(connectionClosed(Connection *)));
+                _connections.erase(it);
 
             };
             void start() {
                 if (!_server->listen(_address, _port))
-                    std::runtime_error("Cannot start test server"); // forbiden, but only for testing
+                    std::runtime_error("Cannot start test server");
             }
 
         private Q_SLOTS:
