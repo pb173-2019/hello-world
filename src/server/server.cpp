@@ -84,7 +84,7 @@ Response Server::completeAuthentication(const Request &request) {
     if (authentication == _requestsToConnect.end()) {
         throw Error("No pending registration for provided username.");
     }
-    lock.unlock();
+
 
     RSA2048 rsa;
     uint32_t userId = 0;
@@ -107,13 +107,15 @@ Response Server::completeAuthentication(const Request &request) {
 
     QWriteLocker lock2(&_connectionLock);
     bool emplaced = _connections.emplace(curRequest.name, std::move(authentication->second.first->manager)).second;
+    lock2.unlock();
     if (!emplaced)
         throw Error("Invalid authentication under an online account.");
-    lock2.unlock();
+
 
     if (authentication->second.second) userId = _database->insert(authentication->second.first->userData, true);
 
     bool authenticationExists = authentication->second.second;
+    lock.unlock();
     QWriteLocker lock3(&_requestLock); //todo better lock.lockForWrite(); ?
     _requestsToConnect.erase(curRequest.name);
     lock3.unlock();                    //lock.unlock();
