@@ -37,6 +37,8 @@ DoubleRatchet::DoubleRatchet(std::vector<unsigned char> SK,
     _state.AD = std::move(AD);
 }
 
+DoubleRatchet::DoubleRatchet(DRState state) : _state(std::move(state)) {}
+
 Message DoubleRatchet::RatchetEncrypt(
     const std::vector<unsigned char> &plaintext) {
     key mk;

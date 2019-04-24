@@ -16,20 +16,6 @@
 
 namespace helloworld {
 
-struct DRState {
-    DHPair DHs;    // DH Ratchet key pair (the “sending” or “self” ratchet key)
-    key DHr;    // DH Ratchet public key (the “received” or “remote” key)
-    key RK;            // 32-byte Root Key
-    key CKs, CKr;     // 32-byte Chain Keys for sending and receiving
-    size_t Ns, Nr;    // Message numbers for sending and receiving
-    size_t PN;         // Number of messages in previous sending chain
-    std::map<std::pair<key, size_t>, key>
-        MKSKIPPED;    // Dictionary of skipped-over message keys, indexed
-                       // by ratchet public key and message number. Raises an
-                       // exception if too many elements are stored
-    key AD;           // additional data from X3DH
-};
-
 class DoubleRatchet {
     static const int MAX_SKIP = 1000;
     DRState _state;
@@ -64,6 +50,8 @@ class DoubleRatchet {
     DoubleRatchet(std::vector<unsigned char> sk, std::vector<unsigned char> ad,
                   std::vector<unsigned char> dh_public_key,
                   std::vector<unsigned char> dh_private_key);
+
+    DoubleRatchet(DRState state);
 
     /**
      * @brief Encrypts message using Double Ratchet algorithm.

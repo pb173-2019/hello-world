@@ -21,10 +21,112 @@
 #include "hkdf.h"
 #include "hmac.h"
 #include "hmac_base.h"
+#include "serializable.h"
 
 namespace helloworld {
 
 using key = std::vector<unsigned char>;
+
+struct DHPair : Serializable<DHPair> {
+    key pub;
+    key priv;
+
+    DHPair() = default;
+
+    DHPair(key pub, key priv) : pub(std::move(pub)), priv(std::move(priv)) {}
+
+    serialize::structure &serialize(
+        serialize::structure &result) const override {
+        serialize::serialize(pub, result);
+        serialize::serialize(priv, result);
+        return result;
+    }
+    serialize::structure serialize() const override {
+        serialize::structure result;
+        return serialize(result);
+    }
+
+    static DHPair deserialize(const serialize::structure &data,
+                              uint64_t &from) {
+        DHPair object;
+        object.pub = serialize::deserialize<decltype(object.pub)>(data, from);
+        object.priv = serialize::deserialize<decltype(object.priv)>(data, from);
+        return object;
+    }
+    static DHPair deserialize(const serialize::structure &data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
+    }
+};
+
+struct DRState : Serializable<DRState> {
+    DHPair DHs;    // DH Ratchet key pair (the “sending” or “self” ratchet key)
+    key DHr;    // DH Ratchet public key (the “received” or “remote” key)
+    key RK;     // 32-byte Root Key
+    key CKs, CKr;     // 32-byte Chain Keys for sending and receiving
+    size_t Ns, Nr;    // Message numbers for sending and receiving
+    size_t PN;        // Number of messages in previous sending chain
+    std::map<std::pair<key, size_t>, key> MKSKIPPED;
+    // Dictionary of skipped-over message keys, indexed
+    // by ratchet public key and message number. Raises an
+    // exception if too many elements are stored
+    key AD;    // additional data from X3DH
+
+    serialize::structure &serialize(
+        serialize::structure &result) const override {
+        serialize::serialize(DHs, result);
+        serialize::serialize(DHr, result);
+        serialize::serialize(RK, result);
+        serialize::serialize(CKs, result);
+        serialize::serialize(CKr, result);
+        serialize::serialize(Ns, result);
+        serialize::serialize(Nr, result);
+        serialize::serialize(PN, result);
+        uint64_t size = MKSKIPPED.size();
+        serialize::serialize(size, result);
+        for (const auto &x : MKSKIPPED) {
+            serialize::serialize(x.first.first, result);
+            serialize::serialize(x.first.second, result);
+            serialize::serialize(x.second, result);
+        }
+        serialize::serialize(AD, result);
+        return result;
+    }
+    serialize::structure serialize() const override {
+        serialize::structure result;
+        return serialize(result);
+    }
+
+    static DRState deserialize(const serialize::structure &data,
+                               uint64_t &from) {
+        DRState result;
+        result.DHs = serialize::deserialize<decltype(result.DHs)>(data, from);
+        result.DHr = serialize::deserialize<decltype(result.DHr)>(data, from);
+        result.RK = serialize::deserialize<decltype(result.RK)>(data, from);
+        result.CKs = serialize::deserialize<decltype(result.CKs)>(data, from);
+        result.CKr = serialize::deserialize<decltype(result.CKr)>(data, from);
+        result.Ns = serialize::deserialize<decltype(result.Ns)>(data, from);
+        result.Nr = serialize::deserialize<decltype(result.Nr)>(data, from);
+        result.PN = serialize::deserialize<decltype(result.PN)>(data, from);
+        uint64_t size = serialize::deserialize<uint64_t>(data, from);
+        for (uint64_t i = 0; i < size; ++i) {
+            std::pair<key, size_t> skipped_key;
+            skipped_key.first =
+                serialize::deserialize<std::vector<unsigned char>>(data, from);
+            skipped_key.second = serialize::deserialize<size_t>(data, from);
+            auto value =
+                serialize::deserialize<std::vector<unsigned char>>(data, from);
+
+            result.MKSKIPPED.emplace(std::move(skipped_key), std::move(value));
+        }
+        result.AD = serialize::deserialize<decltype(result.AD)>(data, from);
+        return result;
+    }
+    static DRState deserialize(const serialize::structure &data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
+    }
+};
 
 struct MessageHeader : public Serializable<MessageHeader> {
     /**
@@ -117,11 +219,6 @@ struct Message : public Serializable<Message> {
     }
 };
 
-struct DHPair {
-    key pub;
-    key priv;
-};
-
 class DoubleRatchetAdapter {
     static const size_t KDF_RK_SIZE = 64;
     hmac_base<MBEDTLS_MD_SHA512, KDF_RK_SIZE> _hmac;
@@ -139,7 +236,7 @@ class DoubleRatchetAdapter {
         return _hmac.generate(hmacInput);
     }
 
-public:
+   public:
     DHPair GENERATE_DH() const;
 
     key DH(const DHPair &dh_pair, const key &dh_pub) const;
