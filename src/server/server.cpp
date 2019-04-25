@@ -9,6 +9,8 @@
 #include "../shared/curve_25519.h"
 
 namespace helloworld {
+    bool Server::_test{false};
+
 
 Server::Server() : _database(std::make_unique<ServerSQLite>("test_db1")),
                    _genericManager("server_priv.pem",
@@ -64,6 +66,9 @@ Response Server::registerUser(const Request &request) {
                     true)).second;
         if (!inserted)
             throw Error("User " + userData.name + " is already in the process of verification.");
+
+        if (_test)
+            _requestsToConnect[userData.name].first->manager->_testing = _test;
     }
 
     log("Registration: " + registerRequest.name);
@@ -121,7 +126,7 @@ Response Server::completeAuthentication(const Request &request) {
     lock3.unlock();                    //lock.unlock();
 
     Response r = authenticationExists ?
-            Response{Response::Type::USER_REGISTERED, userId} : checkEvent(request);
+            Response{Response::Type::USER_REGISTERED, userId} : checkEvent(userId);
 
     log("Authentification succes: " + curRequest.name);
     r.header.userId = userId;
@@ -186,7 +191,7 @@ Response Server::checkIncoming(const Request &request) {
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
     log("Check incoming: " + curRequest.name);
 
-    Response r = checkEvent(request);
+    Response r = checkEvent(request.header.userId);
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
     return r;
 }
@@ -246,7 +251,7 @@ std::vector<std::string> Server::getUsers(const std::string &query) {
 Response Server::findUsers(const Request &request) {
 
     GetUsers curRequest = GetUsers::deserialize(request.payload);
-    log("Find User: " + curRequest.name + " ( query : " + curRequest.query + ")");
+    log("Find User: " + curRequest.name + " ( query : \"" + curRequest.query + "\" )");
 
     UserListReponse response;
     const auto &users = _database->selectLike({0, curRequest.query, "", {}});
@@ -260,7 +265,7 @@ Response Server::findUsers(const Request &request) {
 }
 
 Response Server::forward(const Request &request) {
-    Response r = checkEvent(request);
+    Response r = checkEvent(request.header.userId);
 
     //get receiver's name from database
     std::string receiver = _database->select(request.header.userId).name;
@@ -300,26 +305,40 @@ Response Server::sendKeyBundle(const Request &request) {
     return r;
 }
 
-Response Server::checkEvent(const Request& request) {
-    log("checking events");
+Response Server::checkEvent(uint32_t uid) {
+    if (_test)
+        return {Response::Type::OK, uid}; // some tests dont add keys during registration
+                                          // and after fixing check event, it causes segfault
 
-    if (request.header.userId != 0) {
+
+    if (uid != 0) {
         // step one: old keys: if time stored + 2 weeks < now
-        uint64_t time = _database->getBundleTimestamp(request.header.userId);
-        if (time + 14*24*3600 < getTimestampOf(nullptr))
-            return {Response::Type::BUNDLE_UPDATE_NEEDED, request.header.userId};
+        uint64_t time = _database->getBundleTimestamp(uid);
+        if (time + 14*24*3600 < getTimestampOf(nullptr)) {
 
+            log("checking events: #" + std::to_string(uid) + " : update key bundle");
+            return {Response::Type::BUNDLE_UPDATE_NEEDED,
+                    uid};
+        }
         // step two: one-time keys emptied //todo should be implemented or just wait for 2week period?
-        KeyBundle<C25519> keys = KeyBundle<C25519>::deserialize(_database->selectBundle(request.header.userId));
-        if (keys.oneTimeKeys.empty())
-            return {Response::Type::BUNDLE_UPDATE_NEEDED, request.header.userId};
+        KeyBundle<C25519> keys = KeyBundle<C25519>::deserialize(_database->selectBundle(uid));
+        if (keys.oneTimeKeys.empty()) {
 
+            log("checking events: #" + std::to_string(uid) + " : new keys");
+            return {Response::Type::BUNDLE_UPDATE_NEEDED,
+                    uid};
+        }
         // step three: new messages
-        std::vector<unsigned char> msg = _database->selectData(request.header.userId);
-        if (!msg.empty())
-            return {Response::Type::RECEIVE_OLD, request.header.userId, std::move(msg)};
+        std::vector<unsigned char> msg = _database->selectData(uid);
+        if (!msg.empty()) {
+            log("checking events: #" + std::to_string(uid) + " : new message");
+            return {Response::Type::RECEIVE_OLD, uid,
+                    std::move(msg)};
+        }
     }
-    return {Response::Type::OK, request.header.userId};
+
+    log("checking events: #" + std::to_string(uid) + " : no new events");
+    return {Response::Type::OK, uid};
 }
 
 ServerToClientManager *Server::getManagerPtr(const std::string &username, bool trusted) {

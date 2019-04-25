@@ -29,6 +29,7 @@
 namespace helloworld {
 
 class Client : public QObject, public Callable<void, std::stringstream &&> {
+    static bool _test;
     static constexpr int SYMMETRIC_KEY_SIZE = 16;
     Q_OBJECT
 public:
@@ -51,6 +52,10 @@ public:
 
     const std::string& name() const {
         return _username;
+    }
+
+    static void test() {
+        _test = true;
     }
     /**
      * @brief This function is called when transmission manager discovers new

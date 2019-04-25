@@ -10,6 +10,8 @@
 #include "../shared/responses.h"
 
 namespace helloworld {
+bool Client::_test = false;
+
 
 Client::Client(std::string username, const std::string &clientPrivKeyFilename,
                const std::string &password, QObject *parent)
@@ -68,6 +70,7 @@ void Client::callback(std::stringstream &&data) {
 void Client::login() {
     _connection = std::make_unique<ClientToServerManager>(
         to_hex(Random().get(SYMMETRIC_KEY_SIZE)), serverPub);
+    _connection->_testing = _test;
     AuthenticateRequest request(_username, {});
     sendRequest({{Request::Type::LOGIN, _userId}, request.serialize()});
 }
@@ -81,6 +84,8 @@ void Client::createAccount(const std::string &pubKeyFilename) {
     _userId = 0;
     _connection = std::make_unique<ClientToServerManager>(
         to_hex(Random().get(SYMMETRIC_KEY_SIZE)), serverPub);
+    if (_test)
+        _connection->_testing = _test;
     std::ifstream input(pubKeyFilename);
     std::string publicKey((std::istreambuf_iterator<char>(input)),
                           std::istreambuf_iterator<char>());

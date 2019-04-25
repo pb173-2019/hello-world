@@ -161,6 +161,7 @@ protected:
     MessageNumberGenerator _counter;
 
 public:
+    bool _testing{false};
     /**
      * Initialize with session key
      *

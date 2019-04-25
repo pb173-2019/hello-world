@@ -79,12 +79,18 @@ namespace helloworld {
          */
         void send(QByteArray data);
 
+        /**
+         * @brief closeConnection closes connection with user
+         */
+        void closeConnection();
+
     Q_SIGNALS:
 
         /**
          * @brief disconnected signal on disconnect
          */
         void disconnected(const QTcpSocket *);
+
     };
 
     class SocketManager : public QObject {
@@ -173,6 +179,8 @@ namespace helloworld {
         void toRegister(QTcpSocket *, QString);
 
         void forward(QByteArray);
+
+        void toClose();
 
     public:
         explicit ServerTCP(Callable<void, bool, const std::string &, std::stringstream &&> *callback,
