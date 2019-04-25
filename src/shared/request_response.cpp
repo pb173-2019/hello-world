@@ -40,7 +40,7 @@ bool MessageNumberGenerator::checkIncomming(const Response& data) {
 }
 
 void MessageNumberGenerator::setNumber(Request& r) {
-    r.header.messageNumber = _nOutgoing++;
+    r.header.messageNumber = ++_nOutgoing;
     _unresolvedNumbers.insert(r.header.messageNumber);
 }
 
@@ -52,7 +52,7 @@ void MessageNumberGenerator::setNumber(Response& r) {
         return;
     }
     // if it is unsolicitated
-    r.header.messageNumber = _nOutgoing++;
+    r.header.messageNumber = ++_nOutgoing;
 }
 
 serialize::structure& Request::Header::serialize(serialize::structure& result) const {

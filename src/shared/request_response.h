@@ -122,7 +122,7 @@ struct Response {
 
 class MessageNumberGenerator {
 
-    bool _set = false;
+    bool _set{false};
     std::set<uint32_t > _unresolvedNumbers;
     uint32_t _nIncomming = 0;
     uint32_t _nOutgoing = 0;

@@ -59,6 +59,10 @@ namespace helloworld {
         socket->write(data.data(), data.size());
     }
 
+    void ServerSocket::closeConnection() {
+        socket->disconnectFromHost();
+    }
+
 /*************************************************************************************/
 
     SocketManager::SocketManager(ServerTCP *server, QObject *parent)
@@ -147,14 +151,12 @@ namespace helloworld {
             std::stringstream result{}, from(msg);
             _base64.toStream(from, result);
 
-            //todo invalid, name might be empty, the server CANNOT count on name being valid value
             Callable<void, bool, const std::string &, std::stringstream &&>::call(callback, !name.empty(),
                                                                                   name, std::move(result));
         }
     }
 
     void ServerTCP::receive() {
-        //todo ugly, ugly
         QTcpSocket *sender = dynamic_cast<QTcpSocket *>(QObject::sender());
         _receive(sender);
     }
@@ -239,8 +241,19 @@ namespace helloworld {
         sender->deleteLater();
     }
 
-    bool ServerTCP::removeConnection(const std::string &/*username*/) {
-        return false;
+    bool ServerTCP::removeConnection(const std::string &username) {
+        auto socket = getSocket(username);
+        if (!socket)
+            return false;
+
+        auto socketWrapper = dynamic_cast<ServerSocket *>(socket->parent());
+        if (!socketWrapper)
+            return false;
+
+        connect(this, &ServerTCP::toClose, socketWrapper, &ServerSocket::closeConnection);
+        emit toClose();
+        disconnect(this, &ServerTCP::toClose, socketWrapper, &ServerSocket::closeConnection);
+
     }
 
     bool ServerTCP::exists(const std::string &username) {

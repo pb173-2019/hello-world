@@ -26,8 +26,8 @@ Response ClientToServerManager::parseIncoming(std::stringstream &&data) {
     read_n(headDecrypted, head.data(), head.size());
     response.header = Response::Header::deserialize(head);
     if (!_counter.checkIncomming(response))
-        // TODO throw exception or discard message
-        ;
+        throw Error("Possible replay attack");
+
     //will pass only encrypted payload if not for server to read
     response.payload.resize(getSize(bodyDecrypted));
     read_n(bodyDecrypted, response.payload.data(), response.payload.size());
@@ -73,9 +73,7 @@ Request GenericServerManager::parseIncoming(std::stringstream &&data) {
 
     request.header = std::move(Request::Header::deserialize(header));
 
-    if (!_counter.checkIncomming(request))
-        // TODO throw exception or discard message
-        ;
+    /* is used for all users, message counting doesnt make sense*/
 
     size_t length = getSize(data);
     request.payload = std::vector<unsigned char>(length);
@@ -121,8 +119,8 @@ Request ServerToClientManager::parseIncoming(std::stringstream &&data) {
     read_n(headDecrypted, head.data(), head.size());
     request.header = Request::Header::deserialize(head);
     if (!_counter.checkIncomming(request))
-        // TODO throw exception or discard message
-        ;
+        throw Error("Possible replay attack");
+
     //will pass only encrypted payload if not for server to read
     request.payload.resize(getSize(bodyDecrypted));
     read_n(bodyDecrypted, request.payload.data(), request.payload.size());
