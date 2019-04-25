@@ -102,6 +102,7 @@ public:
         }
     }
 
+    MessageNumberGenerator counter;
     uint32_t uid = 0;
     std::string _username = "alice";
     std::unique_ptr<UserTransmissionManager> _transmission;
@@ -152,10 +153,12 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
     //client obtains the final OK response
     client._transmission->receive();
 
-    client._connection->switchSecureChannel(false);
+    client._connection = std::make_unique<ClientToServerManager>("2b7e151628aed2a6abf7158809cf4f3c", "server_pub.pem");
+
     std::stringstream loggingin = client._connection->parseOutgoing(
             loginUser("alice", "2b7e151628aed2a6abf7158809cf4f3c"));
     client._connection->switchSecureChannel(true);
+    server.cleanAfterConenction("alice");
 
     //!! now when parsed, can set secure channel
     client._transmission->send(loggingin);

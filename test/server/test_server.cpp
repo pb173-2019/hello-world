@@ -10,7 +10,8 @@
 
 using namespace helloworld;
 
-Response registerAlice(Server &server, const std::string &name) {
+
+Response registerAlice(Server &server, const std::string &name, MessageNumberGenerator& counter) {
     std::string sessionKey = "2b7e151628aed2a6abf7158809cf4f3c";
     std::ifstream input("alice_pub.pem");
     std::string publicKey((std::istreambuf_iterator<char>(input)),
@@ -22,17 +23,19 @@ Response registerAlice(Server &server, const std::string &name) {
     //sets the transmission manager for server
     registerRequest.sessionKey = "323994cfb9da285a5d9642e1759b224a";
     Request request{{Request::Type::CREATE, 0}, registerRequest.serialize()};
-
+    counter.setNumber(request);
     return server.handleUserRequest(request);
 }
 
 Response completeAlice(Server &server, const std::vector<unsigned char>& secret,
-                       const std::string &name, Request::Type type) {
+                       const std::string &name, Request::Type type,  MessageNumberGenerator& counter) {
     RSA2048 rsa;
     rsa.loadPrivateKey("alice_priv.pem", "2b7e151628aed2a6abf7158809cf4f3c", "323994cfb9da285a5d9642e1759b224a");
 
     CompleteAuthRequest crRequest(std::move(rsa.sign(secret)), name);
     Request request{{type, 0}, crRequest.serialize()};
+
+    counter.setNumber(request);
     return server.handleUserRequest(request);
 }
 
@@ -43,17 +46,18 @@ TEST_CASE("Create key") {
 }
 
 TEST_CASE("Add new user") {
+    MessageNumberGenerator aliceCounter;
     Server server;
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
     std::string name = "alice";
 
     SECTION("New user") {
-        auto response = registerAlice(server, name);
+        auto response = registerAlice(server, name, aliceCounter);
         CHECK(response.header.type == Response::Type::CHALLENGE_RESPONSE_NEEDED);
 
         SECTION("Registration already started") {
-            CHECK_THROWS(registerAlice(server, name));
+            CHECK_THROWS(registerAlice(server, name, aliceCounter));
         }
 
         SECTION("Challenge incorrectly solved") {
@@ -61,11 +65,12 @@ TEST_CASE("Add new user") {
                     std::vector<unsigned char>(256, 10), name);
             Request request{{Request::Type::CREATE_COMPLETE, 0},
                             crRequest.serialize()};
+            aliceCounter.setNumber(request);
             CHECK_THROWS(server.handleUserRequest(request));
         }
 
         SECTION("Challenge correctly solved") {
-            CHECK(completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE).header.type ==
+            CHECK(completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE, aliceCounter).header.type ==
                   Response::Type::USER_REGISTERED);
         }
         
@@ -80,10 +85,11 @@ TEST_CASE("User authentication") {
     Server server;
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
+    MessageNumberGenerator aliceCounter;
     std::string name = "alice";
 
-    auto response = registerAlice(server, name);
-    completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE);
+    auto response = registerAlice(server, name, aliceCounter);
+    completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE, aliceCounter);
     //registration opened transmission
     server.logout(name);
 
@@ -91,6 +97,7 @@ TEST_CASE("User authentication") {
         AuthenticateRequest authRequest("alice", {});
         authRequest.sessionKey = "323994cfb9da285a5d9642e1759b224a";
         Request request{{Request::Type::LOGIN, 0}, authRequest.serialize()};
+        aliceCounter.setNumber(request);
 
         auto response = server.handleUserRequest(request);
         CHECK(response.header.type == Response::Type::CHALLENGE_RESPONSE_NEEDED);
@@ -99,6 +106,8 @@ TEST_CASE("User authentication") {
             CompleteAuthRequest caRequest(response.payload, name);
             Request request{{Request::Type::LOGIN_COMPLETE, 0},
                             caRequest.serialize()};
+
+            aliceCounter.setNumber(request);
             CHECK_THROWS(server.handleUserRequest(request));
         }
 
@@ -107,11 +116,13 @@ TEST_CASE("User authentication") {
                     std::vector<unsigned char>(128, 10), name);
             Request request{{Request::Type::LOGIN_COMPLETE, 0},
                             caRequest.serialize()};
+
+            aliceCounter.setNumber(request);
             CHECK_THROWS(server.handleUserRequest(request));
         }
 
         SECTION("Challenge solved") {
-            auto result = completeAlice(server, response.payload, name, Request::Type::LOGIN_COMPLETE);
+            auto result = completeAlice(server, response.payload, name, Request::Type::LOGIN_COMPLETE, aliceCounter);
             CHECK(result.header.type == Response::Type::OK);
         }
     }
@@ -130,12 +141,15 @@ TEST_CASE("Delete & logout") {
     Server server;
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
     std::string name = "alice";
+    MessageNumberGenerator aliceCounter;
 
-    auto response = registerAlice(server, name);
-    completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE);
+    auto response = registerAlice(server, name, aliceCounter);
+    completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE, aliceCounter);
 
     GenericRequest nameId{0, name};
     Request logoutRequest{{Request::Type::LOGOUT, 0}, nameId.serialize()};
+    aliceCounter.setNumber(logoutRequest);
+
     auto logoutReponse = server.handleUserRequest(logoutRequest);
     CHECK(logoutReponse.header.type == Response::Type::OK);
 
@@ -143,10 +157,14 @@ TEST_CASE("Delete & logout") {
     AuthenticateRequest authRequest("alice", {});
     authRequest.sessionKey = "323994cfb9da285a5d9642e1759b224a";
     Request login{{Request::Type::LOGIN, 0}, authRequest.serialize()};
+    aliceCounter.setNumber(login);
+
     response = server.handleUserRequest(login);
-    completeAlice(server, response.payload, name, Request::Type::LOGIN_COMPLETE);
+    completeAlice(server, response.payload, name, Request::Type::LOGIN_COMPLETE, aliceCounter);
 
     Request deleteUser{{Request::Type::REMOVE, 0}, nameId.serialize()};
+    aliceCounter.setNumber(deleteUser);
+
     auto removeReponse = server.handleUserRequest(logoutRequest);
     CHECK(removeReponse.header.type == Response::Type::OK);
     //try to log in
@@ -159,22 +177,24 @@ TEST_CASE("Get list") {
     Server server;
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
     std::string name = "alice";
+    MessageNumberGenerator counter;
 
     SECTION("Expected users in list") {
         SECTION("No users") { CHECK(server.getUsers("").empty()); }
 
         SECTION("Alice") {
-            auto response = registerAlice(server, name);
-            completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE);
+            auto response = registerAlice(server, name, counter);
+            completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE, counter);
 
             CHECK(server.getUsers("") == std::vector<std::string>{"alice"});
         }
 
         SECTION("Lots of users") {
             for (int i = 0; i < 100; ++i) {
+                MessageNumberGenerator tmpcounter;
                 std::string name = "alice-" + std::to_string(i);
-                auto response = registerAlice(server, name);
-                completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE);
+                auto response = registerAlice(server, name, tmpcounter);
+                completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE, tmpcounter);
             }
 
             CHECK(server.getUsers("").size() == 100);
