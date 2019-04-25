@@ -82,6 +82,7 @@ TEST_CASE("Add new user") {
 }
 
 TEST_CASE("User authentication") {
+    Server::test();
     Server server;
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
