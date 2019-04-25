@@ -46,6 +46,7 @@ struct Challenge {
 
 
 class Server : public QObject, public Callable<void, bool, const std::string &, std::stringstream &&> {
+    static bool _test;
     //rsa maximum encryption length of 126 bytes
     Q_OBJECT
     static const size_t CHALLENGE_SECRET_LENGTH = 126;
@@ -67,6 +68,9 @@ public:
         log = foo;
     }
 
+    static void test() {
+        _test = true;
+    }
     /**
      * @brief This function is called when transmission manager discovers new
      *        incoming request
@@ -272,7 +276,7 @@ public:
      * @param request to get message number & user id
      * @return OK if nothing needed, specific server response on event
      */
-    Response checkEvent(const Request& request);
+    Response checkEvent(uint32_t uid);
 
     /**
      * Send reponse to user with manager

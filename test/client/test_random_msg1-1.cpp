@@ -67,6 +67,7 @@ void callRandomMethod(Client& alice, Client& bob, size_t rand, Random& random,
         case LOGIN: {
             std::cout << "Client id " + std::to_string(performing.getId()) +
                              " attempts to log-in...";
+
             performing.login();
             std::cout << " done.\n";
             if (performing.getId() == 1)
@@ -131,16 +132,18 @@ TEST_CASE("Create keys") {
 
 TEST_CASE("Random testing 1:1 messaging") {
     Network::setEnabled(true);
-
     Server server;
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
-
+    Client::test();
+    Server::test();
     Random random;
 
     Client alice("alice", "alice_messaging.pem", "123456");
+
     alice.setTransmissionManager(
         std::make_unique<ClientFiles>(&alice, alice.name()));
     Client bob("bob", "bob_messaging.pem", "123456");
+
     bob.setTransmissionManager(std::make_unique<ClientFiles>(&bob, bob.name()));
 
     alice.createAccount("alice_messaging_pub.pem");

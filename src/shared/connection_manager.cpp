@@ -25,7 +25,7 @@ Response ClientToServerManager::parseIncoming(std::stringstream &&data) {
     std::vector<unsigned char> head(sizeof(Request::Header));
     read_n(headDecrypted, head.data(), head.size());
     response.header = Response::Header::deserialize(head);
-    if (!_counter.checkIncomming(response))
+    if (!_testing && !_counter.checkIncomming(response))
         throw Error("Possible replay attack");
 
     //will pass only encrypted payload if not for server to read
@@ -118,7 +118,7 @@ Request ServerToClientManager::parseIncoming(std::stringstream &&data) {
     std::vector<unsigned char> head(sizeof(Request::Header));
     read_n(headDecrypted, head.data(), head.size());
     request.header = Request::Header::deserialize(head);
-    if (!_counter.checkIncomming(request))
+    if (!_testing && !_counter.checkIncomming(request))
         throw Error("Possible replay attack");
 
     //will pass only encrypted payload if not for server to read
