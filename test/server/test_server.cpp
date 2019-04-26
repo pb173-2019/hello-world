@@ -43,6 +43,8 @@ TEST_CASE("Create key") {
     RSAKeyGen keygen;
     keygen.savePrivateKey("alice_priv.pem", "2b7e151628aed2a6abf7158809cf4f3c", "323994cfb9da285a5d9642e1759b224a");
     keygen.savePublicKey("alice_pub.pem");
+
+    Server::setTest(true);
 }
 
 TEST_CASE("Add new user") {
@@ -82,7 +84,7 @@ TEST_CASE("Add new user") {
 }
 
 TEST_CASE("User authentication") {
-    Server::test();
+    Server::setTest(true);
     Server server;
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 

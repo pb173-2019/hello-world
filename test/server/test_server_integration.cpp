@@ -114,6 +114,7 @@ TEST_CASE("Create keys") {
     RSAKeyGen keygen;
     keygen.savePrivateKeyPassword("alice_priv.pem", "the most secure pwd ever");
     keygen.savePublicKey("alice_pub.pem");
+    Server::setTest(true);
 }
 
 TEST_CASE("Scenario 1: create, logout, login, delete server") {

@@ -313,8 +313,7 @@ Response Server::checkEvent(uint32_t uid) {
         KeyBundle<C25519> keys = KeyBundle<C25519>::deserialize(_database->selectBundle(uid));
         if (keys.oneTimeKeys.empty()) {
             log("checking events: #" + std::to_string(uid) + " : new keys");
-            return {Response::Type::BUNDLE_UPDATE_NEEDED,
-                    uid};
+            return {Response::Type::BUNDLE_UPDATE_NEEDED, uid};
         }
         // step three: new messages
         std::vector<unsigned char> msg = _database->selectData(uid);
