@@ -78,21 +78,26 @@ public:
             return;
         }
 
-        std::stringstream result{};
-        _base64.toStream(received, result);
-        std::string name = incoming.substr(0, incoming.size() - 4);
-        result.seekg(0, std::ios::beg);
+        try {
+            std::stringstream result{};
+            _base64.toStream(received, result);
+            std::string name = incoming.substr(0, incoming.size() - 4);
+            result.seekg(0, std::ios::beg);
 
-        received.close();
-        if (remove(incoming.c_str()) != 0) {
-            throw Error("Could not finish transmission.\n");
+            received.close();
+            if (remove(incoming.c_str()) != 0) {
+                throw Error("Could not finish transmission.\n");
+            }
+
+            bool existing = exists(name);
+            if (!existing) _lastNew = name;
+
+            Callable<void, bool, const std::string&, std::stringstream&&>::call(
+                    callback, std::move(existing), name, std::move(result));
+        } catch (...) {
+            remove(incoming.c_str());
+            throw;
         }
-
-        bool existing = exists(name);
-        if (!existing) _lastNew = name;
-
-        Callable<void, bool, const std::string&, std::stringstream&&>::call(callback, std::move(existing),
-                name, std::move(result));
     }
 
     /**

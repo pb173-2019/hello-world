@@ -12,7 +12,6 @@
 namespace helloworld {
 bool Client::_test = false;
 
-
 Client::Client(std::string username, const std::string &clientPrivKeyFilename,
                const std::string &password, QObject *parent)
     : QObject(parent),
@@ -43,10 +42,7 @@ void Client::callback(std::stringstream &&data) {
             parseUsers(response);
             return;
         case Response::Type::CHALLENGE_RESPONSE_NEEDED:
-            sendRequest(completeAuth(
-                response.payload,
-                Request::Type::CREATE_COMPLETE));    // change create complete
-                                                     // to auth complete
+            sendRequest(completeAuth(response.payload));
             return;
         case Response::Type::USER_REGISTERED:
             _userId = response.header.userId;
@@ -62,6 +58,8 @@ void Client::callback(std::stringstream &&data) {
         case Response::Type::RECEIVE_OLD:
             receiveData(response);
             return;
+        case Response::Type::GENERIC_SERVER_ERROR:
+            throw Error("Server returned error.");
         default:
             throw Error("Unknown response type.");
     }
@@ -259,19 +257,30 @@ void Client::sendX3DHMessage(uint32_t receiverId, const std::string &time,
 void Client::decryptInitialMessage(SendData &sendData, Response::Type type) {
     std::vector<unsigned char> messageEncrypted;
     X3DH::X3DHSecretKeyPair secret;
-    std::tie(messageEncrypted, secret) = _x3dh->getSecret(sendData.data, type);
+    std::tie(messageEncrypted, secret) = _x3dh->getSecret(sendData.data);
 
-    _ratchets.emplace(
-        sendData.fromId,
-        DoubleRatchet(secret.sk, secret.ad, secret.pubKey, secret.privKey));
-
-    Message message = Message::deserialize(messageEncrypted);
-    auto decrypted = _ratchets.at(sendData.fromId).RatchetDecrypt(message);
-    if (!decrypted.empty()) {
-        sendData.data = decrypted;
-        _incomming = sendData;
+    if (type == Response::Type::RECEIVE_OLD) {
+        DoubleRatchet temp{secret.sk, secret.ad, secret.pubKey, secret.privKey};
+        Message message = Message::deserialize(messageEncrypted);
+        auto decrypted = temp.RatchetDecrypt(message);
+        if (!decrypted.empty()) {
+            sendData.data = decrypted;
+            _incomming = sendData;
+        } else {
+            _incomming = {};
+        }
     } else {
-        _incomming = {};
+        _ratchets.emplace(
+                sendData.fromId,
+                DoubleRatchet(secret.sk, secret.ad, secret.pubKey, secret.privKey));
+        Message message = Message::deserialize(messageEncrypted);
+        auto decrypted = _ratchets.at(sendData.fromId).RatchetDecrypt(message);
+        if (!decrypted.empty()) {
+            sendData.data = decrypted;
+            _incomming = sendData;
+        } else {
+            _incomming = {};
+        }
     }
 }
 
@@ -307,10 +316,9 @@ void Client::sendGenericRequest(Request::Type type) {
     sendRequest({{type, _userId}, request.serialize()});
 }
 
-Request Client::completeAuth(const std::vector<unsigned char> &secret,
-                             Request::Type type) {
+Request Client::completeAuth(const std::vector<unsigned char> &secret) {
     CompleteAuthRequest request(_rsa.sign(secret), _username);
-    return {{type, _userId}, request.serialize()};
+    return {{Request::Type::CHALLENGE, _userId}, request.serialize()};
 }
 
 bool Client::hasRatchet(uint32_t id) const {

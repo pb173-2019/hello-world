@@ -128,15 +128,59 @@ TEST_CASE("Create keys") {
     RSAKeyGen bob;
     bob.savePrivateKeyPassword("bob_messaging.pem", "123456");
     bob.savePublicKey("bob_messaging_pub.pem");
+
+    Server::setTest(false);
 }
+
+TEST_CASE("Problematic scenarios explicitly performed, found by test below") {
+    Network::setEnabled(true);
+    Network::setProblematic(false);
+
+    Server server;
+    server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
+
+    Random random;
+
+    Client alice("alice", "alice_messaging.pem", "123456");
+    alice.setTransmissionManager(
+            std::make_unique<ClientFiles>(&alice, alice.name()));
+    Client bob("bob", "bob_messaging.pem", "123456");
+    bob.setTransmissionManager(std::make_unique<ClientFiles>(&bob, bob.name()));
+
+    alice.createAccount("alice_messaging_pub.pem");
+    bob.createAccount("bob_messaging_pub.pem");
+
+    SECTION("User sends data while other offline, when comes online the sender thinks the connection is established while other does not.") {
+        alice.logout();
+        bob.sendData(alice.getId(), {1,2,3});
+        alice.login();
+        CHECK(alice.getMessage().data == std::vector<unsigned char>{1,2,3});
+        alice.sendData(bob.getId(), {1}); // <-- here **NEW** X3DH while bob has old one
+    }
+
+    SECTION("Multiple offline messages") {
+        bob.logout();
+        alice.sendData(bob.getId(), {1,2,3});
+        alice.sendData(bob.getId(), {1,2,3});
+        alice.sendData(bob.getId(), {1,2,3});
+
+        bob.login();
+        CHECK(bob.getMessage().data.size() >= 3);
+    }
+
+    server.dropDatabase();
+}
+
 
 TEST_CASE("Random testing 1:1 messaging") {
     Network::setEnabled(true);
+
     Server server;
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
-    Client::test();
-    Server::test();
     Random random;
+
+    Server::setTest(true);
+    Client::setTest(true);
 
     Client alice("alice", "alice_messaging.pem", "123456");
 
@@ -225,6 +269,7 @@ TEST_CASE("Random testing 1:1 messaging") {
             callRandomMethod(alice, bob, SEND_DATA, random, false);
             std::cout << "------\n\n";
         }
+        std::cout << "1-1 testing finished.\n\n";
     }
 
     // valid testing?

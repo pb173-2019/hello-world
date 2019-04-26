@@ -18,7 +18,7 @@ TEST_CASE("Create key for aliceabc") {
     keygen.savePublicKey("aliceabc_pub.pem");
 
     Server server;
-    server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
+    Server::setTest(false); // testing the real performance -> turn off
     server.dropDatabase(); //prevents database data from other testing
 }
 
@@ -54,6 +54,7 @@ bool checkContains(const std::map<uint32_t, std::string>& values, const std::str
 
 TEST_CASE("Scenario 2: getting users from database.") {
     Network::setEnabled(true);
+    Network::setProblematic(false);
 
     Server server;
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
@@ -139,8 +140,10 @@ TEST_CASE("Incorrect authentications") {
 
 TEST_CASE("Messages exchange - two users online, establish the X3DH shared secret connection") {
     Network::setEnabled(true);
+    Network::setProblematic(false);
 
     Server server;
+
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
     Client aliceabc("aliceabc", "aliceabc_priv.pem", "hunter2");
@@ -152,11 +155,13 @@ TEST_CASE("Messages exchange - two users online, establish the X3DH shared secre
 
     aliceabc.sendGetOnline();
 
-    uint32_t id;
+    uint32_t id = 0;
     //get bob id, maybe reverse map and make it name -> id
     for (auto it : aliceabc.getUsers())
         if (it.second == "bob")
             id = it.first;
+
+    REQUIRE(id == bob.getId());
 
     SECTION("aliceabc uses the avaliable key from bundle of one time keys") {
         //national secret message!
@@ -183,7 +188,7 @@ TEST_CASE("Messages exchange - two users online, establish the X3DH shared secre
             //no message, the client attempts to send no existing data (file) with the key bundle
             CHECK_THROWS(aliceabc.requestKeyBundle(id));
         }
-        
+
         //national secret message!
         aliceabc.sendData(id, std::vector<unsigned char>{'a', 'h', 'o', 'j', 'b', 'o', 'b', 'e'});
 

@@ -54,8 +54,8 @@ public:
         return _username;
     }
 
-    static void test() {
-        _test = true;
+    static void setTest(bool isTesting) {
+        _test = isTesting;
     }
     /**
      * @brief This function is called when transmission manager discovers new
@@ -108,6 +108,7 @@ public:
      */
     const std::map<uint32_t, std::string> &getUsers() const { return _userList; }
     std::map<uint32_t, std::string> &getUsers() { return _userList; }
+
     /**
      * @brief Just ask server whether messages available
      */
@@ -200,12 +201,10 @@ private:
     /**
      * Performs server challenge
      * @param secret secret to prove the identity over
-     * @param type type of authentication (on registration / login)
      * @return request to server to verify the challenge sent in this request
      * payload
      */
-    Request completeAuth(const std::vector<unsigned char> &secret,
-                         Request::Type type);
+    Request completeAuth(const std::vector<unsigned char> &secret);
 
     /**
      * Generic request sender

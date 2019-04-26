@@ -9,8 +9,8 @@
 #include "../shared/curve_25519.h"
 
 namespace helloworld {
-    bool Server::_test{false};
 
+bool Server::_test{false};
 
 Server::Server() : _database(std::make_unique<ServerSQLite>("test_db1")),
                    _genericManager("server_priv.pem",
@@ -21,12 +21,10 @@ Response Server::handleUserRequest(const Request &request) {
     switch (request.header.type) {
         case Request::Type::CREATE:
             return registerUser(request);
-        case Request::Type::CREATE_COMPLETE:
+        case Request::Type::CHALLENGE:
             return completeAuthentication(request);
         case Request::Type::LOGIN:
             return authenticateUser(request);
-        case Request::Type::LOGIN_COMPLETE:
-            return completeAuthentication(request); // changed
         case Request::Type::GET_ONLINE:
             return getOnline(request);
         case Request::Type::FIND_USERS:
@@ -79,7 +77,6 @@ Response Server::registerUser(const Request &request) {
     return r;
 }
 
-// Changed
 Response Server::completeAuthentication(const Request &request) {
     CompleteAuthRequest curRequest =
             CompleteAuthRequest::deserialize(request.payload);
@@ -89,11 +86,11 @@ Response Server::completeAuthentication(const Request &request) {
     if (authentication == _requestsToConnect.end()) {
         throw Error("No pending registration for provided username.");
     }
-
+    bool newUser = authentication->second.second;
 
     RSA2048 rsa;
     uint32_t userId = 0;
-    if (!authentication->second.second) {
+    if (!newUser) {
         UserData user{0, curRequest.name, "", {}};
         UserData result = _database->select(user);
         userId = result.id;
@@ -101,7 +98,6 @@ Response Server::completeAuthentication(const Request &request) {
             throw Error("User with given name is not registered.");
         }
         rsa.setPublicKey(result.publicKey);
-
     } else {
         rsa.setPublicKey(authentication->second.first->userData.publicKey);
     }
@@ -116,18 +112,13 @@ Response Server::completeAuthentication(const Request &request) {
     if (!emplaced)
         throw Error("Invalid authentication under an online account.");
 
-
-    if (authentication->second.second) userId = _database->insert(authentication->second.first->userData, true);
-
-    bool authenticationExists = authentication->second.second;
+    if (newUser) userId = _database->insert(authentication->second.first->userData, true);
     lock.unlock();
     QWriteLocker lock3(&_requestLock); //todo better lock.lockForWrite(); ?
     _requestsToConnect.erase(curRequest.name);
     lock3.unlock();                    //lock.unlock();
 
-    Response r = authenticationExists ?
-            Response{Response::Type::USER_REGISTERED, userId} : checkEvent(userId);
-
+    Response r = newUser ? Response{Response::Type::USER_REGISTERED, userId} : checkEvent(userId);
     log("Authentification succes: " + curRequest.name);
     r.header.userId = userId;
     sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
@@ -310,12 +301,10 @@ Response Server::checkEvent(uint32_t uid) {
         return {Response::Type::OK, uid}; // some tests dont add keys during registration
                                           // and after fixing check event, it causes segfault
 
-
     if (uid != 0) {
         // step one: old keys: if time stored + 2 weeks < now
         uint64_t time = _database->getBundleTimestamp(uid);
         if (time + 14*24*3600 < getTimestampOf(nullptr)) {
-
             log("checking events: #" + std::to_string(uid) + " : update key bundle");
             return {Response::Type::BUNDLE_UPDATE_NEEDED,
                     uid};
@@ -323,7 +312,6 @@ Response Server::checkEvent(uint32_t uid) {
         // step two: one-time keys emptied //todo should be implemented or just wait for 2week period?
         KeyBundle<C25519> keys = KeyBundle<C25519>::deserialize(_database->selectBundle(uid));
         if (keys.oneTimeKeys.empty()) {
-
             log("checking events: #" + std::to_string(uid) + " : new keys");
             return {Response::Type::BUNDLE_UPDATE_NEEDED,
                     uid};
@@ -336,7 +324,6 @@ Response Server::checkEvent(uint32_t uid) {
                     std::move(msg)};
         }
     }
-
     log("checking events: #" + std::to_string(uid) + " : no new events");
     return {Response::Type::OK, uid};
 }
@@ -382,7 +369,6 @@ void Server::sendReponse(const std::string &username, const Response &response, 
 }
 
 Response Server::updateKeyBundle(const Request &request) {
-
     Response r = {Response::Type::OK, request.header.userId};
     _database->insertBundle(request.header.userId, request.payload);
 
@@ -391,5 +377,6 @@ Response Server::updateKeyBundle(const Request &request) {
     log("Update keys: " + user.name);
     sendReponse(user.name, r, getManagerPtr(user.name, true));
     return r;
-    }
+}
+
 }    // namespace helloworld

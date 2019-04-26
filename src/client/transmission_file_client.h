@@ -78,11 +78,11 @@ public:
 
             result.seekg(0, std::ios::beg);
             Callable<void, std::stringstream &&>::call(callback, std::move(result));
-        } catch (std::exception &e) {
+        } catch (...) {
             //finally simulation, server doesn't need - it catches all the
             // exceptions in its callback
             remove((username + "-response.tcp").c_str());
-            throw e;
+            throw;
         }
     }
 };

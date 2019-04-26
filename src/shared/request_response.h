@@ -24,7 +24,7 @@ namespace helloworld {
 
 struct Request {
     enum class Type {
-        LOGIN, LOGIN_COMPLETE, LOGOUT, CREATE, CREATE_COMPLETE, CHECK_INCOMING,
+        LOGIN, LOGOUT, CREATE, CHALLENGE, CHECK_INCOMING,
         REMOVE, SEND, GET_ONLINE, FIND_USERS, KEY_BUNDLE_UPDATE, GET_RECEIVERS_BUNDLE
     };
 
@@ -128,7 +128,7 @@ class MessageNumberGenerator {
     uint32_t _nOutgoing = 0;
 
 public:
-    MessageNumberGenerator() : _nOutgoing(Random{}.getBounded(0, UINT32_MAX)) {}
+    MessageNumberGenerator() : _nOutgoing(static_cast<uint32_t>(Random{}.getBounded(0, UINT32_MAX))) {}
 
     bool checkIncomming(const Request& data);
 

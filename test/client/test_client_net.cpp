@@ -365,7 +365,7 @@ TEST_CASE("Reaction to problems") {
             QObject::connect(&client, SIGNAL(disconnected()), &e, SLOT(done()));
             QObject::connect(&client, SIGNAL(disconnected()), &a, SLOT(quit()));
 
-        client.setHostPort(5000);
+            client.setHostPort(5000);
             client.setHostAddress(localhost);
             client.init();
 
@@ -373,7 +373,5 @@ TEST_CASE("Reaction to problems") {
             a.exec();
 
             CHECK(e.emmited);
-
     }
-
 }

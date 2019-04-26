@@ -90,7 +90,7 @@ public:
             case Response::Type::CHALLENGE_RESPONSE_NEEDED: {
                 Request complete = completeAuth(response.payload, _username,
                         "alice_priv.pem", "the most secure pwd ever",
-                        (registered) ?  Request::Type::LOGIN_COMPLETE : Request::Type::CREATE_COMPLETE);
+                        (registered) ?  Request::Type::CHALLENGE : Request::Type::CHALLENGE);
                 std::stringstream buffer = _connection->parseOutgoing(complete);
 
                 _transmission->send(buffer);

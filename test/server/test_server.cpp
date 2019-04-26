@@ -63,14 +63,14 @@ TEST_CASE("Add new user") {
         SECTION("Challenge incorrectly solved") {
             CompleteAuthRequest crRequest(
                     std::vector<unsigned char>(256, 10), name);
-            Request request{{Request::Type::CREATE_COMPLETE, 0},
+            Request request{{Request::Type::CHALLENGE, 0},
                             crRequest.serialize()};
             aliceCounter.setNumber(request);
             CHECK_THROWS(server.handleUserRequest(request));
         }
 
         SECTION("Challenge correctly solved") {
-            CHECK(completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE, aliceCounter).header.type ==
+            CHECK(completeAlice(server, response.payload, name, Request::Type::CHALLENGE, aliceCounter).header.type ==
                   Response::Type::USER_REGISTERED);
         }
         
@@ -90,7 +90,7 @@ TEST_CASE("User authentication") {
     std::string name = "alice";
 
     auto response = registerAlice(server, name, aliceCounter);
-    completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE, aliceCounter);
+    completeAlice(server, response.payload, name, Request::Type::CHALLENGE, aliceCounter);
     //registration opened transmission
     server.logout(name);
 
@@ -105,7 +105,7 @@ TEST_CASE("User authentication") {
 
         SECTION("Challenge not solved 1") {
             CompleteAuthRequest caRequest(response.payload, name);
-            Request request{{Request::Type::LOGIN_COMPLETE, 0},
+            Request request{{Request::Type::CHALLENGE, 0},
                             caRequest.serialize()};
 
             aliceCounter.setNumber(request);
@@ -115,7 +115,7 @@ TEST_CASE("User authentication") {
         SECTION("Challenge not solved 2") {
             CompleteAuthRequest caRequest(
                     std::vector<unsigned char>(128, 10), name);
-            Request request{{Request::Type::LOGIN_COMPLETE, 0},
+            Request request{{Request::Type::CHALLENGE, 0},
                             caRequest.serialize()};
 
             aliceCounter.setNumber(request);
@@ -123,7 +123,7 @@ TEST_CASE("User authentication") {
         }
 
         SECTION("Challenge solved") {
-            auto result = completeAlice(server, response.payload, name, Request::Type::LOGIN_COMPLETE, aliceCounter);
+            auto result = completeAlice(server, response.payload, name, Request::Type::CHALLENGE, aliceCounter);
             CHECK(result.header.type == Response::Type::OK);
         }
     }
@@ -145,7 +145,7 @@ TEST_CASE("Delete & logout") {
     MessageNumberGenerator aliceCounter;
 
     auto response = registerAlice(server, name, aliceCounter);
-    completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE, aliceCounter);
+    completeAlice(server, response.payload, name, Request::Type::CHALLENGE, aliceCounter);
 
     GenericRequest nameId{0, name};
     Request logoutRequest{{Request::Type::LOGOUT, 0}, nameId.serialize()};
@@ -161,7 +161,7 @@ TEST_CASE("Delete & logout") {
     aliceCounter.setNumber(login);
 
     response = server.handleUserRequest(login);
-    completeAlice(server, response.payload, name, Request::Type::LOGIN_COMPLETE, aliceCounter);
+    completeAlice(server, response.payload, name, Request::Type::CHALLENGE, aliceCounter);
 
     Request deleteUser{{Request::Type::REMOVE, 0}, nameId.serialize()};
     aliceCounter.setNumber(deleteUser);
@@ -185,7 +185,7 @@ TEST_CASE("Get list") {
 
         SECTION("Alice") {
             auto response = registerAlice(server, name, counter);
-            completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE, counter);
+            completeAlice(server, response.payload, name, Request::Type::CHALLENGE, counter);
 
             CHECK(server.getUsers("") == std::vector<std::string>{"alice"});
         }
@@ -195,9 +195,8 @@ TEST_CASE("Get list") {
                 MessageNumberGenerator tmpcounter;
                 std::string name = "alice-" + std::to_string(i);
                 auto response = registerAlice(server, name, tmpcounter);
-                completeAlice(server, response.payload, name, Request::Type::CREATE_COMPLETE, tmpcounter);
+                completeAlice(server, response.payload, name, Request::Type::CHALLENGE, tmpcounter);
             }
-
             CHECK(server.getUsers("").size() == 100);
         }
     }

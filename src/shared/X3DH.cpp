@@ -3,7 +3,7 @@
 
 namespace helloworld {
 
-std::pair<std::vector<unsigned char>, X3DH::X3DHSecretKeyPair> X3DH::getSecret(const std::vector<unsigned char> &payload, helloworld::Response::Type type) {
+std::pair<std::vector<unsigned char>, X3DH::X3DHSecretKeyPair> X3DH::getSecret(const std::vector<unsigned char> &payload) {
     X3DHRequest <C25519> x3dhBundle =
             X3DHRequest<C25519>::deserialize(payload);
 
@@ -49,8 +49,6 @@ std::pair<std::vector<unsigned char>, X3DH::X3DHSecretKeyPair> X3DH::getSecret(c
     std::vector<unsigned char> result;
     auto pubKey = loadC25519Key(username + preC25519pub + (old ? ".old" : ""));
 
-    if (type == Response::Type::RECEIVE_OLD)
-        throw Error("RECEIVE_OLD");
     return std::make_pair(x3dhBundle.AEADenrypted,
                           X3DHSecretKeyPair{from_hex(sk), std::move(ad), std::move(pubKey),
                                             preKeyCurve.getPrivateKey()});

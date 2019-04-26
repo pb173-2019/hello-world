@@ -46,9 +46,9 @@ struct Challenge {
 
 
 class Server : public QObject, public Callable<void, bool, const std::string &, std::stringstream &&> {
+Q_OBJECT
     static bool _test;
     //rsa maximum encryption length of 126 bytes
-    Q_OBJECT
     static const size_t CHALLENGE_SECRET_LENGTH = 126;
 
     std::function<void(const std::string&)> log{[](const std::string&){}};
@@ -68,8 +68,8 @@ public:
         log = foo;
     }
 
-    static void test() {
-        _test = true;
+    static void setTest(bool isTesting) {
+        _test = isTesting;
     }
     /**
      * @brief This function is called when transmission manager discovers new
@@ -105,13 +105,20 @@ public:
             log(std::string() + "Error: " + ex.what());
             QReadLocker lock(&_connectionLock);
             sendReponse(username,
-                    {{Response::Type::GENERIC_SERVER_ERROR, request.header.userId}, ex.serialize()},
-                    getManagerPtr(username, true));
-        } catch (std::exception& generic) {
-            log(std::string() + "Error: generic error");
+                        {{Response::Type::GENERIC_SERVER_ERROR, request.header.userId}, ex.serialize()},
+                        getManagerPtr(username, true));
+        } catch (std::exception &generic) {
+            log(std::string() + "Generic error: " + generic.what());
             QReadLocker lock(&_connectionLock);
             sendReponse(username, {{Response::Type::GENERIC_SERVER_ERROR, request.header.userId},
-                                   from_string(generic.what()) }, getManagerPtr(username, true));
+                                   from_string(generic.what())}, getManagerPtr(username, true));
+        } catch (...) {
+            std::exception_ptr p = std::current_exception();
+            log(std::string() + "Fatal error: " + (p ? p.__cxa_exception_type()->name() : "unknown"));
+            QReadLocker lock(&_connectionLock);
+            sendReponse(username, {{Response::Type::GENERIC_SERVER_ERROR, request.header.userId},
+                                   from_string((p ? p.__cxa_exception_type()->name() : "unknown error"))},
+                        getManagerPtr(username, true));
         }
     }
 
@@ -152,14 +159,6 @@ public:
     void restoreOldChannel(const std::string& old) {
         _transmission->registerConnection(old);
     }
-
-    /**
-    * @brief Logout user implementation
-    * testing: visible as public
-    *
-    * @param name name to log out
-    */
-    void logout(const std::string& name);
 
 private:
     Random _random;
@@ -267,6 +266,13 @@ public:
      * @return uses checkEvent()
      */
     Response checkIncoming(const Request &request);
+
+    /**
+     * @brief Logout user implementation
+     *
+     * @param name name to log out
+     */
+     void logout(const std::string& name);
 
     /**
      * @brief Called when OK reponse should be sent

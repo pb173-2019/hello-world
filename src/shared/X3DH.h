@@ -58,7 +58,7 @@ public:
      * @param incoming incoming request, generated with sendInitialMessage() method
      * @return encrypted data for ratchet, and the shared secret output
      */
-    std::pair<std::vector<unsigned char>, X3DH::X3DHSecretKeyPair> getSecret(const std::vector<unsigned char> &payload, helloworld::Response::Type type);
+    std::pair<std::vector<unsigned char>, X3DH::X3DHSecretKeyPair> getSecret(const std::vector<unsigned char> &payload);
 
     /**
      * Perform the first part of the X3DH protocol
