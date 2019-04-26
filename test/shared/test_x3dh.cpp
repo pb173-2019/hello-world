@@ -97,7 +97,7 @@ TEST_CASE("X3DH process test one-time keys present") {
 
         std::vector<unsigned char> messageEncrypted;
         X3DH::X3DHSecretKeyPair bob_secret;
-        std::tie(messageEncrypted, bob_secret) = x3dh_bob.getSecret(r.payload, r.header.type);
+        std::tie(messageEncrypted, bob_secret) = x3dh_bob.getSecret(r.payload);
 
         CHECK(bob_secret.sk == secret.sk);
     }
@@ -122,7 +122,7 @@ TEST_CASE("X3DH process test one-time keys present") {
 
         std::vector<unsigned char> messageEncrypted;
         X3DH::X3DHSecretKeyPair bob_secret;
-        std::tie(messageEncrypted, bob_secret) = x3dh_bob.getSecret(r.payload, r.header.type);
+        std::tie(messageEncrypted, bob_secret) = x3dh_bob.getSecret(r.payload);
 
         CHECK(bob_secret.sk == secret.sk);
     }
@@ -202,7 +202,7 @@ TEST_CASE("X3DH process test no one time keys") {
 
         std::vector<unsigned char> messageEncrypted;
         X3DH::X3DHSecretKeyPair bob_secret;
-        std::tie(messageEncrypted, bob_secret) = x3dh_bob.getSecret(r.payload, r.header.type);
+        std::tie(messageEncrypted, bob_secret) = x3dh_bob.getSecret(r.payload);
         CHECK(bob_secret.sk == secret.sk);
     }
 
@@ -223,7 +223,7 @@ TEST_CASE("X3DH process test no one time keys") {
 
         std::vector<unsigned char> messageEncrypted;
         X3DH::X3DHSecretKeyPair bob_secret;
-        std::tie(messageEncrypted, bob_secret) = x3dh_bob.getSecret(r.payload, r.header.type);
+        std::tie(messageEncrypted, bob_secret) = x3dh_bob.getSecret(r.payload);
 
         CHECK(bob_secret.sk == secret.sk);
     }
