@@ -113,11 +113,12 @@ public:
             sendReponse(username, {{Response::Type::GENERIC_SERVER_ERROR, request.header.userId},
                                    from_string(generic.what())}, getManagerPtr(username, true));
         } catch (...) {
+            //__cxa_exception_type() does not work with MSVC
             std::exception_ptr p = std::current_exception();
-            log(std::string() + "Fatal error: " + (p ? p.__cxa_exception_type()->name() : "unknown"));
+            log(std::string() + "Fatal error: " /*+ (p ? p.__cxa_exception_type()->name() : "unknown")*/);
             QReadLocker lock(&_connectionLock);
             sendReponse(username, {{Response::Type::GENERIC_SERVER_ERROR, request.header.userId},
-                                   from_string((p ? p.__cxa_exception_type()->name() : "unknown error"))},
+                                   from_string(/*p ? p.__cxa_exception_type()->name() : */"unknown error")},
                         getManagerPtr(username, true));
         }
     }
