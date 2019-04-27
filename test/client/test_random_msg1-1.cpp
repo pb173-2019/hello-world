@@ -179,6 +179,9 @@ TEST_CASE("Random testing 1:1 messaging") {
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
     Random random;
 
+    Server::setTest(true);
+    Client::setTest(true);
+
     Client alice("alice", "alice_messaging.pem", "123456");
 
     alice.setTransmissionManager(
@@ -223,10 +226,6 @@ TEST_CASE("Random testing 1:1 messaging") {
         std::cout << "--------------------------------------\n"
                      "-----------DELAYED MESSAGES-----------\n"
                      "--------------------------------------\n";
-
-        //    todo problem with message counting, as the delayed messages somehow change the queue
-        Server::setTest(true);
-        Client::setTest(true);
 
         bool problem = false;
 
