@@ -41,6 +41,7 @@ struct DHPair : Serializable<DHPair> {
         serialize::serialize(priv, result);
         return result;
     }
+
     serialize::structure serialize() const override {
         serialize::structure result;
         return serialize(result);
@@ -53,6 +54,7 @@ struct DHPair : Serializable<DHPair> {
         object.priv = serialize::deserialize<decltype(object.priv)>(data, from);
         return object;
     }
+
     static DHPair deserialize(const serialize::structure &data) {
         uint64_t from = 0;
         return deserialize(data, from);

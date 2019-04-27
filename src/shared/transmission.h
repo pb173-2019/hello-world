@@ -22,6 +22,7 @@
 #include <set>
 #include <map>
 #include <fstream>
+#include <queue>
 
 #include "utils.h"
 #include "serializable_error.h"
@@ -149,7 +150,7 @@ class Network {
     static server_socket server_callback;
     static ServerTransmissionManager *server_instance;
     static std::map<std::string, std::pair<client_socket, UserTransmissionManager *>> connection_callbacks;
-    static std::vector<std::pair<std::string, std::vector<unsigned char>>> delayed;
+    static std::queue<std::pair<std::string, std::vector<unsigned char>>> delayed;
 
     static bool enabled;
     static bool problem;

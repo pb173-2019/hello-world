@@ -100,7 +100,6 @@ void CMDApp::help_command(CMDApp *app) {
         i.print(app->os);
         app->os << '\n';
     }
-
 }
 
 void CMDApp::quit_command(CMDApp *app) {

@@ -85,6 +85,7 @@ public:
         Response response;
         try {
             if (!hasSessionKey || username.empty()) {
+                QReadLocker lock(&_connectionLock);
                 request = _genericManager.parseIncoming(std::move(data));
             } else {
                 QReadLocker lock(&_connectionLock);

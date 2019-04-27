@@ -90,8 +90,8 @@ int main() {
     users.push_back(&c17);
     users.push_back(&c18);
     users.push_back(&c19);
-    
-    std::cout << "Press enter to start profiling.\n";
+
+    std::cout << "\n\nPress enter to start profiling.\n";
     std::cin.ignore();
 
     // ROUNDS times registration
@@ -110,7 +110,7 @@ int main() {
     server.getRequest();
     users[0]->getResponse();
     server.getRequest();
-    users[1]->getResponse(); //SEGFAULT
+    users[1]->getResponse();
     for (int i = 0; i < ROUNDS; i++) {
         int sender = i % 2 == 0 ? 1 : 0;
         int receiver = sender == 0 ? 1 : 0;

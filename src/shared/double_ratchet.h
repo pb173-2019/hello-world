@@ -21,7 +21,7 @@ class DoubleRatchet {
     DRState _state;
     bool _receivedMessage = false;
 
-   private:
+private:
     DoubleRatchetAdapter ext;
 
     key TrySkippedMessageKeys(const MessageHeader &header,
@@ -30,7 +30,7 @@ class DoubleRatchet {
     void DHRatchet(const MessageHeader &header);
     std::vector<unsigned char> TryRatchetDecrypt(const Message &message);
 
-   public:
+public:
     /**
      * @brief Create DoubleRatchetObject (RatchetInitAlice)
      *

@@ -79,8 +79,8 @@ public:
             result.seekg(0, std::ios::beg);
             Callable<void, std::stringstream &&>::call(callback, std::move(result));
         } catch (...) {
-            //finally simulation, server doesn't need - it catches all the
-            // exceptions in its callback
+            //finally simulation
+            std::cerr << "Client failure. May be interpreted as server error when using Network::setEnabled(true);\n";
             remove((username + "-response.tcp").c_str());
             throw;
         }
