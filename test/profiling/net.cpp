@@ -3,7 +3,6 @@
 #include <QThread>
 #include <chrono>
 #include <thread>
-#include <stdlib.h>
 
 #include "conf.h"
 
@@ -94,7 +93,6 @@ int main(int argc , char ** argv) {
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-    system("Color F3");
     std::cout << "\n\nPress enter to start profiling.\n";
     std::cin.ignore();
 
