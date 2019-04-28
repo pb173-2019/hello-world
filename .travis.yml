@@ -1,5 +1,15 @@
 dist: xenial
 
+addons:
+  coverity_scan:
+    project:
+      name: "pb173-2019/hello-world"
+      description: "Hello world"
+    notification_email: adam.ivora@gmail.com
+    build_command_prepend: "cmake ."
+    build_command: "make"
+    branch_pattern: coverity_scan
+
 language: cpp
 
 compiler:
