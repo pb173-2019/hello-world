@@ -6,11 +6,8 @@ project(helloworld)
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
-SET(CMAKE_CXX_FLAGS -pthread)
-SET(CMAKE_C_FLAGS -pthread)
-
 if (CMAKE_CXX_COMPILER_ID MATCHES Clang OR ${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
-    set(CMAKE_CXX_FLAGS "-pedantic -Wall -Wextra -g -Og")
+    set(CMAKE_CXX_FLAGS "-pedantic -Wall -Wextra -g -Og -pthread")
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
     set(CMAKE_CXX_FLAGS "/permissive- /W4 /EHsc")
     add_definitions("-D_CRT_SECURE_NO_WARNINGS")
