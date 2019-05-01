@@ -86,10 +86,8 @@ void Random::_getSeedEntropy(unsigned char *buff) {
         if (err == NTE_BAD_KEYSET && CryptAcquireContext(&hCryptProv, nullptr, nullptr,
                                                          PROV_RSA_FULL, CRYPT_NEWKEYSET) == 0) {
             throw Error("Could not initialize crypt context of windows system.");
-        } else {
-            throw Error(("Windows error code: " + std::to_string(err) +
-                         ", could not initialize cipher context."));
         }
+        throw Error(("Windows error code: " + std::to_string(err) + ", could not initialize cipher context."));
     }
 
     if (!CryptGenRandom(hCryptProv, 16, buff)) {

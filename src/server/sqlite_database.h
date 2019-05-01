@@ -98,7 +98,7 @@ private:
      * @param colName coll names in array
      * @return 0 on success
      */
-    static int _fillData(void *data, int argc, char **argv, char **colName) {
+    static int _fillData(void *data, int argc, char **argv, char **/*colName*/) {
         if (argc != 3)
             return 1;
 

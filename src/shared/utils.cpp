@@ -38,12 +38,12 @@ size_t getSize(std::istream &input) {
 }
 
 size_t read_n(std::istream &in, unsigned char *data, size_t length) {
-    in.read((char *) data, length);
+    in.read(reinterpret_cast<char *>(data), length);
     return static_cast<size_t>(in.gcount());
 }
 
 void write_n(std::ostream &out, const unsigned char *data, size_t length) {
-    out.write((char *) data, length);
+    out.write(reinterpret_cast<const char *>(data), length);
 }
 
 void write_n(std::ostream &out, const std::string &data) {
@@ -65,7 +65,7 @@ std::string &to_lower(std::string &&uppercase) {
 }
 
 std::string to_hex(const std::string &buff) {
-    return to_hex((const unsigned char *) buff.data(), buff.length());
+    return to_hex(reinterpret_cast<const unsigned char *>(buff.data()), buff.length());
 }
 
 std::string to_hex(const std::vector<unsigned char> &bytes) {
@@ -75,7 +75,7 @@ std::string to_hex(const std::vector<unsigned char> &bytes) {
 std::string to_hex(const unsigned char bytes[], size_t length) {
     std::stringstream stream;
     for (size_t i = 0; i < length; i++) {
-        stream << std::hex << std::setfill('0') << std::setw(2) << (int) (bytes[i]);
+        stream << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(bytes[i]);
     }
     return stream.str();
 }
@@ -98,7 +98,7 @@ std::vector<unsigned char> from_hex(const std::string &input) {
         std::stringstream x{input.substr(i, 2)};
         unsigned int c;
         x >> std::hex >> c;
-        vector.push_back(c);
+        vector.push_back(static_cast<unsigned char &&>(c));
     }
     return vector;
 }
@@ -114,7 +114,7 @@ std::string to_string(const std::vector<unsigned char> &input) {
 uint64_t getTimestampOf(time_t *timer) {
     std::time_t t = std::time(timer);
     std::tm *lt = std::localtime(&t);
-    return lt->tm_year * 366 * 24 + lt->tm_yday * 24 + lt->tm_hour;
+    return static_cast<uint64_t>(lt->tm_year * 366 * 24 + lt->tm_yday * 24 + lt->tm_hour);
 }
 
 std::stringstream stream_from_vector(const std::vector<unsigned char> &vector) {
@@ -141,8 +141,6 @@ std::string getFile(const std::string &suffix) {
 
     WIN32_FIND_DATAA data;
         HANDLE handle = FindFirstFile(".\\*", &data);
-
-        long hFile;
 
         if (handle) {
             do {

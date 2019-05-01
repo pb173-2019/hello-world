@@ -8,10 +8,12 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 SET(CMAKE_CXX_FLAGS -pthread)
 SET(CMAKE_C_FLAGS -pthread)
-# MSVC exceptions support
-if (MSVC)
-    SET (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /EHsc")
-    SET (CMAKE_CPP_FLAGS "${CMAKE_CPP_FLAGS} /EHsc")
+
+if (CMAKE_CXX_COMPILER_ID MATCHES Clang OR ${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
+    set(CMAKE_CXX_FLAGS "-pedantic -Wall -Wextra -g -Og -Wold-style-cast")
+elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+    set(CMAKE_CXX_FLAGS "/permissive- /W4 /EHsc")
+    add_definitions("-D_CRT_SECURE_NO_WARNINGS")
 endif()
 
 find_package(Qt5Network REQUIRED)

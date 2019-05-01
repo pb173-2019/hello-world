@@ -12,10 +12,10 @@ namespace helloworld {
 
 bool Server::_test{false};
 
-Server::Server() : _database(std::make_unique<ServerSQLite>("test_db1")),
-                   _genericManager("server_priv.pem",
+Server::Server() : _genericManager("server_priv.pem",
                                    "323994cfb9da285a5d9642e1759b224a",
-                                   "2b7e151628aed2a6abf7158809cf4f3c") {}
+                                   "2b7e151628aed2a6abf7158809cf4f3c"),
+                   _database(std::make_unique<ServerSQLite>("test_db1")) {}
 
 Response Server::handleUserRequest(const Request &request) {
     switch (request.header.type) {

@@ -23,7 +23,6 @@
 #include "../shared/base_64.h"
 #include "../shared/utils.h"
 
-
 namespace helloworld {
 
 /**

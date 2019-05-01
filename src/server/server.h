@@ -40,8 +40,8 @@ struct Challenge {
     std::unique_ptr<ServerToClientManager> manager;
     std::vector<unsigned char> secret;
     Challenge(UserData userData, std::vector<unsigned char> secret, const std::string &sessionKey)
-            : userData(std::move(userData)), secret(std::move(secret)),
-              manager(std::make_unique<ServerToClientManager>(sessionKey)) {}
+            : userData(std::move(userData)), manager(std::make_unique<ServerToClientManager>(sessionKey)),
+              secret(std::move(secret)) {}
 };
 
 

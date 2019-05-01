@@ -7,7 +7,6 @@
 #include "../../src/server/transmission_file_server.h"
 
 using namespace helloworld;
-// will always start from 1
 static bool alice_on = true;
 static bool bob_on = true;
 

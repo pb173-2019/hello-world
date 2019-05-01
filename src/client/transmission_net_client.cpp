@@ -23,8 +23,7 @@ ClientSocket::ClientSocket(Callable<void, std::stringstream &&> *callback,
     connect(_socket.get(), SIGNAL(error(QAbstractSocket::SocketError)), this,
             SLOT(onError(QAbstractSocket::SocketError)));
     connect(_socket.get(), SIGNAL(readyRead()), this, SLOT(receive()));
-
-};
+}
 
 void ClientSocket::setHostAddress(const std::string &address) { _address = _address.fromStdString(address); }
 

@@ -73,6 +73,7 @@ private Q_SLOTS:
 private:
     bool wait_connected();
 };
-}
+
+} //namespace helloworld
 
 #endif //HELLOWORLD_TRANSMISSION_NET_CLIENT_H

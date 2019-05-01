@@ -53,19 +53,15 @@ void CMDApp::init() {
     status = Disconnected;
 
     username = getInput("Username");
-    // TODO: find sefer way to get password
+    // TODO: find safer way to get password
     std::string password = getInput("Password");
     try {
         std::cout << "Trying to load keys...\n";
-        client =
-                std::make_unique<Client>(username, username + "_priv.pem",
-                                         password);
+        client = std::make_unique<Client>(username, username + "_priv.pem", password);
     } catch (Error & /*e*/) {
         std::cout << "Generating new keys...\n";
         _generateKeypair(password);
-        client =
-                std::make_unique<Client>(username, username + "_priv.pem",
-                                         password);
+        client = std::make_unique<Client>(username, username + "_priv.pem", password);
     }
     std::cout << "Keys loaded successfuly\n";
     client->setTransmissionManager(std::make_unique<ClientSocket>(client.get(), username));
@@ -91,7 +87,6 @@ std::string CMDApp::_versionInfo() const {
 }
 
 void CMDApp::help_command(CMDApp *app) {
-
     app->os << app->_versionInfo() << '\n';
     for (auto &i: app->commands) {
         if (!app->_checkStatus(i.required))
@@ -191,7 +186,7 @@ void CMDApp::send_command(CMDApp *app) {
     }
     std::string msg = app->getInput("Message");
     std::vector<unsigned char> data(msg.begin(), msg.end());
-    app->client->sendData(id, data);
+    app->client->sendData(static_cast<uint32_t>(id), data);
 }
 
 void CMDApp::messages_command(CMDApp *app) {
@@ -297,7 +292,7 @@ void CMDApp::onRecieve() {
         os << " success\n";
         timeout->stop();
         status = LoggedIn;
-    } else if (status >= State::LoggedIn && client->getUsers().size() != 0) {
+    } else if (status >= State::LoggedIn && !client->getUsers().empty()) {
         os << "Users:\n\tID\tNAME\n";
         for (auto &i: users) {
             os << '\t' << i.first << "\t" << i.second << "\n";
