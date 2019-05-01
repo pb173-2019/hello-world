@@ -144,13 +144,12 @@ KeyBundle<C25519> Client::updateKeys() {
                                     oneTimeC25519pub);
         oneTimeKeygen.savePrivateKeyPassword(
             _username + std::to_string(i) + oneTimeC25519priv, _password);
-        newKeybundle.oneTimeKeys.emplace_back(
-            std::move(oneTimeKeygen.getPublicKey()));
+        newKeybundle.oneTimeKeys.emplace_back(oneTimeKeygen.getPublicKey());
     }
 
     newKeybundle.generateTimeStamp();
     _x3dh->setTimestamp(newKeybundle.timestamp);
-    return std::move(newKeybundle);
+    return newKeybundle;
 }
 
 void Client::sendKeysBundle() {

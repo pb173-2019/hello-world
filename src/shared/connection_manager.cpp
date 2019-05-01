@@ -71,7 +71,7 @@ Request GenericServerManager::parseIncoming(std::stringstream &&data) {
     read_n(data, header.data(), header.size());
     header = _rsa_in.decrypt(header);
 
-    request.header = std::move(Request::Header::deserialize(header));
+    request.header = Request::Header::deserialize(header);
 
     /* is used for all users, message counting doesnt make sense*/
 

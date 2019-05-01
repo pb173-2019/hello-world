@@ -60,7 +60,6 @@ void AESGCM::encryptWithAd(const std::vector<unsigned char> &in, const std::vect
     _additional(ad);
     dirty = true;
 
-
     _process(in, out);
 
     std::vector<unsigned char> tag;

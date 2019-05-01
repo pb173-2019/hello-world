@@ -95,7 +95,7 @@ std::pair<X3DHRequest<C25519>, X3DH::X3DHSecretPubKey> X3DH::setSecret(
     X3DHRequest <C25519> toFill;
     toFill.timestamp = bundle.timestamp;
     toFill.senderIdPubKey = pubKey;
-    toFill.senderEphermalPubKey = std::move(ephermalGen.getPublicKey());
+    toFill.senderEphermalPubKey = ephermalGen.getPublicKey();
     toFill.opKeyUsed = opAvailable ? X3DHRequest<C25519>::OP_KEY_USED
                                    : X3DHRequest<C25519>::OP_KEY_NONE,
             toFill.opKeyId = keyId;

@@ -60,7 +60,7 @@ public:
     }
 
 private:
-    size_t _getKeyLength(const unsigned char *key, int len, const std::string &terminator);
+    size_t _getKeyLength(const unsigned char *key, size_t len, const std::string &terminator);
 };
 
 class RSA2048 : public AsymmetricCipher {

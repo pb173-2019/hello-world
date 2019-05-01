@@ -348,9 +348,9 @@ ServerToClientManager *Server::getManagerPtr(const std::string &username, bool t
 void Server::sendReponse(const std::string &username, const Response &response, ServerToClientManager *manager) {
     std::stringstream result;
     if (manager == nullptr) {
-        result = std::move(_genericManager.returnErrorGeneric());
+        result = _genericManager.returnErrorGeneric();
     } else {
-        result = std::move(manager->parseOutgoing(response));
+        result = manager->parseOutgoing(response);
     }
     _transmission->send(username, result);
 }
@@ -359,10 +359,10 @@ void Server::sendReponse(const std::string &username, const Response &response, 
     std::stringstream result;
     if (sessionKey.length() != AESGCM::key_size * 2) {
         //invalid key
-        result = std::move(_genericManager.returnErrorGeneric());
+        result = _genericManager.returnErrorGeneric();
     } else {
         _genericManager.setKey(sessionKey);
-        result = std::move(_genericManager.parseOutgoing(response));
+        result = _genericManager.parseOutgoing(response);
     }
     _transmission->send(username, result);
 }

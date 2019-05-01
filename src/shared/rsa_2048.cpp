@@ -70,7 +70,7 @@ bool RSAKeyGen::savePublicKey(const std::string &filename) const {
     return true;
 }
 
-size_t RSAKeyGen::_getKeyLength(const unsigned char *key, int len, const std::string &terminator) {
+size_t RSAKeyGen::_getKeyLength(const unsigned char *key, size_t len, const std::string &terminator) {
     size_t strIdx = 0;
     size_t keyIdx = 300;
     while (keyIdx < len) {

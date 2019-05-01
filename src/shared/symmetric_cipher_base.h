@@ -145,15 +145,12 @@ protected:
             throw Error("Failed to update cipher.");
         }
 
-
-        unsigned char fin[IV_SIZE];
         out.resize(out_len + IV_SIZE);
         size_t fin_len;
         if (mbedtls_cipher_finish(&_context, out.data() + out_len, &fin_len) != 0) {
             throw Error("Failed to finish cipher.");
         }
         out.resize(out_len + fin_len);
-
     }
 
 public:
