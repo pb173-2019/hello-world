@@ -74,8 +74,7 @@ void ClientSocket::init() {
 }
 
 void ClientSocket::_state_change(QAbstractSocket::SocketState state) {
-    if (_status != NEED_INIT
-        &&
+    if (_status != NEED_INIT &&
         (state == QAbstractSocket::SocketState::UnconnectedState
          || state == QAbstractSocket::SocketState::ClosingState)) {
         _status = NEED_INIT;

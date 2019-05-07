@@ -168,7 +168,6 @@ void CMDApp::disconnect_command(CMDApp *app) {
     }
 }
 
-
 void CMDApp::find_command(CMDApp *app) {
     std::string query = app->getInput("Query");
     app->client->sendFindUsers(query);
@@ -210,14 +209,14 @@ bool CMDApp::_checkStatus(Command::Status required) {
 }
 
 void CMDApp::_loop(QString input) {
-
     if (!_running)
         return;
-    auto cmd = std::find_if(commands.begin(), commands.end(),
-                            [&input](const Command &c) { return c.name == input.toStdString(); });
+    auto cmd = std::find_if(commands.begin(), commands.end(), [&input](const Command &c) {
+        return c.name == input.toStdString();
+    });
+
     if (cmd == commands.end()) {
         os << "Invalid command\n";
-
         emit poll();
         return;
     }
@@ -228,9 +227,9 @@ void CMDApp::_loop(QString input) {
         os << "Invalid command\n";
 
     if (!_running)
-            emit close();
+        emit close();
     else
-            emit poll();
+        emit poll();
 }
 
 
@@ -280,7 +279,6 @@ int CMDApp::getOption(std::string prompt, std::vector<char> options) {
 }
 
 void CMDApp::onRecieve() {
-
     auto &users = client->getUsers();
     auto &recieved = client->getMessage();
     if (status < State::LoggedIn &&
@@ -332,7 +330,7 @@ void CMDApp::onTimer() {
 }
 
 void CMDApp::onEvent() {
-    // maybe later
+    // not implemented yet
 }
 
 
