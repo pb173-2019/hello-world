@@ -8,9 +8,11 @@
 
 #if defined(WINDOWS)
 
-#include <winbase.h>
-#include <wincrypt.h>
+// clang-format off
 #include <windows.h>
+#include <wincrypt.h>
+#include <winbase.h>
+// clang-format on
 
 #else
 #include <fstream>
@@ -62,8 +64,11 @@ std::vector<unsigned char> Random::get(size_t size) {
 
 size_t Random::getBounded(size_t lower, size_t upper) {
     std::unique_lock<std::mutex> lock(_mutex);
+
     if (_use_since_reseed >= RESEED_AFTER) _reseed();
+
     unsigned char data[3];
+
     if (mbedtls_ctr_drbg_random(&_ctr_drbg, data, 3) != 0) {
         throw Error("Could not generate random sequence.");
     }
