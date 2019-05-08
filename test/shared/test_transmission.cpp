@@ -7,16 +7,17 @@
 
 using namespace helloworld;
 
-struct Test : public Callable<void, bool, const std::string&, std::stringstream&&> {
+struct Test
+    : public Callable<void, bool, const std::string&, std::stringstream&&> {
     std::string result;
     explicit Test(std::string expected) : result(std::move(expected)) {}
 
-    void callback(bool /*unused*/, const std::string& username, std::stringstream&& data) override {
+    void callback(bool /*unused*/, const std::string& /*unused*/,
+                  std::stringstream&& data) override {
         if (data.str() != result) {
             throw Error("test failed: " + data.str() + " != " + result);
         };
     }
-
 };
 
 TEST_CASE("Check the basic functionality") {

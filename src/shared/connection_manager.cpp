@@ -4,18 +4,19 @@
 
 namespace helloworld {
 
-ClientToServerManager::ClientToServerManager(const std::string& sessionKey,
-        const std::string &pubkeyFilename) : BasicConnectionManager(sessionKey) {
+ClientToServerManager::ClientToServerManager(const zero::str_t &sessionKey,
+                                             const std::string &pubkeyFilename)
+    : BasicConnectionManager(sessionKey) {
     _rsa_out.loadPublicKey(pubkeyFilename);
 }
 
-ClientToServerManager::ClientToServerManager(const std::string& sessionKey,
-        const std::vector<unsigned char> &publicKeyData)  : BasicConnectionManager(sessionKey) {
+ClientToServerManager::ClientToServerManager(const zero::str_t &sessionKey,
+                                             const zero::bytes_t &publicKeyData)
+    : BasicConnectionManager(sessionKey) {
     _rsa_out.setPublicKey(publicKeyData);
 }
 
 Response ClientToServerManager::parseIncoming(std::stringstream &&data) {
-
     if (getSize(data) < HEADER_ENCRYPTED_SIZE)
         throw Error("Server returned generic error.");
     std::stringstream headDecrypted = _GCMdecryptHead(data);
@@ -28,7 +29,7 @@ Response ClientToServerManager::parseIncoming(std::stringstream &&data) {
     if (!_testing && !_counter.checkIncomming(response))
         throw Error("Possible replay attack");
 
-    //will pass only encrypted payload if not for server to read
+    // will pass only encrypted payload if not for server to read
     response.payload.resize(getSize(bodyDecrypted));
     read_n(bodyDecrypted, response.payload.data(), response.payload.size());
 
@@ -44,30 +45,34 @@ std::stringstream ClientToServerManager::parseOutgoing(Request data) {
         _GCMencryptHead(result, data);
         _GCMencryptBody(result, data);
     } else {
-        //this section sent only once: when registered / authenticated
-        write_n(result, _rsa_out.encrypt(from_hex(_sessionKey)));
+        // this section sent only once: when registered / authenticated
+        write_n(result, _rsa_out.encryptKey(from_hex(_sessionKey)));
         write_n(result, _rsa_out.encrypt(data.header.serialize()));
         write_n(result, data.payload);
-        //session key sent, switch to secure state
+        // session key sent, switch to secure state
         switchSecureChannel(true);
     }
     result.seekg(0, std::ios::beg);
     return result;
 }
 
-GenericServerManager::GenericServerManager(const std::string &privkeyFilename, const std::string &key,
-                                           const std::string &iv) : BasicConnectionManager("") {
+GenericServerManager::GenericServerManager(const std::string &privkeyFilename,
+                                           const zero::str_t &key,
+                                           const std::string &iv)
+    : BasicConnectionManager("") {
     _rsa_in.loadPrivateKey(privkeyFilename, key, iv);
 }
 
 Request GenericServerManager::parseIncoming(std::stringstream &&data) {
     Request request;
-    //encrypted session key
-    std::vector<unsigned char> sessionKey = std::vector<unsigned char>(RSA2048::BLOCK_SIZE_OAEP);
-    read_n(data, sessionKey.data(), sessionKey.size());
-    sessionKey = _rsa_in.decrypt(sessionKey);
-    //encrypted head
-    std::vector<unsigned char> header = std::vector<unsigned char>(RSA2048::BLOCK_SIZE_OAEP);
+    // encrypted session key
+    std::vector<unsigned char> encryptedKey =
+        std::vector<unsigned char>(RSA2048::BLOCK_SIZE_OAEP);
+    read_n(data, encryptedKey.data(), encryptedKey.size());
+    zero::bytes_t sessionKey = _rsa_in.decryptKey(encryptedKey);
+    // encrypted head
+    std::vector<unsigned char> header =
+        std::vector<unsigned char>(RSA2048::BLOCK_SIZE_OAEP);
     read_n(data, header.data(), header.size());
     header = _rsa_in.decrypt(header);
 
@@ -79,7 +84,8 @@ Request GenericServerManager::parseIncoming(std::stringstream &&data) {
     request.payload = std::vector<unsigned char>(length);
     read_n(data, request.payload.data(), length);
 
-    AuthenticateRequest temp = AuthenticateRequest::deserialize(request.payload);
+    AuthenticateRequest temp =
+        AuthenticateRequest::deserialize(request.payload);
     temp.sessionKey = to_hex(sessionKey);
 
     request.payload = temp.serialize();
@@ -87,13 +93,11 @@ Request GenericServerManager::parseIncoming(std::stringstream &&data) {
 }
 
 std::stringstream GenericServerManager::returnErrorGeneric() {
-    //empty stream to indicate generic error
+    // empty stream to indicate generic error
     return std::stringstream{};
 }
 
-void GenericServerManager::setKey(const std::string &key) {
-    _sessionKey = key;
-}
+void GenericServerManager::setKey(const zero::str_t &key) { _sessionKey = key; }
 
 std::stringstream GenericServerManager::parseOutgoing(Response data) {
     std::stringstream result{};
@@ -101,11 +105,12 @@ std::stringstream GenericServerManager::parseOutgoing(Response data) {
     _GCMencryptHead(result, data);
     _GCMencryptBody(result, data);
     result.seekg(0, std::ios::beg);
-    _sessionKey = ""; //reset key to nothing, prevent misuse
+    _sessionKey = "";    // reset key to nothing, prevent misuse
     return result;
 }
 
-ServerToClientManager::ServerToClientManager(const std::string &sessionKey) : BasicConnectionManager(sessionKey) {
+ServerToClientManager::ServerToClientManager(const zero::str_t &sessionKey)
+    : BasicConnectionManager(sessionKey) {
     switchSecureChannel(true);
 }
 
@@ -121,7 +126,7 @@ Request ServerToClientManager::parseIncoming(std::stringstream &&data) {
     if (!_testing && !_counter.checkIncomming(request))
         throw Error("Possible replay attack");
 
-    //will pass only encrypted payload if not for server to read
+    // will pass only encrypted payload if not for server to read
     request.payload.resize(getSize(bodyDecrypted));
     read_n(bodyDecrypted, request.payload.data(), request.payload.size());
 
@@ -136,4 +141,4 @@ std::stringstream ServerToClientManager::parseOutgoing(Response data) {
     return result;
 }
 
-}
+}    // namespace helloworld

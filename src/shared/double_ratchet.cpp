@@ -4,9 +4,8 @@
 
 namespace helloworld {
 
-DoubleRatchet::DoubleRatchet(std::vector<unsigned char> SK,
-                             std::vector<unsigned char> AD,
-                             std::vector<unsigned char> other_dh_public_key)
+DoubleRatchet::DoubleRatchet(zero::bytes_t SK, zero::bytes_t AD,
+                             zero::bytes_t other_dh_public_key)
     : _state({}) {
     _state.DHs = ext.GENERATE_DH();
     _state.DHr = std::move(other_dh_public_key);
@@ -20,10 +19,9 @@ DoubleRatchet::DoubleRatchet(std::vector<unsigned char> SK,
         ext.KDF_RK(std::move(SK), ext.DH(_state.DHs, _state.DHr));
 }
 
-DoubleRatchet::DoubleRatchet(std::vector<unsigned char> SK,
-                             std::vector<unsigned char> AD,
-                             std::vector<unsigned char> dh_public_key,
-                             std::vector<unsigned char> dh_private_key)
+DoubleRatchet::DoubleRatchet(zero::bytes_t SK, zero::bytes_t AD,
+                             zero::bytes_t dh_public_key,
+                             zero::bytes_t dh_private_key)
     : _state({}), _receivedMessage(true) {
     _state.DHs = {std::move(dh_public_key), std::move(dh_private_key)};
     _state.DHr = {};
@@ -41,7 +39,7 @@ DoubleRatchet::DoubleRatchet(DRState state) : _state(std::move(state)) {}
 
 Message DoubleRatchet::RatchetEncrypt(
     const std::vector<unsigned char> &plaintext) {
-    key mk;
+    zero::bytes_t mk;
     std::tie(_state.CKs, mk) = ext.KDF_CK(_state.CKs, 0x01);
     MessageHeader header = ext.HEADER(_state.DHs, _state.PN, _state.Ns);
     ++_state.Ns;
@@ -69,7 +67,8 @@ std::vector<unsigned char> DoubleRatchet::TryRatchetDecrypt(
     auto ciphertext = message.ciphertext;
     auto hmac = message.hmac;
 
-    key plaintext = TrySkippedMessageKeys(header, ciphertext, hmac);
+    std::vector<unsigned char> plaintext =
+        TrySkippedMessageKeys(header, ciphertext, hmac);
     if (!plaintext.empty()) {
         return plaintext;
     }
@@ -80,22 +79,22 @@ std::vector<unsigned char> DoubleRatchet::TryRatchetDecrypt(
     }
 
     SkipMessageKeys(header.n);
-    key mk;
+    zero::bytes_t mk;
     std::tie(_state.CKr, mk) = ext.KDF_CK(_state.CKr, 0x01);
     ++_state.Nr;
 
     return ext.DECRYPT(mk, ciphertext, hmac, ext.CONCAT(_state.AD, header));
 }
 
-key DoubleRatchet::TrySkippedMessageKeys(const MessageHeader &header,
-                                         const key &ciphertext,
-                                         const key &hmac) {
+std::vector<unsigned char> DoubleRatchet::TrySkippedMessageKeys(
+    const MessageHeader &header, const std::vector<unsigned char> &ciphertext,
+    const std::vector<unsigned char> &hmac) {
     auto found = _state.MKSKIPPED.find({header.dh, header.n});
     if (found == _state.MKSKIPPED.end()) {
         return {};
     }
 
-    key mk = found->second;
+    zero::bytes_t mk = found->second;
     _state.MKSKIPPED.erase(found);
 
     return ext.DECRYPT(mk, ciphertext, hmac, ext.CONCAT(_state.AD, header));
@@ -108,7 +107,7 @@ void DoubleRatchet::SkipMessageKeys(size_t until) {
 
     if (!_state.CKr.empty()) {
         while (_state.Nr < until) {
-            key mk;
+            zero::bytes_t mk;
             std::tie(_state.CKr, mk) = ext.KDF_CK(_state.CKr, 0x01);
             _state.MKSKIPPED.emplace(std::make_pair(_state.DHr, _state.Nr), mk);
             ++_state.Nr;

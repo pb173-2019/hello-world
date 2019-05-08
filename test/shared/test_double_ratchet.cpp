@@ -12,8 +12,8 @@ struct DR {
 
 DR setup() {
     C25519KeyGen keygenAlice, keygenBob;
-    std::vector<unsigned char> sharedKey(32, 'a');
-    std::vector<unsigned char> ad(32, 'b');
+    zero::bytes_t sharedKey(32, 'a');
+    zero::bytes_t ad(32, 'b');
 
     DoubleRatchet alice(sharedKey, ad, keygenBob.getPublicKey());
     DoubleRatchet bob(sharedKey, ad, keygenBob.getPublicKey(),

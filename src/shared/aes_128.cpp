@@ -1,6 +1,6 @@
 #include "aes_128.h"
-#include "utils.h"
 #include "random.h"
+#include "utils.h"
 
 namespace helloworld {
 
@@ -22,6 +22,4 @@ void AES128::decrypt(std::istream &in, std::ostream &out) {
     _process(in, out);
 }
 
-
-
-} //namespace helloworld
+}    // namespace helloworld

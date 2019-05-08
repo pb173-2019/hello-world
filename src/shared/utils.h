@@ -123,7 +123,7 @@ std::string to_hex(const std::string &buff);
 
 std::string to_hex(const std::vector<unsigned char> &bytes);
 
-std::string to_hex(const unsigned char *bytes, size_t length);
+std::string to_hex(const unsigned char bytes[], size_t length);
 
 std::vector<unsigned char> from_hex(const std::string &input);
 
@@ -155,7 +155,8 @@ void clear(T *array, size_t length) {
  * @return std::pair<vector, vector> pair of vectors
  */
 template <class T>
-std::pair<std::vector<T>, std::vector<T>> split(std::vector<T> first, size_t index) {
+std::pair<std::vector<T>, std::vector<T>> split(std::vector<T> first,
+                                                size_t index) {
     std::vector<T> second(first.begin() + index, first.end());
     first.resize(first.size() - second.size());
 
@@ -174,24 +175,23 @@ std::stringstream stream_from_vector(const std::vector<unsigned char> &vector);
 
 std::vector<unsigned char> vector_from_stream(std::istream &stream);
 
-
 /**
  * Return timestamp of specific time
  *
  * @param timer time specifier, use nullptr for 'now'
  * @return timestamp of timer
  */
-uint64_t getTimestampOf(time_t* timer);
-
+uint64_t getTimestampOf(time_t *timer);
 
 /**
  * Get any file that contains the suffix specified
  * @param suffix file suffix to search
  * @return  file with name: *suffix
  */
-std::string getFile(const std::string& suffix);
+std::string getFile(const std::string &suffix);
 
-std::ostream& operator<<(std::ostream& out, const std::vector<unsigned char> & data);
+std::ostream &operator<<(std::ostream &out,
+                         const std::vector<unsigned char> &data);
 
 }    // namespace helloworld
 

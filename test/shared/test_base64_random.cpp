@@ -1,13 +1,13 @@
 #include "catch.hpp"
 
-#include "../../src/shared/utils.h"
 #include "../../src/shared/base_64.h"
 #include "../../src/shared/random.h"
+#include "../../src/shared/utils.h"
 
 using namespace helloworld;
 
 TEST_CASE("Base64 encode") {
-    //RFC doc
+    // RFC doc
     Base64 encoder;
 
     CHECK(encoder.encode(from_string("")) == from_string(""));
@@ -31,7 +31,6 @@ TEST_CASE("Base64 decode") {
     CHECK(encoder.decode(from_string("Zm9vYmFy")) == from_string("foobar"));
 }
 
-
 TEST_CASE("Random generator") {
     using namespace helloworld;
     Random random{};
@@ -41,11 +40,9 @@ TEST_CASE("Random generator") {
     CHECK(num < 6854635);
 
     num = random.getBounded(0, 2);
-    CHECK(num >= 0);
     CHECK(num < 2);
 
     num = random.getBounded(5, 58);
     CHECK(num >= 5);
     CHECK(num < 58);
 }
-

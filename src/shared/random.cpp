@@ -62,6 +62,15 @@ std::vector<unsigned char> Random::get(size_t size) {
     return result;
 }
 
+zero::bytes_t Random::getKey(size_t size) {
+    std::unique_lock<std::mutex> lock(_mutex);
+    zero::bytes_t key(size);
+    if (mbedtls_ctr_drbg_random(&_ctr_drbg, key.data(), key.size()) != 0) {
+        throw Error("Could not generate random sequence.");
+    }
+    return key;
+}
+
 size_t Random::getBounded(size_t lower, size_t upper) {
     std::unique_lock<std::mutex> lock(_mutex);
 

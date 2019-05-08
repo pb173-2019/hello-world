@@ -13,7 +13,7 @@ namespace helloworld {
 bool Client::_test = false;
 
 Client::Client(std::string username, const std::string &clientPrivKeyFilename,
-               const std::string &password, QObject *parent)
+               const zero::str_t &password, QObject *parent)
     : QObject(parent),
       _username(std::move(username)),
       _password(password),
@@ -67,39 +67,35 @@ void Client::callback(std::stringstream &&data) {
 
 void Client::login() {
     _connection = std::make_unique<ClientToServerManager>(
-        to_hex(Random().get(SYMMETRIC_KEY_SIZE)), serverPub);
+        to_hex(Random().getKey(SYMMETRIC_KEY_SIZE)), serverPub);
     _connection->_testing = _test;
     AuthenticateRequest request(_username, {});
     sendRequest({{Request::Type::LOGIN, _userId}, request.serialize()});
 }
 
-void Client::logout() {
-    GenericRequest request(_userId, _username);
-    sendRequest({{Request::Type::LOGOUT, _userId}, request.serialize()});
-}
+void Client::logout() { sendRequest({{Request::Type::LOGOUT, _userId}, {}}); }
 
 void Client::createAccount(const std::string &pubKeyFilename) {
     _userId = 0;
     _connection = std::make_unique<ClientToServerManager>(
-        to_hex(Random().get(SYMMETRIC_KEY_SIZE)), serverPub);
-    if (_test)
-        _connection->_testing = _test;
+        to_hex(Random().getKey(SYMMETRIC_KEY_SIZE)), serverPub);
+    if (_test) _connection->_testing = _test;
     std::ifstream input(pubKeyFilename);
-    std::string publicKey((std::istreambuf_iterator<char>(input)),
+    zero::str_t publicKey((std::istreambuf_iterator<char>(input)),
                           std::istreambuf_iterator<char>());
-    std::vector<unsigned char> key(publicKey.begin(), publicKey.end());
+    zero::bytes_t key(publicKey.begin(), publicKey.end());
     AuthenticateRequest registerRequest(_username, key);
 
     sendRequest({{Request::Type::CREATE, 0}, registerRequest.serialize()});
 }
 
 void Client::deleteAccount() {
-    GenericRequest request(_userId, _username);
+    GenericRequest request(_userId);
     sendRequest({{Request::Type::REMOVE, _userId}, request.serialize()});
 }
 
 void Client::sendFindUsers(const std::string &query) {
-    GetUsers request{_userId, _username, query};
+    GetUsers request{query};
     sendRequest({{Request::Type::FIND_USERS, _userId}, request.serialize()});
 }
 
@@ -159,8 +155,7 @@ void Client::sendKeysBundle() {
 }
 
 void Client::requestKeyBundle(uint32_t receiverId) {
-    sendRequest({{Request::Type::GET_RECEIVERS_BUNDLE, receiverId},
-                 GenericRequest{_userId, _username}.serialize()});
+    sendRequest({{Request::Type::GET_RECEIVERS_BUNDLE, receiverId}, {}});
 }
 
 void Client::checkForMessages() {
@@ -187,7 +182,8 @@ void Client::sendData(uint32_t receiverId,
         std::string time = std::ctime(&now);
 
         if (ratchet.hasReceivedMessage()) {
-            SendData toSend(time, _username, _userId, false, message.serialize());
+            SendData toSend(time, _username, _userId, false,
+                            message.serialize());
             sendRequest({{Request::Type::SEND, receiverId, _userId},
                          toSend.serialize()});
         } else {
@@ -270,8 +266,8 @@ void Client::decryptInitialMessage(SendData &sendData, Response::Type type) {
         }
     } else {
         _ratchets.emplace(
-                sendData.fromId,
-                DoubleRatchet(secret.sk, secret.ad, secret.pubKey, secret.privKey));
+            sendData.fromId,
+            DoubleRatchet(secret.sk, secret.ad, secret.pubKey, secret.privKey));
         Message message = Message::deserialize(messageEncrypted);
         auto decrypted = _ratchets.at(sendData.fromId).RatchetDecrypt(message);
         if (!decrypted.empty()) {
@@ -311,7 +307,7 @@ void Client::sendRequest(const Request &request) {
 }
 
 void Client::sendGenericRequest(Request::Type type) {
-    GenericRequest request{_userId, _username};
+    GenericRequest request{_userId};
     sendRequest({{type, _userId}, request.serialize()});
 }
 

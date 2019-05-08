@@ -1,14 +1,14 @@
-#include <iomanip>
-#include <sstream>
 #include <algorithm>
 #include <ctime>
+#include <iomanip>
+#include <sstream>
 
-#include "utils.h"
 #include "serializable_error.h"
+#include "utils.h"
 
 #if defined(WINDOWS)
-#include <windows.h>
 #include <io.h>
+#include <windows.h>
 
 #else
 
@@ -32,7 +32,7 @@ std::ostream &operator<<(std::ostream &out, safe_mpi &mpi) {
 size_t getSize(std::istream &input) {
     auto original = input.tellg();
     input.seekg(0, std::ios::end);
-    auto delta = static_cast<size_t >(input.tellg() - original);
+    auto delta = static_cast<size_t>(input.tellg() - original);
     input.seekg(original);
     return delta;
 }
@@ -47,7 +47,8 @@ void write_n(std::ostream &out, const unsigned char *data, size_t length) {
 }
 
 void write_n(std::ostream &out, const std::string &data) {
-    write_n(out, reinterpret_cast<const unsigned char *>(data.data()), data.size());
+    write_n(out, reinterpret_cast<const unsigned char *>(data.data()),
+            data.size());
 }
 
 void write_n(std::ostream &out, const std::vector<unsigned char> &data) {
@@ -55,17 +56,20 @@ void write_n(std::ostream &out, const std::vector<unsigned char> &data) {
 }
 
 std::string &to_upper(std::string &&lowercase) {
-    std::transform(lowercase.begin(), lowercase.end(), lowercase.begin(), ::toupper);
+    std::transform(lowercase.begin(), lowercase.end(), lowercase.begin(),
+                   ::toupper);
     return lowercase;
 }
 
 std::string &to_lower(std::string &&uppercase) {
-    std::transform(uppercase.begin(), uppercase.end(), uppercase.begin(), ::tolower);
+    std::transform(uppercase.begin(), uppercase.end(), uppercase.begin(),
+                   ::tolower);
     return uppercase;
 }
 
 std::string to_hex(const std::string &buff) {
-    return to_hex(reinterpret_cast<const unsigned char *>(buff.data()), buff.length());
+    return to_hex(reinterpret_cast<const unsigned char *>(buff.data()),
+                  buff.length());
 }
 
 std::string to_hex(const std::vector<unsigned char> &bytes) {
@@ -75,7 +79,8 @@ std::string to_hex(const std::vector<unsigned char> &bytes) {
 std::string to_hex(const unsigned char bytes[], size_t length) {
     std::stringstream stream;
     for (size_t i = 0; i < length; i++) {
-        stream << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(bytes[i]);
+        stream << std::hex << std::setfill('0') << std::setw(2)
+               << static_cast<int>(bytes[i]);
     }
     return stream.str();
 }
@@ -85,9 +90,7 @@ void from_hex(const std::string &input, unsigned char *output, size_t length) {
         throw Error("Invalid conversion dimensions.");
     }
     std::vector<unsigned char> vector = from_hex(input);
-    //todo too much copying
     std::copy_n(vector.data(), length, output);
-    clear<unsigned char>(vector.data(), vector.size());
 }
 
 std::vector<unsigned char> from_hex(const std::string &input) {
@@ -114,7 +117,8 @@ std::string to_string(const std::vector<unsigned char> &input) {
 uint64_t getTimestampOf(time_t *timer) {
     std::time_t t = std::time(timer);
     std::tm *lt = std::localtime(&t);
-    return static_cast<uint64_t>(lt->tm_year * 366 * 24 + lt->tm_yday * 24 + lt->tm_hour);
+    return static_cast<uint64_t>(lt->tm_year * 366 * 24 + lt->tm_yday * 24 +
+                                 lt->tm_hour);
 }
 
 std::stringstream stream_from_vector(const std::vector<unsigned char> &vector) {
@@ -137,20 +141,21 @@ std::string getFile(const std::string &suffix) {
     std::string file;
 
 #if defined(WINDOWS)
-    //from https://stackoverflow.com/questions/11140483/how-to-get-list-of-files-with-a-specific-extension-in-a-given-folder
+    // from
+    // https://stackoverflow.com/questions/11140483/how-to-get-list-of-files-with-a-specific-extension-in-a-given-folder
 
     WIN32_FIND_DATAA data;
-        HANDLE handle = FindFirstFile(".\\*", &data);
+    HANDLE handle = FindFirstFile(".\\*", &data);
 
-        if (handle) {
-            do {
-                if (std::strstr(data.cFileName, suffix.c_str())) {
-                    file = data.cFileName;
-                    break;
-                }
-            } while ( FindNextFile(handle, &data));
-            FindClose(handle);
-        }
+    if (handle) {
+        do {
+            if (std::strstr(data.cFileName, suffix.c_str())) {
+                file = data.cFileName;
+                break;
+            }
+        } while (FindNextFile(handle, &data));
+        FindClose(handle);
+    }
 
 #else
 
@@ -172,13 +177,13 @@ std::string getFile(const std::string &suffix) {
     return file;
 }
 
-std::ostream& operator<<(std::ostream& out, const std::vector<unsigned char> & data) {
-    for (auto& c : data) {
+std::ostream &operator<<(std::ostream &out,
+                         const std::vector<unsigned char> &data) {
+    for (auto &c : data) {
         out << static_cast<int>(c) << ",";
     }
     out << "\n";
     return out;
 }
 
-
-} //namespace helloworld
+}    // namespace helloworld

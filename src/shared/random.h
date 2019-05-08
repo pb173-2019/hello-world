@@ -18,6 +18,8 @@
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/entropy.h"
 
+#include "key.h"
+
 namespace helloworld {
 
 class Random {
@@ -41,7 +43,6 @@ class Random {
 
        public:
         ContextWrapper(std::mutex &mutex, mbedtls_ctr_drbg_context *_ctr_drbg);
-
         /**
          * Returns pointer to underlying context
          * @return pointer to drbg context
@@ -62,6 +63,13 @@ class Random {
      * @return std::vector<unsigned char> vector of unsigned data
      */
     std::vector<unsigned char> get(size_t size);
+
+    /**
+     * Generates vector into key type alias
+     * @param size length of the key
+     * @return random data for key
+     */
+    zero::bytes_t getKey(size_t size);
 
     /**
      * Generates random number, max 255^3

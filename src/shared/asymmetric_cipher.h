@@ -15,14 +15,14 @@
 #include <string>
 #include <vector>
 
+#include "key.h"
+
 namespace helloworld {
 
-enum class KeyType {
-    PUBLIC_KEY, PRIVATE_KEY, NO_KEY
-};
+enum class KeyType { PUBLIC_KEY, PRIVATE_KEY, NO_KEY };
 
 class AsymmetricKeyGen {
-public:
+   public:
     AsymmetricKeyGen() = default;
 
     // Copying is not available
@@ -40,16 +40,19 @@ public:
      * @param iv iv for aes
      * @return bool true if succesfully saved
      */
-    virtual bool savePrivateKey(const std::string &filename, const std::string &key, const std::string &iv) = 0;
+    virtual bool savePrivateKey(const std::string &filename,
+                                const zero::str_t &key,
+                                const std::string &iv) = 0;
 
     /**
-    * @brief Save private key into file
-    *
-    * @param filename file to save the key
-    * @param pwd password to protect the key
-    * @return bool true if succesfully saved
-    */
-    virtual bool savePrivateKeyPassword(const std::string &filename, const std::string &pwd) = 0;
+     * @brief Save private key into file
+     *
+     * @param filename file to save the key
+     * @param pwd password to protect the key
+     * @return bool true if succesfully saved
+     */
+    virtual bool savePrivateKeyPassword(const std::string &filename,
+                                        const zero::str_t &pwd) = 0;
 
     /**
      * @brief Save public key into file
@@ -62,17 +65,15 @@ public:
     /**
      * Direct getter for public key
      *
-     * @return std::vector<unsigned char> public key
+     * @return zero::bytes_t public key
      */
-    virtual std::vector<unsigned char> getPublicKey() const = 0;
-
-
+    virtual zero::bytes_t getPublicKey() const = 0;
 };
 
 class AsymmetricCipher {
     friend AsymmetricKeyGen;
 
-public:
+   public:
     AsymmetricCipher() = default;
 
     // Copying is not available
@@ -87,7 +88,7 @@ public:
      *
      * @param key public key in pem format
      */
-    virtual void setPublicKey(const std::vector<unsigned char> &key) = 0;
+    virtual void setPublicKey(const zero::bytes_t &key) = 0;
 
     /**
      * @brief Set required key for operation
@@ -102,16 +103,19 @@ public:
      * @param keyFile key filename to load
      * @param key key to decrypt private key or empty string
      * @param iv iv for encryption or empty string if not encrypted
-    */
-    virtual void loadPrivateKey(const std::string &keyFile, const std::string &key, const std::string &iv) = 0;
+     */
+    virtual void loadPrivateKey(const std::string &keyFile,
+                                const zero::str_t &key,
+                                const std::string &iv) = 0;
 
     /**
      * @brief Set required key for operation
      *
      * @param keyFile key filename to load
      * @param pwd password to decrypt key
-    */
-    virtual void loadPrivateKey(const std::string &keyFile, const std::string &pwd) = 0;
+     */
+    virtual void loadPrivateKey(const std::string &keyFile,
+                                const zero::str_t &pwd) = 0;
 
     /**
      * @brief Encrypt given message with key given
@@ -119,7 +123,8 @@ public:
      * @param data data to encrypt
      * @return std::vector<unsigned char> encrypted message
      */
-    virtual std::vector<unsigned char> encrypt(const std::vector<unsigned char> &data) = 0;
+    virtual std::vector<unsigned char> encrypt(
+        const std::vector<unsigned char> &data) = 0;
 
     /**
      * @brief Decrypt data with key given
@@ -127,7 +132,8 @@ public:
      * @param data data data to decrypt
      * @return std::string original message
      */
-    virtual std::vector<unsigned char> decrypt(const std::vector<unsigned char> &data) = 0;
+    virtual std::vector<unsigned char> decrypt(
+        const std::vector<unsigned char> &data) = 0;
 
     /**
      * @brief Sign given message with hash imprint of data
@@ -135,7 +141,8 @@ public:
      * @param hash hash to sign (either HEX string or raw buffer)
      * @return std::vector<unsigned char> signed hash of data
      */
-    virtual std::vector<unsigned char> sign(const std::vector<unsigned char> &data) = 0;
+    virtual std::vector<unsigned char> sign(
+        const std::vector<unsigned char> &data) = 0;
     virtual std::vector<unsigned char> sign(const std::string &data) = 0;
 
     /**
@@ -146,10 +153,12 @@ public:
      * @return true if signature was verified correctly
      * @return false if signature was not verified correctly
      */
-    virtual bool verify(const std::vector<unsigned char> &signedData, const std::vector<unsigned char> &data) = 0;
-    virtual bool verify(const std::vector<unsigned char> &signedData, const std::string &data) = 0;
+    virtual bool verify(const std::vector<unsigned char> &signedData,
+                        const std::vector<unsigned char> &data) = 0;
+    virtual bool verify(const std::vector<unsigned char> &signedData,
+                        const std::string &data) = 0;
 };
 
-}  // namespace helloworld
+}    // namespace helloworld
 
-#endif  // HELLOWORLD_SHARED_ASYMMETRICCIPHER_H_
+#endif    // HELLOWORLD_SHARED_ASYMMETRICCIPHER_H_

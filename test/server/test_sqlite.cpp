@@ -4,13 +4,11 @@
 
 using namespace helloworld;
 
-std::vector<unsigned char> strToVec(const std::string &data) {
-    return std::vector<unsigned char>(data.begin(), data.end());
+zero::bytes_t strToVec(const std::string &data) {
+    return zero::bytes_t(data.begin(), data.end());
 }
 
-
 TEST_CASE("SQLITE Database test") {
-
     ServerSQLite db{};
 
     UserData data{555, "Pepa", "", strToVec("My sercret key")};
@@ -32,23 +30,23 @@ TEST_CASE("SQLITE Database test") {
 }
 
 TEST_CASE("SQLITE Database test multiple data") {
-
-    std::string realPublicKey{"-----BEGIN PUBLIC KEY-----\n"
-                              "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAs3uY6co6Yx0wmIDB7k8A\n"
-                              "yAfuH7yyjCCP4DcE+Fn4Cvffn+cdQXIpuvvhKvLqBgwjIpgCblHuenr81KlVbbKR\n"
-                              "LCYl6n9OIvk3psxa9WH7t+mZKhiIPA4MnRw2cY/YNZZpxTqNbmo2EQhNBVox//sQ\n"
-                              "HA/XmcEM7sxj7OZlR39lZemdIYoVdRXb6VybbZVpVMZ2fhQfI/PpEbt4bA58kHz5\n"
-                              "quO/RHClh1wHb/XmjHDubZFr9ctYQA8+a6b3OTgtRlfg+iFuiC89eLcMxVOrWT3X\n"
-                              "uFfq/LQxgh6Ak03gYOfstKorHydVCTySj2SvGKXdYsaYT6bqRYUtOoyD6Wz+d8NB\n"
-                              "7wIDAQAB\n"
-                              "-----END PUBLIC KEY-----"};
+    std::string realPublicKey{
+        "-----BEGIN PUBLIC KEY-----\n"
+        "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAs3uY6co6Yx0wmIDB7k8A\n"
+        "yAfuH7yyjCCP4DcE+Fn4Cvffn+cdQXIpuvvhKvLqBgwjIpgCblHuenr81KlVbbKR\n"
+        "LCYl6n9OIvk3psxa9WH7t+mZKhiIPA4MnRw2cY/YNZZpxTqNbmo2EQhNBVox//sQ\n"
+        "HA/XmcEM7sxj7OZlR39lZemdIYoVdRXb6VybbZVpVMZ2fhQfI/PpEbt4bA58kHz5\n"
+        "quO/RHClh1wHb/XmjHDubZFr9ctYQA8+a6b3OTgtRlfg+iFuiC89eLcMxVOrWT3X\n"
+        "uFfq/LQxgh6Ak03gYOfstKorHydVCTySj2SvGKXdYsaYT6bqRYUtOoyD6Wz+d8NB\n"
+        "7wIDAQAB\n"
+        "-----END PUBLIC KEY-----"};
 
     ServerSQLite db{};
 
     UserData d1{245, "Penopa", "", strToVec("asdfasdfasdfasdfafb")};
     UserData d2{2, "karel", "", strToVec("adfbadfbasdfsdfbadgdsfcxx")};
     UserData d3{55535, "sunshine98", "", strToVec("My sercret key")};
-    //real public key
+    // real public key
     UserData d4{34, "novere", "", strToVec(realPublicKey)};
     UserData d5{8752, "mybestnick", "", strToVec("My sercret key")};
     UserData d6{53, "user666", "", strToVec("My sercret key")};
@@ -120,7 +118,6 @@ TEST_CASE("SQLITE Database no matching query") {
     CHECK(res1.empty());
 }
 
-
 TEST_CASE("SQLITE Database delete users") {
     ServerSQLite db{};
 
@@ -142,17 +139,19 @@ TEST_CASE("SQLITE Database delete users") {
 TEST_CASE("SQLITE basic operations messages / bundles table simple") {
     ServerSQLite db{};
 
-    std::string realPublicKey{"-----BEGIN PUBLIC KEY-----\n"
-                              "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAs3uY6co6Yx0wmIDB7k8A\n"
-                              "yAfuH7yyjCCP4DcE+Fn4Cvffn+cdQXIpuvvhKvLqBgwjIpgCblHuenr81KlVbbKR\n"
-                              "LCYl6n9OIvk3psxa9WH7t+mZKhiIPA4MnRw2cY/YNZZpxTqNbmo2EQhNBVox//sQ\n"
-                              "HA/XmcEM7sxj7OZlR39lZemdIYoVdRXb6VybbZVpVMZ2fhQfI/PpEbt4bA58kHz5\n"
-                              "quO/RHClh1wHb/XmjHDubZFr9ctYQA8+a6b3OTgtRlfg+iFuiC89eLcMxVOrWT3X\n"
-                              "uFfq/LQxgh6Ak03gYOfstKorHydVCTySj2SvGKXdYsaYT6bqRYUtOoyD6Wz+d8NB\n"
-                              "7wIDAQAB\n"
-                              "-----END PUBLIC KEY-----"};
+    std::string realPublicKey{
+        "-----BEGIN PUBLIC KEY-----\n"
+        "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAs3uY6co6Yx0wmIDB7k8A\n"
+        "yAfuH7yyjCCP4DcE+Fn4Cvffn+cdQXIpuvvhKvLqBgwjIpgCblHuenr81KlVbbKR\n"
+        "LCYl6n9OIvk3psxa9WH7t+mZKhiIPA4MnRw2cY/YNZZpxTqNbmo2EQhNBVox//sQ\n"
+        "HA/XmcEM7sxj7OZlR39lZemdIYoVdRXb6VybbZVpVMZ2fhQfI/PpEbt4bA58kHz5\n"
+        "quO/RHClh1wHb/XmjHDubZFr9ctYQA8+a6b3OTgtRlfg+iFuiC89eLcMxVOrWT3X\n"
+        "uFfq/LQxgh6Ak03gYOfstKorHydVCTySj2SvGKXdYsaYT6bqRYUtOoyD6Wz+d8NB\n"
+        "7wIDAQAB\n"
+        "-----END PUBLIC KEY-----"};
 
-    UserData source{34, "novere", "asdfasdfasdfasdfafb", strToVec(realPublicKey)};
+    UserData source{34, "novere", "asdfasdfasdfasdfafb",
+                    strToVec(realPublicKey)};
 
     SECTION("Table messages") {
         db.insertData(34, source.serialize());
@@ -164,7 +163,7 @@ TEST_CASE("SQLITE basic operations messages / bundles table simple") {
         CHECK(result.name == source.name);
         CHECK(result.publicKey == source.publicKey);
 
-        //was emptied
+        // was emptied
         resultData = db.selectData(34);
         CHECK(resultData.empty());
     }
@@ -188,14 +187,14 @@ TEST_CASE("SQLITE basic operations messages / bundles table simple") {
     }
 }
 
-
-
 TEST_CASE("SQLITE blob storage advanced") {
-
     UserData s1{34, "novere", "asdfasdfasdfasdfafb", {1, 2, 3, 4}};
     UserData s2{0, "", "", {}};
-    UserData s3{34, "honza", "asdfasdfasdfasdfafb", {11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-                                                     11, 11, 11, 11, 11, 11, 11}};
+    UserData s3{
+        34,
+        "honza",
+        "asdfasdfasdfasdfafb",
+        {11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11}};
 
     std::vector<unsigned char> empty{};
 
@@ -223,12 +222,13 @@ TEST_CASE("SQLITE blob storage advanced") {
         UserData res2 = UserData::deserialize(resultData);
         CHECK(res2.id == 34);
 
-        if(res2.name == "novere") {
-            CHECK(res2.publicKey == std::vector<unsigned char>{1, 2, 3, 4});
+        if (res2.name == "novere") {
+            CHECK(res2.publicKey == zero::bytes_t{1, 2, 3, 4});
         } else {
             CHECK(res2.name == "honza");
-            CHECK(res2.publicKey == std::vector<unsigned char>{11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-                                                               11, 11, 11, 11, 11, 11});
+            CHECK(res2.publicKey == zero::bytes_t{11, 11, 11, 11, 11, 11, 11,
+                                                  11, 11, 11, 11, 11, 11, 11,
+                                                  11, 11, 11});
         }
 
         resultData = db.selectData(5);
@@ -243,7 +243,7 @@ TEST_CASE("SQLITE blob storage advanced") {
 
     SECTION("Table bundles") {
         db.insertBundle(99, s1.serialize());
-        //re-insert data (updates)
+        // re-insert data (updates)
         db.insertBundle(99, s3.serialize());
         db.insertBundle(5, s2.serialize());
         db.insertBundle(3, empty);
@@ -257,11 +257,12 @@ TEST_CASE("SQLITE blob storage advanced") {
         CHECK(res1.sessionKey.empty());
         CHECK(res1.publicKey.empty());
 
-        resultData = db.selectBundle(99); //doesn't delete
+        resultData = db.selectBundle(99);    // doesn't delete
         resultData = db.selectBundle(99);
         UserData res2 = UserData::deserialize(resultData);
-        CHECK(res2.publicKey == std::vector<unsigned char>{11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-                                                           11, 11, 11, 11, 11, 11, 11});
+        CHECK(res2.publicKey == zero::bytes_t{11, 11, 11, 11, 11, 11, 11, 11,
+                                              11, 11, 11, 11, 11, 11, 11, 11,
+                                              11});
         CHECK(res2.sessionKey == "asdfasdfasdfasdfafb");
         CHECK(res2.id == 34);
         CHECK(res2.name == "honza");
@@ -270,7 +271,7 @@ TEST_CASE("SQLITE blob storage advanced") {
         resultData = db.selectBundle(5);
         CHECK(resultData.empty());
 
-        db.updateBundle(6, {1,2,3});
+        db.updateBundle(6, {1, 2, 3});
         resultData = db.selectBundle(6);
         CHECK(resultData.empty());
 
@@ -280,27 +281,25 @@ TEST_CASE("SQLITE blob storage advanced") {
     }
 }
 
-
 TEST_CASE("SQLITE bundles re-insertion updates") {
-
     ServerSQLite db{};
 
-    db.insertBundle(3, std::vector<unsigned char>{1,2,3});
-    db.insertBundle(4, std::vector<unsigned char>{4,2,3});
-    db.insertBundle(2, std::vector<unsigned char>{1,2,4});
+    db.insertBundle(3, std::vector<unsigned char>{1, 2, 3});
+    db.insertBundle(4, std::vector<unsigned char>{4, 2, 3});
+    db.insertBundle(2, std::vector<unsigned char>{1, 2, 4});
 
-    //insertion update
+    // insertion update
     db.insertBundle(2, std::vector<unsigned char>{5, 5, 5});
 
     CHECK(db.selectBundle(2) == std::vector<unsigned char>{5, 5, 5});
-    CHECK(db.selectBundle(4) == std::vector<unsigned char>{4,2,3});
-    CHECK(db.selectBundle(3) == std::vector<unsigned char>{1,2,3});
+    CHECK(db.selectBundle(4) == std::vector<unsigned char>{4, 2, 3});
+    CHECK(db.selectBundle(3) == std::vector<unsigned char>{1, 2, 3});
 
-    //insertion update 2x
+    // insertion update 2x
     db.insertBundle(2, std::vector<unsigned char>{1, 5});
     db.insertBundle(2, std::vector<unsigned char>{8, 8, 8, 8, 1});
 
-    CHECK(db.selectBundle(4) == std::vector<unsigned char>{4,2,3});
-    CHECK(db.selectBundle(3) == std::vector<unsigned char>{1,2,3});
+    CHECK(db.selectBundle(4) == std::vector<unsigned char>{4, 2, 3});
+    CHECK(db.selectBundle(3) == std::vector<unsigned char>{1, 2, 3});
     CHECK(db.selectBundle(2) == std::vector<unsigned char>{8, 8, 8, 8, 1});
 }
