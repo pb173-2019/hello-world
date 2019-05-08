@@ -11,8 +11,9 @@
 #ifndef HELLOWORLD_SHARED_RANDOM_H_
 #define HELLOWORLD_SHARED_RANDOM_H_
 
-#include <vector>
+#include <mutex>
 #include <string>
+#include <vector>
 
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/entropy.h"
@@ -21,56 +22,71 @@
 
 namespace helloworld {
 
-    class Random {
-        mbedtls_entropy_context _entropy{};
-        mbedtls_ctr_drbg_context _ctr_drbg{};
+class Random {
+    static constexpr size_t RESEED_AFTER = 20;
 
-    public:
-        explicit Random();
+    // Working with shared resources, so it might be neccessary
+    static std::mutex _mutex;
 
-        Random(const Random &other) = delete;
+    static mbedtls_entropy_context _entropy;
+    static mbedtls_ctr_drbg_context _ctr_drbg;
+    static size_t _instance_counter;
+    static size_t _use_since_reseed;
 
-        Random &operator=(const Random &other) = delete;
+   public:
+    explicit Random();
 
-        /**
-         * Generates vector of random data
-         *
-         * @param size length of vector
-         * @return std::vector<unsigned char> vector of unsigned data
-         */
-        std::vector<unsigned char> get(size_t size);
+    Random(const Random &other) = delete;
 
-        /**
-         * Generates vector into key type alias
-         * @param size length of the key
-         * @return random data for key
-         */
-        zero::bytes_t getKey(size_t size);
+    Random &operator=(const Random &other) = delete;
 
-        /**
-         * Generates random number, max 255^3
-         * not suitable for short ranges, e.g. 55, 58
-         *
-         * @param lower lower bound including
-         * @param upper upper bound excluding
-         * @return size_t number in range <lower, upper)
-         */
-        size_t getBounded(size_t lower, size_t upper);
+    /**
+     * Generates vector of random data
+     *
+     * @param size length of vector
+     * @return std::vector<unsigned char> vector of unsigned data
+     */
+    std::vector<unsigned char> get(size_t size);
 
+    /**
+     * Generates vector into key type alias
+     * @param size length of the key
+     * @return random data for key
+     */
+    zero::bytes_t getKey(size_t size);
 
-        /**
-         * Returns ctr_drbg associated context
-         *
-         * @return mbedtls_ctr_drbg_context* random engine context pointer
-         */
-        mbedtls_ctr_drbg_context* getEngine();
+    /**
+     * Generates random number, max 255^3
+     * not suitable for short ranges, e.g. 55, 58
+     *
+     * @param lower lower bound including
+     * @param upper upper bound excluding
+     * @return size_t number in range <lower, upper)
+     */
+    size_t getBounded(size_t lower, size_t upper);
 
-        ~Random();
+    /**
+     * Returns ctr_drbg associated context in thread (lock should be called
+     * before getEngine to ensure thread safeness)
+     *
+     * @return mbedtls_ctr_drbg_context* random engine context pointer
+     */
+    mbedtls_ctr_drbg_context *getEngine();
 
-    private:
-        void _getSeedEntropy(unsigned char* buff);
-    };
+    /**
+     * Locks mutex used to protect shared resources
+     * @return unique lock of mutex protecting random context
+     */
+    std::unique_lock<std::mutex> lock();
 
-}
+    ~Random();
 
-#endif //HELLOWORLD_SHARED_RANDOM_H_
+   private:
+    static void _init();
+    static void _reseed();
+    static void _getSeedEntropy(unsigned char *buff);
+};
+
+}    // namespace helloworld
+
+#endif    // HELLOWORLD_SHARED_RANDOM_H_

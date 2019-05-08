@@ -5,17 +5,18 @@
 
 using namespace helloworld;
 
-void appendVector(zero::bytes_t& to, const zero::bytes_t &from) {
+void appendVector(zero::bytes_t& to, const zero::bytes_t& from) {
     to.insert(to.end(), from.begin(), from.end());
 }
 
 TEST_CASE("X3DH process test one-time keys present") {
-    //X3DH assumes the files with public key saved in identityKey.key, identityKey.pub
+    // X3DH assumes the files with public key saved in identityKey.key,
+    // identityKey.pub
 
     std::string alice = "alice";
     zero::str_t alice_pwd = "1234";
 
-    C25519KeyGen keyGen; //alice's identity keys
+    C25519KeyGen keyGen;    // alice's identity keys
     keyGen.savePrivateKeyPassword(alice + idC25519priv, alice_pwd);
     keyGen.savePublicKey(alice + idC25519pub);
 
@@ -32,15 +33,13 @@ TEST_CASE("X3DH process test one-time keys present") {
     bundle.identityKey = bobIdentity.getPublicKey();
     bundle.preKey = bobPreKey.getPublicKey();
     bundle.preKeySingiture = identity.sign(bundle.preKey);
-    bundle.oneTimeKeys = std::vector<zero::bytes_t>{
-        bobOneTime1.getPublicKey(),
-        bobOneTime2.getPublicKey()
-    };
+    bundle.oneTimeKeys = std::vector<zero::bytes_t>{bobOneTime1.getPublicKey(),
+                                                    bobOneTime2.getPublicKey()};
 
     SendData toSend{"1.3.2013", "user", 1, true, {1, 2, 3, 4}};
 
     X3DH x3dh_alice(alice, alice_pwd);
-    //setTimestamp() not needed in x3dh_alice as alice is not using .in()
+    // setTimestamp() not needed in x3dh_alice as alice is not using .in()
 
     X3DHRequest<C25519> request;
     X3DH::X3DHSecretPubKey secret;
@@ -59,15 +58,15 @@ TEST_CASE("X3DH process test one-time keys present") {
         dhcurve.setPublicKey(request.senderIdPubKey);
         dhs = dhcurve.getShared();
 
-        //DH2 step
+        // DH2 step
         identity.setPublicKey(request.senderEphermalPubKey);
         appendVector(dhs, identity.getShared());
 
-        //DH3
+        // DH3
         dhcurve.setPublicKey(request.senderEphermalPubKey);
         appendVector(dhs, dhcurve.getShared());
 
-        //DH4 (optional)
+        // DH4 (optional)
         dhcurve.setPrivateKey(bobOneTime2);
         appendVector(dhs, dhcurve.getShared());
 
@@ -89,8 +88,10 @@ TEST_CASE("X3DH process test one-time keys present") {
         bobPreKey.savePublicKey(bob + preC25519pub);
         bobPreKey.savePrivateKeyPassword(bob + preC25519priv, bob_pwd);
 
-        bobOneTime2.savePublicKey(bob + std::to_string(request.opKeyId) + oneTimeC25519pub);
-        bobOneTime2.savePrivateKeyPassword(bob + std::to_string(request.opKeyId) + oneTimeC25519priv, bob_pwd);
+        bobOneTime2.savePublicKey(bob + std::to_string(request.opKeyId) +
+                                  oneTimeC25519pub);
+        bobOneTime2.savePrivateKeyPassword(
+            bob + std::to_string(request.opKeyId) + oneTimeC25519priv, bob_pwd);
 
         X3DH x3dh_bob(bob, bob_pwd);
         x3dh_bob.setTimestamp(bundle.timestamp);
@@ -109,16 +110,20 @@ TEST_CASE("X3DH process test one-time keys present") {
         Response r{{Response::Type::RECEIVE, 0}, request.serialize()};
 
         bobIdentity.savePublicKey(bob + idC25519pub + ".old");
-        bobIdentity.savePrivateKeyPassword(bob + idC25519priv + ".old", bob_pwd);
+        bobIdentity.savePrivateKeyPassword(bob + idC25519priv + ".old",
+                                           bob_pwd);
 
         bobPreKey.savePublicKey(bob + preC25519pub + ".old");
         bobPreKey.savePrivateKeyPassword(bob + preC25519priv + ".old", bob_pwd);
 
-        bobOneTime2.savePublicKey(bob + std::to_string(request.opKeyId) + oneTimeC25519pub + ".old");
-        bobOneTime2.savePrivateKeyPassword(bob + std::to_string(request.opKeyId) + oneTimeC25519priv + ".old", bob_pwd);
+        bobOneTime2.savePublicKey(bob + std::to_string(request.opKeyId) +
+                                  oneTimeC25519pub + ".old");
+        bobOneTime2.savePrivateKeyPassword(
+            bob + std::to_string(request.opKeyId) + oneTimeC25519priv + ".old",
+            bob_pwd);
 
         X3DH x3dh_bob(bob, bob_pwd);
-        x3dh_bob.setTimestamp(bundle.timestamp + 1); //different timestamp!
+        x3dh_bob.setTimestamp(bundle.timestamp + 1);    // different timestamp!
 
         std::vector<unsigned char> messageEncrypted;
         X3DH::X3DHSecretKeyPair bob_secret;
@@ -129,12 +134,13 @@ TEST_CASE("X3DH process test one-time keys present") {
 }
 
 TEST_CASE("X3DH process test no one time keys") {
-    //X3DH assumes the files with public key saved in identityKey.key, identityKey.pub
+    // X3DH assumes the files with public key saved in identityKey.key,
+    // identityKey.pub
 
     std::string alice = "alice";
     zero::str_t alice_pwd = "1234";
 
-    C25519KeyGen keyGen; //alice's identity keys
+    C25519KeyGen keyGen;    // alice's identity keys
     keyGen.savePrivateKeyPassword(alice + idC25519priv, alice_pwd);
     keyGen.savePublicKey(alice + idC25519pub);
 
@@ -153,7 +159,7 @@ TEST_CASE("X3DH process test no one time keys") {
     SendData toSend{"1.3.2013", "user", 1, true, {1, 2, 3, 4}};
 
     X3DH x3dh_alice(alice, alice_pwd);
-    //setTimestamp() not needed in x3dh_alice as alice is not using .in()
+    // setTimestamp() not needed in x3dh_alice as alice is not using .in()
 
     X3DHRequest<C25519> request;
     X3DH::X3DHSecretPubKey secret;
@@ -171,11 +177,11 @@ TEST_CASE("X3DH process test no one time keys") {
         dhcurve.setPublicKey(request.senderIdPubKey);
         dhs = dhcurve.getShared();
 
-        //DH2 step
+        // DH2 step
         identity.setPublicKey(request.senderEphermalPubKey);
         appendVector(dhs, identity.getShared());
 
-        //DH3
+        // DH3
         dhcurve.setPublicKey(request.senderEphermalPubKey);
         appendVector(dhs, dhcurve.getShared());
 
@@ -213,13 +219,14 @@ TEST_CASE("X3DH process test no one time keys") {
         Response r{{Response::Type::RECEIVE, 0}, request.serialize()};
 
         bobIdentity.savePublicKey(bob + idC25519pub + ".old");
-        bobIdentity.savePrivateKeyPassword(bob + idC25519priv + ".old", bob_pwd);
+        bobIdentity.savePrivateKeyPassword(bob + idC25519priv + ".old",
+                                           bob_pwd);
 
         bobPreKey.savePublicKey(bob + preC25519pub + ".old");
         bobPreKey.savePrivateKeyPassword(bob + preC25519priv + ".old", bob_pwd);
 
         X3DH x3dh_bob(bob, bob_pwd);
-        x3dh_bob.setTimestamp(bundle.timestamp + 1); //different timestamp!
+        x3dh_bob.setTimestamp(bundle.timestamp + 1);    // different timestamp!
 
         std::vector<unsigned char> messageEncrypted;
         X3DH::X3DHSecretKeyPair bob_secret;
@@ -228,7 +235,3 @@ TEST_CASE("X3DH process test no one time keys") {
         CHECK(bob_secret.sk == secret.sk);
     }
 }
-
-
-
-

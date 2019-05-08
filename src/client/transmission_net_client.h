@@ -7,19 +7,19 @@
 #ifndef HELLOWORLD_TRANSMISSION_NET_CLIENT_H
 #define HELLOWORLD_TRANSMISSION_NET_CLIENT_H
 
-#include <sstream>
 #include <QObject>
 #include <QtNetwork>
 #include <cstdint>
 #include <memory>
-#include "../shared/transmission.h"
+#include <sstream>
 #include "../shared/base_64.h"
+#include "../shared/transmission.h"
 #include "../shared/utils.h"
 
 namespace helloworld {
 
 class ClientSocket : public QObject, public UserTransmissionManager {
-Q_OBJECT
+    Q_OBJECT
     Base64 _base64;
 
     qint16 _port{};
@@ -27,7 +27,8 @@ Q_OBJECT
 
     std::unique_ptr<QTcpSocket> _socket;
     QDataStream in;
-public:
+
+   public:
     explicit ClientSocket(Callable<void, std::stringstream &&> *callback,
                           std::string username, const std::string &addr = "",
                           uint16_t port = 5000, QObject *parent = nullptr);
@@ -36,15 +37,16 @@ public:
     ClientSocket &operator=(const ClientSocket &other) = delete;
 
     ~ClientSocket() override {
-        QObject::disconnect(_socket.get(), SIGNAL(stateChanged(QAbstractSocket::SocketState)), this,
-                            SLOT(_state_change(QAbstractSocket::SocketState)));
+        QObject::disconnect(
+            _socket.get(), SIGNAL(stateChanged(QAbstractSocket::SocketState)),
+            this, SLOT(_state_change(QAbstractSocket::SocketState)));
     };
 
     /**
-    * Setup host address to connect to
-    *
-    * &param address ipv4 address in <>.<>.<>.<> form
-    */
+     * Setup host address to connect to
+     *
+     * &param address ipv4 address in <>.<>.<>.<> form
+     */
     void setHostAddress(const std::string &address);
 
     /**
@@ -61,7 +63,7 @@ public:
      */
     void closeConnection();
 
-Q_SIGNALS:
+   Q_SIGNALS:
 
     /**
      * Signal emmited on disconnect
@@ -78,7 +80,7 @@ Q_SIGNALS:
      */
     void sent();
 
-public Q_SLOTS:
+   public Q_SLOTS:
 
     /**
      * Function receiving the received signal
@@ -96,7 +98,7 @@ public Q_SLOTS:
      */
     void onError(QAbstractSocket::SocketError socketError);
 
-private Q_SLOTS:
+   private Q_SLOTS:
 
     /**
      * Receives the changed state event, which is
@@ -105,10 +107,10 @@ private Q_SLOTS:
      */
     void _state_change(QAbstractSocket::SocketState state);
 
-private:
+   private:
     bool wait_connected();
 };
 
-} //namespace helloworld
+}    // namespace helloworld
 
-#endif //HELLOWORLD_TRANSMISSION_NET_CLIENT_H
+#endif    // HELLOWORLD_TRANSMISSION_NET_CLIENT_H

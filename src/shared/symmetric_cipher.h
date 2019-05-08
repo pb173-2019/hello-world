@@ -23,7 +23,7 @@ namespace helloworld {
 enum class Padding;
 
 class SymmetricCipher {
-public:
+   public:
     SymmetricCipher() = default;
 
     // Copying is not available
@@ -95,5 +95,5 @@ public:
     virtual zero::str_t generateKey() const = 0;
 };
 
-}  // namespace helloworld
-#endif // HELLOWORLD_SHARED_SYMMETRICCIPHER_H_
+}    // namespace helloworld
+#endif    // HELLOWORLD_SHARED_SYMMETRICCIPHER_H_

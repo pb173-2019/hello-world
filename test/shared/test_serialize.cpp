@@ -6,11 +6,12 @@
 
 using namespace helloworld;
 
-#include <stdint.h>
 #include <limits.h>
+#include <stdint.h>
 
 struct X : Serializable<X> {
-    serialize::structure& serialize(serialize::structure& result) const override {
+    serialize::structure& serialize(
+        serialize::structure& result) const override {
         result.push_back(0);
         return result;
     }
@@ -26,12 +27,10 @@ struct X : Serializable<X> {
         uint64_t from = 0;
         return deserialize(data, from);
     }
-    friend bool operator==(const X&, const X&) {
-        return true;
-    }
+    friend bool operator==(const X&, const X&) { return true; }
 };
 
-template<typename T>
+template <typename T>
 std::vector<T>& operator+=(std::vector<T>& one, const std::vector<T>& two) {
     std::copy(two.begin(), two.end(), std::back_inserter(one));
     return one;
@@ -42,12 +41,10 @@ struct Y : Serializable<Y> {
     int i;
     std::vector<char> v;
 
-    Y(std::string s = "", int i = 0,std::vector<char> v = {})
-            : s(s)
-            , i(i)
-            , v(v) {}
-    serialize::structure& serialize(serialize::structure& result) const override {
-
+    Y(std::string s = "", int i = 0, std::vector<char> v = {})
+        : s(s), i(i), v(v) {}
+    serialize::structure& serialize(
+        serialize::structure& result) const override {
         serialize::serialize(s, result);
         serialize::serialize(i, result);
         serialize::serialize(v, result);
@@ -58,8 +55,8 @@ struct Y : Serializable<Y> {
         return serialize(result);
     }
 
-
-    static Y deserialize(const std::vector<unsigned char>& data, uint64_t& from) {
+    static Y deserialize(const std::vector<unsigned char>& data,
+                         uint64_t& from) {
         Y res;
         res.s = serialize::deserialize<decltype(s)>(data, from);
         res.i = serialize::deserialize<decltype(i)>(data, from);
@@ -71,26 +68,25 @@ struct Y : Serializable<Y> {
         return deserialize(data, from);
     }
     friend bool operator==(const Y& a, const Y& b) {
-        return a.i == b.i && a.s == b.s && std::equal(a.v.begin(), a.v.end(), b.v.begin(), b.v.end());
+        return a.i == b.i && a.s == b.s &&
+               std::equal(a.v.begin(), a.v.end(), b.v.begin(), b.v.end());
     }
 };
 
+template <typename T>
+using equality = bool (*)(const T&, const T&);
 
-template<typename T>
-using equality = bool(*)(const T&, const T&);
-
-template<typename T>
+template <typename T>
 bool eq(const T& a, const T& b) {
     return a == b;
 }
 
-template<typename T>
+template <typename T>
 bool vec_eq(const std::vector<T>& a, const std::vector<T>& b) {
     return std::equal(a.begin(), a.end(), b.begin(), b.end());
 }
 
-
-template<typename T, equality<T> eq = eq>
+template <typename T, equality<T> eq = eq>
 struct test {
     int testnum{0};
     void run(const T& in) {
@@ -149,22 +145,22 @@ TEST_CASE("User defined types") {
         Y t1{};
         Y t2{std::string("pizze"), 0, std::vector<char>{}};
 
-        Y t3{std::string("Cheesecake jelly-o candy apple pie. Muffin soufflé sesame snaps. Candy jelly beans jelly beans. Candy cake cupcake apple pie halvah gummies sesame snaps gummi bears."
-                         "Dessert liquorice lemon drops fruitcake jelly-o dessert gummies. Cake bear claw muffin "), -100, std::vector<char>{1,2,3}};
+        Y t3{std::string(
+                 "Cheesecake jelly-o candy apple pie. Muffin soufflé sesame "
+                 "snaps. Candy jelly beans jelly beans. Candy cake cupcake "
+                 "apple pie halvah gummies sesame snaps gummi bears."
+                 "Dessert liquorice lemon drops fruitcake jelly-o dessert "
+                 "gummies. Cake bear claw muffin "),
+             -100, std::vector<char>{1, 2, 3}};
         t.run(t1);
         t.run(t2);
         t.run(t3);
     }
 }
 
-
 TEST_CASE("vector of objects") {
-
-
     SECTION("strings") {
-
         test<std::vector<std::string>, vec_eq<std::string>> test;
-
 
         std::vector<std::string> t1{};
         std::vector<std::string> t2{"one"};
@@ -175,9 +171,7 @@ TEST_CASE("vector of objects") {
         test.run(t3);
     }
     SECTION("user defined") {
-
         test<std::vector<X>, vec_eq<X>> test;
-
 
         std::vector<X> t1{};
         std::vector<X> t2{{}};
@@ -187,17 +181,16 @@ TEST_CASE("vector of objects") {
         test.run(t2);
         test.run(t3);
     }
-
 }
 
-template<typename T, typename = typename T::value_type>
+template <typename T, typename = typename T::value_type>
 bool operator==(const T& a, const T& b) {
     return std::equal(a.begin(), a.end(), b.begin(), b.end());
 }
 
 TEST_CASE("nested containers") {
     SECTION("simple") {
-        using tested_type = std::vector<std::vector<char> >;
+        using tested_type = std::vector<std::vector<char>>;
         test<tested_type> t;
 
         tested_type t0 = {};
@@ -214,7 +207,8 @@ TEST_CASE("nested containers") {
 
         tested_type t0 = {};
         tested_type t1 = {{{"why"}}};
-        tested_type t2 = {{{"why"}, {"would", "you"}}, {{"even", "do"}}, {{"this"}}};
+        tested_type t2 = {
+            {{"why"}, {"would", "you"}}, {{"even", "do"}}, {{"this"}}};
 
         t.run(t0);
         t.run(t1);

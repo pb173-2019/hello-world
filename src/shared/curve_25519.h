@@ -12,17 +12,17 @@
 #ifndef HELLOWORLD_SHARED_CURVE_25519_H_
 #define HELLOWORLD_SHARED_CURVE_25519_H_
 
-#include <vector>
-#include <string>
 #include <fstream>
 #include <sstream>
+#include <string>
+#include <vector>
 
 #include "mbedtls/ecdh.h"
 
 #include "aes_128.h"
+#include "asymmetric_cipher.h"
 #include "sha_512.h"
 #include "utils.h"
-#include "asymmetric_cipher.h"
 
 namespace helloworld {
 
@@ -35,8 +35,7 @@ class C25519KeyGen : AsymmetricKeyGen {
     zero::bytes_t _buffer_private;
     zero::bytes_t _buffer_public;
 
-public:
-
+   public:
     C25519KeyGen();
 
     // Copying is not available
@@ -46,9 +45,11 @@ public:
 
     ~C25519KeyGen() override = default;
 
-    bool savePrivateKey(const std::string &filename, const zero::str_t &key, const std::string &iv) override;
+    bool savePrivateKey(const std::string &filename, const zero::str_t &key,
+                        const std::string &iv) override;
 
-    bool savePrivateKeyPassword(const std::string &filename, const zero::str_t &pwd) override;
+    bool savePrivateKeyPassword(const std::string &filename,
+                                const zero::str_t &pwd) override;
 
     bool savePublicKey(const std::string &filename) const override;
 
@@ -65,9 +66,7 @@ public:
     }
 };
 
-
 class C25519 : public AsymmetricCipher {
-
     zero::bytes_t _buffer_private;
     zero::bytes_t _buffer_public;
 
@@ -77,7 +76,7 @@ class C25519 : public AsymmetricCipher {
     Random _random;
     unsigned char _flags = 0x00;
 
-public:
+   public:
     // Just for key bundle
     // Might replace XEDSA_SIGN_LEN so it can be used generaly for SFINAE
     static constexpr int SIGN_BYTES_LEN = 64;
@@ -108,13 +107,9 @@ public:
         _setup(KeyType::PUBLIC_KEY);
     }
 
-    zero::bytes_t getPrivateKey() {
-        return _buffer_private;
-    }
+    zero::bytes_t getPrivateKey() { return _buffer_private; }
 
-    zero::bytes_t getPublicKey() {
-        return _buffer_public;
-    }
+    zero::bytes_t getPublicKey() { return _buffer_public; }
 
     /**
      * Compute the second step of DH (the first is generating the public key)
@@ -122,17 +117,22 @@ public:
      */
     zero::bytes_t getShared();
 
-    //this method is implemented, but not needed for DH, as the public key is loaded by the other user
+    // this method is implemented, but not needed for DH, as the public key is
+    // loaded by the other user
     void setPublicKey(const zero::bytes_t &key) override;
 
-    //this method is implemented, but not needed for DH, as the public key is loaded by the other user
+    // this method is implemented, but not needed for DH, as the public key is
+    // loaded by the other user
     void loadPublicKey(const std::string &keyFile) override;
 
-    void loadPrivateKey(const std::string &keyFile, const zero::str_t &key, const std::string &iv) override;
+    void loadPrivateKey(const std::string &keyFile, const zero::str_t &key,
+                        const std::string &iv) override;
 
-    void loadPrivateKey(const std::string &keyFile, const zero::str_t &pwd) override;
+    void loadPrivateKey(const std::string &keyFile,
+                        const zero::str_t &pwd) override;
 
-    std::vector<unsigned char> sign(const std::vector<unsigned char> &msg) override;
+    std::vector<unsigned char> sign(
+        const std::vector<unsigned char> &msg) override;
 
     std::vector<unsigned char> sign(const std::string &msg) override;
 
@@ -140,30 +140,34 @@ public:
 
     std::vector<unsigned char> sign(const zero::bytes_t &msg);
 
-    bool verify(const std::vector<unsigned char> &signature, const zero::bytes_t &key);
+    bool verify(const std::vector<unsigned char> &signature,
+                const zero::bytes_t &key);
 
-    bool verify(const std::vector<unsigned char> &signature, const std::vector<unsigned char> &msg) override;
+    bool verify(const std::vector<unsigned char> &signature,
+                const std::vector<unsigned char> &msg) override;
 
-    bool verify(const std::vector<unsigned char> &signature, const std::string &msg) override;
+    bool verify(const std::vector<unsigned char> &signature,
+                const std::string &msg) override;
 
     /*
      * BASIC ASYMMETRIC ENCRYPTION NOT SUPPORTED
      */
-    std::vector<unsigned char> encrypt(const std::vector<unsigned char> &) override {
+    std::vector<unsigned char> encrypt(
+        const std::vector<unsigned char> &) override {
         throw std::runtime_error("Not supported");
     }
 
-    std::vector<unsigned char> decrypt(const std::vector<unsigned char> &) override {
+    std::vector<unsigned char> decrypt(
+        const std::vector<unsigned char> &) override {
         throw std::runtime_error("Not supported");
     }
 
-private:
+   private:
     bool _valid();
 
     void _setup(KeyType type);
 };
 
-} //namespace helloworld
+}    // namespace helloworld
 
-
-#endif //HELLOWORLD_CURVE_25519_H
+#endif    // HELLOWORLD_CURVE_25519_H

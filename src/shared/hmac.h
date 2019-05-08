@@ -17,21 +17,21 @@
 namespace helloworld {
 
 class hmac {
-public:
+   public:
     virtual size_t hmacLength() const = 0;
 
     virtual void setKey(const zero::str_t &newKey) = 0;
 
     virtual void setKey(const zero::bytes_t &newKey) = 0;
 
-    virtual std::vector<unsigned char> generate(const std::vector<unsigned char> &message) const = 0;
+    virtual std::vector<unsigned char> generate(
+        const std::vector<unsigned char> &message) const = 0;
 
     virtual zero::bytes_t generate(const zero::bytes_t &message) const = 0;
 
     virtual ~hmac() = default;
 };
 
+}    // namespace helloworld
 
-} // helloworld
-
-#endif //HELLOWORLD_HMAC_H
+#endif    // HELLOWORLD_HMAC_H

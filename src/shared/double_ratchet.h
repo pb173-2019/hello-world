@@ -21,24 +21,26 @@ class DoubleRatchet {
     DRState _state;
     bool _receivedMessage = false;
 
-private:
+   private:
     DoubleRatchetAdapter ext;
 
-    std::vector<unsigned char> TrySkippedMessageKeys(const MessageHeader &header,
-                              const std::vector<unsigned char> &ciphertext,
-                              const std::vector<unsigned char> &hmac);
+    std::vector<unsigned char> TrySkippedMessageKeys(
+        const MessageHeader &header,
+        const std::vector<unsigned char> &ciphertext,
+        const std::vector<unsigned char> &hmac);
     void SkipMessageKeys(size_t until);
     void DHRatchet(const MessageHeader &header);
     std::vector<unsigned char> TryRatchetDecrypt(const Message &message);
 
-public:
+   public:
     /**
      * @brief Create DoubleRatchetObject (RatchetInitAlice)
      *
      * @param SK shared key from X3DH exchange
      * @param other_dh_public_key Curve25519 public key from the other client
      */
-    DoubleRatchet(zero::bytes_t sk, zero::bytes_t ad, zero::bytes_t other_dh_public_key);    // RatchetInitAlice
+    DoubleRatchet(zero::bytes_t sk, zero::bytes_t ad,
+                  zero::bytes_t other_dh_public_key);    // RatchetInitAlice
 
     /**
      * @brief Create DoubleRatchetObject (RatchetInitBob)
@@ -47,10 +49,8 @@ public:
      * @param dh_public_key own Curve25519 public key
      * @param dh_private_key own Curve25519 public key
      */
-    DoubleRatchet(zero::bytes_t sk,
-                  zero::bytes_t ad,
-                  zero::bytes_t dh_public_key,
-                  zero::bytes_t dh_private_key);
+    DoubleRatchet(zero::bytes_t sk, zero::bytes_t ad,
+                  zero::bytes_t dh_public_key, zero::bytes_t dh_private_key);
 
     DoubleRatchet(DRState state);
 
@@ -72,9 +72,7 @@ public:
      */
     std::vector<unsigned char> RatchetDecrypt(const Message &message);
 
-    bool hasReceivedMessage() const {
-        return _receivedMessage;
-    }
+    bool hasReceivedMessage() const { return _receivedMessage; }
 };
 
 }    // namespace helloworld

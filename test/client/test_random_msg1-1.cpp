@@ -1,10 +1,10 @@
 #include "catch.hpp"
 
-#include "../../src/shared/utils.h"
 #include "../../src/client/client.h"
 #include "../../src/client/transmission_file_client.h"
 #include "../../src/server/server.h"
 #include "../../src/server/transmission_file_server.h"
+#include "../../src/shared/utils.h"
 
 using namespace helloworld;
 static bool alice_on = true;
@@ -135,33 +135,36 @@ TEST_CASE("Problematic scenarios explicitly performed, found by test below") {
     Network::setEnabled(true);
     Network::setProblematic(false);
 
-    Server server;
+    Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
     Random random;
 
     Client alice("alice", "alice_messaging.pem", "123456");
     alice.setTransmissionManager(
-            std::make_unique<ClientFiles>(&alice, alice.name()));
+        std::make_unique<ClientFiles>(&alice, alice.name()));
     Client bob("bob", "bob_messaging.pem", "123456");
     bob.setTransmissionManager(std::make_unique<ClientFiles>(&bob, bob.name()));
 
     alice.createAccount("alice_messaging_pub.pem");
     bob.createAccount("bob_messaging_pub.pem");
 
-    SECTION("User sends data while other offline, when comes online the sender thinks the connection is established while other does not.") {
+    SECTION(
+        "User sends data while other offline, when comes online the sender "
+        "thinks the connection is established while other does not.") {
         alice.logout();
-        bob.sendData(alice.getId(), {1,2,3});
+        bob.sendData(alice.getId(), {1, 2, 3});
         alice.login();
-        CHECK(alice.getMessage().data == std::vector<unsigned char>{1,2,3});
-        alice.sendData(bob.getId(), {1}); // <-- here **NEW** X3DH while bob has old one
+        CHECK(alice.getMessage().data == std::vector<unsigned char>{1, 2, 3});
+        alice.sendData(bob.getId(),
+                       {1});    // <-- here **NEW** X3DH while bob has old one
     }
 
     SECTION("Multiple offline messages") {
         bob.logout();
-        alice.sendData(bob.getId(), {1,2,3});
-        alice.sendData(bob.getId(), {1,2,3});
-        alice.sendData(bob.getId(), {1,2,3});
+        alice.sendData(bob.getId(), {1, 2, 3});
+        alice.sendData(bob.getId(), {1, 2, 3});
+        alice.sendData(bob.getId(), {1, 2, 3});
 
         bob.login();
         CHECK(bob.getMessage().data.size() >= 3);
@@ -170,11 +173,10 @@ TEST_CASE("Problematic scenarios explicitly performed, found by test below") {
     server.dropDatabase();
 }
 
-
 TEST_CASE("Random testing 1:1 messaging") {
     Network::setEnabled(true);
 
-    Server server;
+    Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
     Random random;
 

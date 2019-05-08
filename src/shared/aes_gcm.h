@@ -11,11 +11,11 @@
 #ifndef HELLOWORLD_AES_GCM_H
 #define HELLOWORLD_AES_GCM_H
 
-#include "config.h"
-#include "symmetric_cipher_base.h"
-#include "mbedtls/cipher.h"
-#include <sstream>
 #include <array>
+#include <sstream>
+#include "config.h"
+#include "mbedtls/cipher.h"
+#include "symmetric_cipher_base.h"
 
 namespace helloworld {
 
@@ -35,10 +35,8 @@ class AESGCM : public SymmetricCipherBase<MBEDTLS_CIPHER_AES_128_GCM, 16, 12> {
      */
     void _additional(const std::vector<unsigned char> &ad);
 
-public:
-    AESGCM() {
-        setPadding(Padding::PKCS7);
-    };
+   public:
+    AESGCM() { setPadding(Padding::PKCS7); };
 
     AESGCM(const AESGCM &other) = delete;
 
@@ -56,7 +54,8 @@ public:
     void encrypt(std::istream &in, std::ostream &out) override;
 
     /**
-     * @brief Encrypts and authenticates with additional data (additional data are not written into output)
+     * @brief Encrypts and authenticates with additional data (additional data
+     * are not written into output)
      *
      * @param in input stream
      * @param ad additional data stream
@@ -65,13 +64,16 @@ public:
     void encryptWithAd(std::istream &in, std::istream &ad, std::ostream &out);
 
     /**
-     * @brief Encrypts and authenticates with additional data (additional data are not written into output)
+     * @brief Encrypts and authenticates with additional data (additional data
+     * are not written into output)
      *
      * @param in input vector
      * @param ad additional data vector
      * @param out output vector
      */
-    void encryptWithAd(const std::vector<unsigned char> &in, const std::vector<unsigned char> &ad, std::vector<unsigned char> &out);
+    void encryptWithAd(const std::vector<unsigned char> &in,
+                       const std::vector<unsigned char> &ad,
+                       std::vector<unsigned char> &out);
 
     /**
      * @brief Decrypts and authenticates
@@ -82,7 +84,8 @@ public:
     void decrypt(std::istream &in, std::ostream &out) override;
 
     /**
-     * @brief Decrypts and authenticates with additional data (additional data must be supplied separately)
+     * @brief Decrypts and authenticates with additional data (additional data
+     * must be supplied separately)
      *
      * @param in input stream
      * @param ad additional data stream
@@ -91,15 +94,18 @@ public:
     void decryptWithAd(std::istream &in, std::istream &ad, std::ostream &out);
 
     /**
-    * @brief Decrypts and authenticates with additional data (additional data must be supplied separately)
+     * @brief Decrypts and authenticates with additional data (additional data
+     * must be supplied separately)
      *
      * @param in input vector
      * @param ad additional data vector
      * @param out output vector
      */
-    void decryptWithAd(const std::vector<unsigned char> &in, const std::vector<unsigned char> &ad, std::vector<unsigned char> &out);
+    void decryptWithAd(const std::vector<unsigned char> &in,
+                       const std::vector<unsigned char> &ad,
+                       std::vector<unsigned char> &out);
 };
 
-} //namespace helloworld
+}    // namespace helloworld
 
-#endif //HELLOWORLD_AES_GCM_H
+#endif    // HELLOWORLD_AES_GCM_H

@@ -32,7 +32,8 @@ struct DHPair : Serializable<DHPair> {
 
     DHPair() = default;
 
-    DHPair(zero::bytes_t pub, zero::bytes_t priv) : pub(std::move(pub)), priv(std::move(priv)) {}
+    DHPair(zero::bytes_t pub, zero::bytes_t priv)
+        : pub(std::move(pub)), priv(std::move(priv)) {}
 
     serialize::structure &serialize(
         serialize::structure &result) const override {
@@ -62,11 +63,12 @@ struct DHPair : Serializable<DHPair> {
 
 struct DRState : Serializable<DRState> {
     DHPair DHs;    // DH Ratchet key pair (the “sending” or “self” ratchet key)
-    zero::bytes_t DHr;    // DH Ratchet public key (the “received” or “remote” key)
-    zero::bytes_t RK;     // 32-byte Root Key
-    zero::bytes_t CKs, CKr;     // 32-byte Chain Keys for sending and receiving
-    size_t Ns, Nr;    // Message numbers for sending and receiving
-    size_t PN;        // Number of messages in previous sending chain
+    zero::bytes_t
+        DHr;    // DH Ratchet public key (the “received” or “remote” key)
+    zero::bytes_t RK;          // 32-byte Root Key
+    zero::bytes_t CKs, CKr;    // 32-byte Chain Keys for sending and receiving
+    size_t Ns, Nr;             // Message numbers for sending and receiving
+    size_t PN;                 // Number of messages in previous sending chain
     std::map<std::pair<zero::bytes_t, size_t>, zero::bytes_t> MKSKIPPED;
     // Dictionary of skipped-over message keys, indexed
     // by ratchet public key and message number. Raises an
@@ -98,7 +100,8 @@ struct DRState : Serializable<DRState> {
         return serialize(result);
     }
 
-    static DRState deserialize(const serialize::structure &data, uint64_t &from) {
+    static DRState deserialize(const serialize::structure &data,
+                               uint64_t &from) {
         DRState result;
         result.DHs = serialize::deserialize<decltype(result.DHs)>(data, from);
         result.DHr = serialize::deserialize<decltype(result.DHr)>(data, from);
@@ -111,7 +114,8 @@ struct DRState : Serializable<DRState> {
         uint64_t size = serialize::deserialize<uint64_t>(data, from);
         for (uint64_t i = 0; i < size; ++i) {
             std::pair<zero::bytes_t, size_t> skipped_key;
-            skipped_key.first = serialize::deserialize<zero::bytes_t>(data, from);
+            skipped_key.first =
+                serialize::deserialize<zero::bytes_t>(data, from);
             skipped_key.second = serialize::deserialize<size_t>(data, from);
             auto value = serialize::deserialize<zero::bytes_t>(data, from);
 
@@ -200,11 +204,15 @@ struct Message : public Serializable<Message> {
         return serialize(result);
     }
 
-    static Message deserialize(const serialize::structure &data, uint64_t &from) {
+    static Message deserialize(const serialize::structure &data,
+                               uint64_t &from) {
         Message message;
-        message.header = serialize::deserialize<decltype(message.header)>(data, from);
-        message.ciphertext = serialize::deserialize<decltype(message.ciphertext)>(data, from);
-        message.hmac = serialize::deserialize<decltype(message.hmac)>(data, from);
+        message.header =
+            serialize::deserialize<decltype(message.header)>(data, from);
+        message.ciphertext =
+            serialize::deserialize<decltype(message.ciphertext)>(data, from);
+        message.hmac =
+            serialize::deserialize<decltype(message.hmac)>(data, from);
         return message;
     }
     static Message deserialize(const serialize::structure &data) {
@@ -222,35 +230,40 @@ class DoubleRatchetAdapter {
         std::make_unique<hmac_base<MBEDTLS_MD_SHA512, KDF_RK_SIZE>>(),
         "ENCRYPT for Double Ratchet. 239"};
 
-    std::vector<unsigned char> getHmac(const zero::bytes_t &authentication_key, const std::vector<unsigned char> &associated_data,
-                const std::vector<unsigned char> &ciphertext) {
+    std::vector<unsigned char> getHmac(
+        const zero::bytes_t &authentication_key,
+        const std::vector<unsigned char> &associated_data,
+        const std::vector<unsigned char> &ciphertext) {
         auto hmacInput = associated_data;
         _hmac.setKey(authentication_key);
         hmacInput.insert(hmacInput.end(), ciphertext.begin(), ciphertext.end());
         return _hmac.generate(hmacInput);
     }
 
-public:
+   public:
     DHPair GENERATE_DH() const;
 
     zero::bytes_t DH(const DHPair &dh_pair, const zero::bytes_t &dh_pub) const;
 
-    std::pair<zero::bytes_t, zero::bytes_t> KDF_RK(const zero::bytes_t &rk, const zero::bytes_t &dh_out);
+    std::pair<zero::bytes_t, zero::bytes_t> KDF_RK(const zero::bytes_t &rk,
+                                                   const zero::bytes_t &dh_out);
 
-    std::pair<zero::bytes_t, zero::bytes_t> KDF_CK(const zero::bytes_t &ck, unsigned char input);
+    std::pair<zero::bytes_t, zero::bytes_t> KDF_CK(const zero::bytes_t &ck,
+                                                   unsigned char input);
 
-    CipherHMAC ENCRYPT(const zero::bytes_t &mk, const std::vector<unsigned char> &plaintext,
+    CipherHMAC ENCRYPT(const zero::bytes_t &mk,
+                       const std::vector<unsigned char> &plaintext,
                        const std::vector<unsigned char> &associated_data);
 
-    std::vector<unsigned char> DECRYPT(const zero::bytes_t &mk, const std::vector<unsigned char> &ciphertext,
-                                       const std::vector<unsigned char> &hmac,
-                                       const std::vector<unsigned char> &associated_data);
+    std::vector<unsigned char> DECRYPT(
+        const zero::bytes_t &mk, const std::vector<unsigned char> &ciphertext,
+        const std::vector<unsigned char> &hmac,
+        const std::vector<unsigned char> &associated_data);
 
     MessageHeader HEADER(const DHPair &dh_pair, size_t pn, size_t n) const;
 
     std::vector<unsigned char> CONCAT(const zero::bytes_t &ad,
                                       const MessageHeader &header) const;
-
 };
 
 }    // namespace helloworld

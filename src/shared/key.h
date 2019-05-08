@@ -12,19 +12,19 @@
 #ifndef HELLOWORLD_SHARED_KEY_H_
 #define HELLOWORLD_SHARED_KEY_H_
 
+#include <cstring>
 #include <memory>
 #include <vector>
-#include <cstring>
 
 #include <cstdlib>
-#include <new>
 #include <iostream>
+#include <new>
 
 namespace helloworld {
-    namespace zero {
+namespace zero {
 
-//template<class T>
-//struct KeyAlloc : public std::allocator<T> {
+// template<class T>
+// struct KeyAlloc : public std::allocator<T> {
 //    using value_type = T;
 //
 //    KeyAlloc() = default;
@@ -50,33 +50,36 @@ namespace helloworld {
 //    }
 //};
 
-        template<class T>
-        struct KeyAlloc {
-            using value_type = T;
+template <class T>
+struct KeyAlloc {
+    using value_type = T;
 
-            KeyAlloc() = default;
+    KeyAlloc() = default;
 
-            template<class U>
-            constexpr KeyAlloc(const KeyAlloc<U> &) noexcept {}
+    template <class U>
+    constexpr KeyAlloc(const KeyAlloc<U> &) noexcept {}
 
-            T *allocate(std::size_t n) {
-                if (n > std::size_t(-1) / sizeof(T)) throw std::bad_alloc();
-                if (auto p = static_cast<T *>(std::malloc(n * sizeof(T)))) return p;
-                throw std::bad_alloc();
-            }
+    T *allocate(std::size_t n) {
+        if (n > std::size_t(-1) / sizeof(T)) throw std::bad_alloc();
+        if (auto p = static_cast<T *>(std::malloc(n * sizeof(T)))) return p;
+        throw std::bad_alloc();
+    }
 
-            void deallocate(T *p, std::size_t n) noexcept {
-                std::memset(p, 0, n);
-                std::free(p);
-            }
-        };
+    void deallocate(T *p, std::size_t n) noexcept {
+        std::memset(p, 0, n);
+        std::free(p);
+    }
+};
 
-        template<class T, class U>
-        bool operator==(const KeyAlloc<T> &, const KeyAlloc<U> &) { return true; }
+template <class T, class U>
+bool operator==(const KeyAlloc<T> &, const KeyAlloc<U> &) {
+    return true;
+}
 
-        template<class T, class U>
-        bool operator!=(const KeyAlloc<T> &, const KeyAlloc<U> &) { return false; }
-
+template <class T, class U>
+bool operator!=(const KeyAlloc<T> &, const KeyAlloc<U> &) {
+    return false;
+}
 
 //        template <typename Inner, template <typename> class Container>
 //        class Zeroizer {
@@ -130,53 +133,55 @@ namespace helloworld {
 //        };
 //
 //        template <typename Inner, template <typename> class Container>
-//        bool operator==(const Zeroizer<Inner, Container> &a, const Zeroizer<Inner, Container> &b) {
+//        bool operator==(const Zeroizer<Inner, Container> &a, const
+//        Zeroizer<Inner, Container> &b) {
 //            return a.c == b.c;
 //        }
 //
 //        template <typename Inner, template <typename> class Container>
-//        bool operator!=(const Zeroizer<Inner, Container> &a, const Zeroizer<Inner, Container> &b) {
+//        bool operator!=(const Zeroizer<Inner, Container> &a, const
+//        Zeroizer<Inner, Container> &b) {
 //            return !(a==b);
 //        }
 
-        using bytes_t = std::vector<unsigned char, KeyAlloc<unsigned char>>;
-        using str_t = std::basic_string<char, std::char_traits<char>, KeyAlloc<char>>;
+using bytes_t = std::vector<unsigned char, KeyAlloc<unsigned char>>;
+using str_t = std::basic_string<char, std::char_traits<char>, KeyAlloc<char>>;
 
-        str_t to_hex(const bytes_t &bytes);
+str_t to_hex(const bytes_t &bytes);
 
-        bytes_t from_hex(const str_t &input);
+bytes_t from_hex(const str_t &input);
 
-        void write_n(std::ostream &out, const str_t &data);
+void write_n(std::ostream &out, const str_t &data);
 
-        void write_n(std::ostream &out, const bytes_t &data);
+void write_n(std::ostream &out, const bytes_t &data);
 
-        /**
-         * Split key functions
-         */
-        std::pair<bytes_t, bytes_t> split(bytes_t first, size_t index);
+/**
+ * Split key functions
+ */
+std::pair<bytes_t, bytes_t> split(bytes_t first, size_t index);
 
-        std::pair<bytes_t, bytes_t> split(const bytes_t &input);
+std::pair<bytes_t, bytes_t> split(const bytes_t &input);
 
-        template<typename T>
-        std::pair<bytes_t, std::vector<T>> split(bytes_t first, size_t index) {
-            std::vector<T> second(first.begin() + index, first.end());
-            first.resize(first.size() - second.size());
-            return std::make_pair(first, second);
-        }
+template <typename T>
+std::pair<bytes_t, std::vector<T>> split(bytes_t first, size_t index) {
+    std::vector<T> second(first.begin() + index, first.end());
+    first.resize(first.size() - second.size());
+    return std::make_pair(first, second);
+}
 
-        template<typename T>
-        std::pair<std::vector<T>, bytes_t> split(std::vector<T> first, size_t index) {
-            bytes_t second(first.begin() + index, first.end());
-            first.resize(first.size() - second.size());
-            return std::make_pair(first, second);
-        }
+template <typename T>
+std::pair<std::vector<T>, bytes_t> split(std::vector<T> first, size_t index) {
+    bytes_t second(first.begin() + index, first.end());
+    first.resize(first.size() - second.size());
+    return std::make_pair(first, second);
+}
 
-        template<typename T>
-        std::pair<bytes_t, std::vector<T>> split(const bytes_t &input) {
-            return split(input, input.size() / 2);
-        }
+template <typename T>
+std::pair<bytes_t, std::vector<T>> split(const bytes_t &input) {
+    return split(input, input.size() / 2);
+}
 
-    } // namespace zero
-} // namespace helloworld
+}    // namespace zero
+}    // namespace helloworld
 
-#endif //HELLOWORLD_SHARED_KEY_H_
+#endif    // HELLOWORLD_SHARED_KEY_H_

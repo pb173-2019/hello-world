@@ -1,15 +1,11 @@
+#include "CMDapp.h"
 #include <iostream>
 #include "../shared/rsa_2048.h"
 #include "transmission_net_client.h"
-#include "CMDapp.h"
 
 using namespace helloworld;
 constexpr int max_timeout = 5000;
-const char *CMDApp::Authors[3] = {
-        "Jiri Horak",
-        "Adam Ivora",
-        "Ivan Mitruk"
-};
+const char *CMDApp::Authors[3] = {"Jiri Horak", "Adam Ivora", "Ivan Mitruk"};
 
 void CMDApp::Command::print(std::ostream &os) const {
     os << name << std::string(15 - std::string(name).size(), ' ');
@@ -17,7 +13,7 @@ void CMDApp::Command::print(std::ostream &os) const {
 }
 
 CMDApp::CMDApp(std::istream &is, std::ostream &os, QObject *parent)
-        : QObject(parent), is(is), os(os), timeout(new QTimer(this)) {
+    : QObject(parent), is(is), os(os), timeout(new QTimer(this)) {
     connect(timeout, &QTimer::timeout, this, &CMDApp::onTimer);
     timeout->setInterval(max_timeout);
 }
@@ -25,8 +21,8 @@ CMDApp::CMDApp(std::istream &is, std::ostream &os, QObject *parent)
 std::string CMDApp::_welcomeMessage() const {
     std::stringstream out;
     std::stringstream msg;
-    msg << "Welcome to " << ApplicationName << " v" << MajorVersion
-        << "." << MinorVersion;
+    msg << "Welcome to " << ApplicationName << " v" << MajorVersion << "."
+        << MinorVersion;
     out << "/*" << std::string(line_length - 4, '*') << "*/\n"
         << "*" << std::string(line_length - 2, ' ') << "*\n"
         << "*" << std::string((line_length - 2 - msg.str().size()) / 2, ' ')
@@ -36,7 +32,6 @@ std::string CMDApp::_welcomeMessage() const {
         << "/*" << std::string(line_length - 4, '*') << "*/\n";
     return out.str();
 }
-
 
 void CMDApp::disconnected() {
     if (status >= State::Connected) {
@@ -57,14 +52,17 @@ void CMDApp::init() {
     zero::str_t password = getSafeInput("Password");
     try {
         std::cout << "Trying to load keys...\n";
-        client = std::make_unique<Client>(username, username + "_priv.pem", password);
+        client = std::make_unique<Client>(username, username + "_priv.pem",
+                                          password);
     } catch (Error & /*e*/) {
         std::cout << "Generating new keys...\n";
         _generateKeypair(password);
-        client = std::make_unique<Client>(username, username + "_priv.pem", password);
+        client = std::make_unique<Client>(username, username + "_priv.pem",
+                                          password);
     }
     std::cout << "Keys loaded successfuly\n";
-    client->setTransmissionManager(std::make_unique<ClientSocket>(client.get(), username));
+    client->setTransmissionManager(
+        std::make_unique<ClientSocket>(client.get(), username));
     connect(client.get(), &Client::error, this, &CMDApp::onError);
     os << "hint: Try \"help\"\n";
     _running = true;
@@ -80,17 +78,15 @@ std::string CMDApp::_versionInfo() const {
     auto _end = std::end(Authors);
     for (; _begin != _end;) {
         out << *_begin;
-        if (++_begin != _end)
-            out << ", ";
+        if (++_begin != _end) out << ", ";
     }
     return out.str();
 }
 
 void CMDApp::help_command(CMDApp *app) {
     app->os << app->_versionInfo() << '\n';
-    for (auto &i: app->commands) {
-        if (!app->_checkStatus(i.required))
-            continue;
+    for (auto &i : app->commands) {
+        if (!app->_checkStatus(i.required)) continue;
         app->os << '\t';
         i.print(app->os);
         app->os << '\n';
@@ -107,15 +103,19 @@ void CMDApp::unimplemented_command(CMDApp *app) {
 }
 
 void CMDApp::connect_command(CMDApp *app) {
-    auto clientSocket = dynamic_cast<ClientSocket *>(app->client->getTransmisionManger());
+    auto clientSocket =
+        dynamic_cast<ClientSocket *>(app->client->getTransmisionManger());
     if (clientSocket != nullptr) {
         std::string ipAddress = app->getInput("IP address");
         clientSocket->setHostAddress(ipAddress);
 
-        QObject::connect(clientSocket, SIGNAL(disconnected()), app, SLOT(disconnected()));
+        QObject::connect(clientSocket, SIGNAL(disconnected()), app,
+                         SLOT(disconnected()));
         QObject::connect(clientSocket, SIGNAL(sent()), app, SLOT(onEvent()));
-        QObject::connect(clientSocket, SIGNAL(received()), app, SLOT(onRecieve()));
-        QObject::connect(clientSocket, SIGNAL(received()), app, SLOT(onEvent()));
+        QObject::connect(clientSocket, SIGNAL(received()), app,
+                         SLOT(onRecieve()));
+        QObject::connect(clientSocket, SIGNAL(received()), app,
+                         SLOT(onEvent()));
 
         app->os << "Connecting...\n";
         app->os.flush();
@@ -129,7 +129,6 @@ void CMDApp::connect_command(CMDApp *app) {
     }
     app->status = Connected;
     login_command(app);
-
 }
 
 void CMDApp::online_command(CMDApp *app) {
@@ -159,7 +158,8 @@ void CMDApp::register_command(CMDApp *app) {
 }
 
 void CMDApp::disconnect_command(CMDApp *app) {
-    auto clientSocket = dynamic_cast<ClientSocket *>(app->client->getTransmisionManger());
+    auto clientSocket =
+        dynamic_cast<ClientSocket *>(app->client->getTransmisionManger());
     if (clientSocket != nullptr) {
         clientSocket->closeConnection();
         app->status = Disconnected;
@@ -188,9 +188,7 @@ void CMDApp::send_command(CMDApp *app) {
     app->client->sendData(static_cast<uint32_t>(id), data);
 }
 
-void CMDApp::messages_command(CMDApp *app) {
-    app->client->checkForMessages();
-}
+void CMDApp::messages_command(CMDApp *app) { app->client->checkForMessages(); }
 
 bool CMDApp::_checkStatus(Command::Status required) {
     switch (required) {
@@ -209,11 +207,10 @@ bool CMDApp::_checkStatus(Command::Status required) {
 }
 
 void CMDApp::_loop(QString input) {
-    if (!_running)
-        return;
-    auto cmd = std::find_if(commands.begin(), commands.end(), [&input](const Command &c) {
-        return c.name == input.toStdString();
-    });
+    if (!_running) return;
+    auto cmd = std::find_if(
+        commands.begin(), commands.end(),
+        [&input](const Command &c) { return c.name == input.toStdString(); });
 
     if (cmd == commands.end()) {
         os << "Invalid command\n";
@@ -232,13 +229,11 @@ void CMDApp::_loop(QString input) {
         emit poll();
 }
 
-
 void CMDApp::_generateKeypair(const zero::str_t &password) {
     RSAKeyGen keygen;
     keygen.savePrivateKeyPassword(username + "_priv.pem", password);
     keygen.savePublicKey(username + "_pub.pem");
 }
-
 
 std::string CMDApp::getInput(const std::string &prompt) {
     os << prompt << ": ";
@@ -267,8 +262,7 @@ int CMDApp::getOption(std::string prompt, std::vector<char> options) {
     auto _end = options.end();
     while (_begin != _end) {
         optionSrting << *_begin;
-        if (++_begin != _end)
-            optionSrting << "/";
+        if (++_begin != _end) optionSrting << "/";
     }
     optionSrting << "]";
 
@@ -279,10 +273,10 @@ int CMDApp::getOption(std::string prompt, std::vector<char> options) {
         char opt = -1;
         is >> opt;
         for (unsigned i = 0; i < options.size(); ++i)
-            if (opt == options[i])
-                result = static_cast<int>(i);
+            if (opt == options[i]) result = static_cast<int>(i);
         if (result == -1) {
-            os << "unrecgnized option use one of " << optionSrting.str() << '\n';
+            os << "unrecgnized option use one of " << optionSrting.str()
+               << '\n';
         }
     }
     return result;
@@ -291,8 +285,7 @@ int CMDApp::getOption(std::string prompt, std::vector<char> options) {
 void CMDApp::onRecieve() {
     auto &users = client->getUsers();
     auto &recieved = client->getMessage();
-    if (status < State::LoggedIn &&
-        client->getId() != 0) {
+    if (status < State::LoggedIn && client->getId() != 0) {
         if (status == State::Registering)
             os << "registration";
         else
@@ -302,7 +295,7 @@ void CMDApp::onRecieve() {
         status = LoggedIn;
     } else if (status >= State::LoggedIn && !client->getUsers().empty()) {
         os << "Users:\n\tID\tNAME\n";
-        for (auto &i: users) {
+        for (auto &i : users) {
             os << '\t' << i.first << "\t" << i.second << "\n";
         }
 
@@ -311,13 +304,14 @@ void CMDApp::onRecieve() {
     }
     if (!recieved.date.empty()) {
         os << "New message:\n\t";
-        os << recieved.from << "(" << recieved.date.substr(0, recieved.date.size() - 1) << ") : ";
-        std::copy(recieved.data.begin(), recieved.data.end(), std::ostream_iterator<unsigned char>(os));
+        os << recieved.from << "("
+           << recieved.date.substr(0, recieved.date.size() - 1) << ") : ";
+        std::copy(recieved.data.begin(), recieved.data.end(),
+                  std::ostream_iterator<unsigned char>(os));
         os << '\n';
 
-        recieved = {}; // clear
+        recieved = {};    // clear
     }
-
 }
 
 void CMDApp::onError(QString string) {
@@ -342,6 +336,3 @@ void CMDApp::onTimer() {
 void CMDApp::onEvent() {
     // not implemented yet
 }
-
-
-

@@ -7,10 +7,10 @@
 #ifndef HELLOWORLD_CMDAPP_H
 #define HELLOWORLD_CMDAPP_H
 
-#include <atomic>
 #include <QObject>
 #include <QThread>
 #include <QTimer>
+#include <atomic>
 #include <condition_variable>
 #include "client.h"
 
@@ -21,13 +21,13 @@ namespace helloworld {
  * active waiting
  */
 class Worker : public QObject {
-Q_OBJECT
+    Q_OBJECT
     std::istream &is;
 
-public:
-    Worker(std::istream &is) : QObject(nullptr), is(is) {};
+   public:
+    Worker(std::istream &is) : QObject(nullptr), is(is){};
 
-public slots:
+   public slots:
 
     void doWork() {
         std::string data;
@@ -38,7 +38,7 @@ public slots:
         emit read(QString::fromStdString(data));
     }
 
-signals:
+   signals:
 
     void read(QString);
 };
@@ -48,14 +48,15 @@ signals:
  * thread container for Worker class
  */
 class cinPoll : public QObject {
-Q_OBJECT
+    Q_OBJECT
     std::istream &is;
     QThread *thread;
 
-public:
-    cinPoll(std::istream &is, QObject *parent = nullptr) : QObject(parent), is(is) {}
+   public:
+    cinPoll(std::istream &is, QObject *parent = nullptr)
+        : QObject(parent), is(is) {}
 
-public slots:
+   public slots:
 
     /**
      * Start the thread, QThread is deleted by QT framework
@@ -70,13 +71,13 @@ public slots:
         thread->start();
     }
 
-signals:
+   signals:
 
     void read(QString);
 };
 
 class CMDApp : public QObject {
-Q_OBJECT
+    Q_OBJECT
     static constexpr uint16_t default_port = 5000;
 
     // 80 is default, which might not be actual length, but it's generally
@@ -94,7 +95,12 @@ Q_OBJECT
     std::string username;
 
     enum State {
-        Uninit, Disconnected, Connected, LoggingIn, Registering, LoggedIn
+        Uninit,
+        Disconnected,
+        Connected,
+        LoggingIn,
+        Registering,
+        LoggedIn
     } status{Uninit};
     QTimer *timeout;
 
@@ -105,44 +111,55 @@ Q_OBJECT
         const char *info;
 
         enum Status {
-            None, Disconnected, Connected, LoggedOut, LoggedIn
+            None,
+            Disconnected,
+            Connected,
+            LoggedOut,
+            LoggedIn
         } required;
 
         void print(std::ostream &os) const;
     };
 
-
     const std::vector<Command> commands{
-            {"help",    &CMDApp::help_command,     "prints help message",         Command::Status::None},
-            {"connect", &CMDApp::connect_command,  "connect to server",           Command::Status::Disconnected},
+        {"help", &CMDApp::help_command, "prints help message",
+         Command::Status::None},
+        {"connect", &CMDApp::connect_command, "connect to server",
+         Command::Status::Disconnected},
 
-            // automatic after connection
-            //{"login", &CMDApp::login_command, "log in as existing user", Command::Status::LoggedOut},
-            //{"register", &CMDApp::register_command, "register new user", Command::Status::LoggedOut},
+        // automatic after connection
+        //{"login", &CMDApp::login_command, "log in as existing user",
+        //Command::Status::LoggedOut},
+        //{"register", &CMDApp::register_command, "register new user",
+        //Command::Status::LoggedOut},
 
-            {"send",    &CMDApp::send_command,     "send message to user",        Command::Status::LoggedIn},
-            {"online",  &CMDApp::online_command,   "get list of online users",    Command::Status::LoggedIn},
-            {"find",    &CMDApp::find_command,     "find user",                   Command::Status::LoggedIn},
-            {"recv",    &CMDApp::messages_command, "recieve awaiting messages",   Command::Status::LoggedIn},
-            {"logout",  &CMDApp::logout_command,   "log out, but stay connected", Command::Status::LoggedIn},
+        {"send", &CMDApp::send_command, "send message to user",
+         Command::Status::LoggedIn},
+        {"online", &CMDApp::online_command, "get list of online users",
+         Command::Status::LoggedIn},
+        {"find", &CMDApp::find_command, "find user", Command::Status::LoggedIn},
+        {"recv", &CMDApp::messages_command, "recieve awaiting messages",
+         Command::Status::LoggedIn},
+        {"logout", &CMDApp::logout_command, "log out, but stay connected",
+         Command::Status::LoggedIn},
 
-            // automatic after logout
-            //{"disconnect", &CMDApp::disconnect_command, "disconnect from current server", Command::Status::Connected},
+        // automatic after logout
+        //{"disconnect", &CMDApp::disconnect_command, "disconnect from current
+        //server", Command::Status::Connected},
 
-            {"quit",    &CMDApp::quit_command,     "close this application",      Command::Status::None}
-    };
+        {"quit", &CMDApp::quit_command, "close this application",
+         Command::Status::None}};
 
-
-public:
+   public:
     CMDApp(std::istream &is, std::ostream &os, QObject *parent = nullptr);
 
-Q_SIGNALS:
+   Q_SIGNALS:
 
     void close();
 
     void poll();
 
-public Q_SLOTS:
+   public Q_SLOTS:
 
     /**
      * reaction to disconnect
@@ -179,7 +196,7 @@ public Q_SLOTS:
      */
     void _loop(QString);
 
-private:
+   private:
     /**
      * creats nice messagge about current version of programs
      * (name, version, authors - viz implementation)
@@ -211,7 +228,6 @@ private:
      */
     void _generateKeypair(const zero::str_t &password);
 
-
     /*
      * static functions representing different commands
      */
@@ -238,8 +254,8 @@ private:
     static void send_command(CMDApp *app);
 
     static void messages_command(CMDApp *app);
-    //static void generateKeypair_command(CMDApp *app); // maybe not be neccessary ?
-
+    // static void generateKeypair_command(CMDApp *app); // maybe not be
+    // neccessary ?
 
     /**
      * gets input from application input stream
@@ -256,9 +272,8 @@ private:
      * @return index of option (-1 on error)
      */
     int getOption(std::string prompt, std::vector<char> options);
-
 };
 
-} //namespace helloworld
+}    // namespace helloworld
 
-#endif //HELLOWORLD_CMDAPP_H
+#endif    // HELLOWORLD_CMDAPP_H

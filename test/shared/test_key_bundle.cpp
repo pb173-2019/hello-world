@@ -2,19 +2,18 @@
 // Created by ivan on 30.3.19.
 //
 
-#include "catch.hpp"
 #include <sstream>
 #include <string>
+#include "catch.hpp"
 
-#include "../../src/shared/requests.h"
-#include "../../src/shared/random.h"
 #include "../../src/shared/curve_25519.h"
+#include "../../src/shared/random.h"
+#include "../../src/shared/requests.h"
 
 using namespace helloworld;
 
 template struct helloworld::KeyBundle<C25519>;
-TEST_CASE("serialization test")
-{
+TEST_CASE("serialization test") {
     Random r{};
 
     KeyBundle<C25519> keyBundle;
@@ -29,7 +28,8 @@ TEST_CASE("serialization test")
 
     auto data = keyBundle.serialize();
 
-    KeyBundle<C25519> newBundle = Serializable<KeyBundle<C25519> >::deserialize(data);
+    KeyBundle<C25519> newBundle =
+        Serializable<KeyBundle<C25519> >::deserialize(data);
     CHECK(keyBundle.timestamp == newBundle.timestamp);
     CHECK(keyBundle.identityKey == newBundle.identityKey);
     CHECK(keyBundle.preKey == newBundle.preKey);
@@ -37,10 +37,9 @@ TEST_CASE("serialization test")
     CHECK(keyBundle.oneTimeKeys == newBundle.oneTimeKeys);
 }
 
-
 // this testing violates the access memory policy...
 
-//TEST_CASE("key zeroize test - vector erased") {
+// TEST_CASE("key zeroize test - vector erased") {
 //    unsigned char* ptr = nullptr;
 //    {
 //        KeyBundle<C25519> keyBundle;
@@ -53,7 +52,7 @@ TEST_CASE("serialization test")
 //    CHECK(ptr[3] == 0);
 //}
 
-//TEST_CASE("key zeroize test - vector moved") {
+// TEST_CASE("key zeroize test - vector moved") {
 //    KeyBundle<C25519> keyBundle;
 //    keyBundle.identityKey = zero::bytes_t{1,2,3,4};
 //    unsigned char* ptr = keyBundle.identityKey.data();

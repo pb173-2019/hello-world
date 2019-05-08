@@ -4,18 +4,17 @@
 namespace helloworld {
 
 std::pair<std::vector<unsigned char>, X3DH::X3DHSecretKeyPair> X3DH::getSecret(
-        const std::vector<unsigned char> &payload) {
-
-    X3DHRequest <C25519> x3dhBundle = X3DHRequest<C25519>::deserialize(payload);
+    const std::vector<unsigned char> &payload) {
+    X3DHRequest<C25519> x3dhBundle = X3DHRequest<C25519>::deserialize(payload);
     bool old = timestamp != x3dhBundle.timestamp;
     zero::bytes_t dh_bytes;
 
     C25519 identityKeyCurve;
     identityKeyCurve.loadPrivateKey(
-            username + idC25519priv + (old ? ".old" : ""), pwd);
+        username + idC25519priv + (old ? ".old" : ""), pwd);
     C25519 preKeyCurve;
-    preKeyCurve.loadPrivateKey(
-            username + preC25519priv + (old ? ".old" : ""), pwd);
+    preKeyCurve.loadPrivateKey(username + preC25519priv + (old ? ".old" : ""),
+                               pwd);
 
     // DH1 step
     preKeyCurve.setPublicKey(x3dhBundle.senderIdPubKey);
@@ -33,9 +32,9 @@ std::pair<std::vector<unsigned char>, X3DH::X3DHSecretKeyPair> X3DH::getSecret(
     if (x3dhBundle.opKeyUsed == X3DHRequest<C25519>::OP_KEY_USED) {
         C25519 onetimeKeyCurve;
         onetimeKeyCurve.loadPrivateKey(
-                username + std::to_string(x3dhBundle.opKeyId) +
-                oneTimeC25519priv + (old ? ".old" : ""),
-                pwd);
+            username + std::to_string(x3dhBundle.opKeyId) + oneTimeC25519priv +
+                (old ? ".old" : ""),
+            pwd);
         onetimeKeyCurve.setPublicKey(x3dhBundle.senderEphermalPubKey);
         append(dh_bytes, onetimeKeyCurve.getShared());
     }
@@ -48,12 +47,14 @@ std::pair<std::vector<unsigned char>, X3DH::X3DHSecretKeyPair> X3DH::getSecret(
     std::vector<unsigned char> result;
     auto pubKey = loadC25519Key(username + preC25519pub + (old ? ".old" : ""));
 
-    return std::make_pair(x3dhBundle.AEADenrypted, X3DHSecretKeyPair{
-        from_hex(sk), std::move(ad), std::move(pubKey), preKeyCurve.getPrivateKey()});
+    return std::make_pair(
+        x3dhBundle.AEADenrypted,
+        X3DHSecretKeyPair{from_hex(sk), std::move(ad), std::move(pubKey),
+                          preKeyCurve.getPrivateKey()});
 }
 
 std::pair<X3DHRequest<C25519>, X3DH::X3DHSecretPubKey> X3DH::setSecret(
-        const KeyBundle <C25519> &bundle) const {
+    const KeyBundle<C25519> &bundle) const {
     if (!verifyPrekey(bundle.identityKey, bundle.preKey,
                       bundle.preKeySingiture))
         throw Error("X3DH: Key verification has failed.");
@@ -88,16 +89,17 @@ std::pair<X3DHRequest<C25519>, X3DH::X3DHSecretPubKey> X3DH::setSecret(
     zero::bytes_t pubKey = loadC25519Key(username + idC25519pub);
 
     // build request
-    X3DHRequest <C25519> toFill;
+    X3DHRequest<C25519> toFill;
     toFill.timestamp = bundle.timestamp;
     toFill.senderIdPubKey = pubKey;
     toFill.senderEphermalPubKey = ephermalGen.getPublicKey();
     toFill.opKeyUsed = opAvailable ? X3DHRequest<C25519>::OP_KEY_USED
                                    : X3DHRequest<C25519>::OP_KEY_NONE,
-            toFill.opKeyId = keyId;
+    toFill.opKeyId = keyId;
 
-    append(pubKey, bundle.identityKey); //X3DH additional data
-    return std::make_pair(toFill, X3DHSecretPubKey{from_hex(sk), pubKey, bundle.preKey});
+    append(pubKey, bundle.identityKey);    // X3DH additional data
+    return std::make_pair(
+        toFill, X3DHSecretPubKey{from_hex(sk), pubKey, bundle.preKey});
 }
 
 bool X3DH::verifyPrekey(const zero::bytes_t &identityPub,
@@ -112,8 +114,7 @@ void X3DH::append(zero::bytes_t &to, const zero::bytes_t &from) const {
     to.insert(to.end(), from.begin(), from.end());
 }
 
-zero::bytes_t X3DH::loadC25519Key(
-        const std::string &filename) const {
+zero::bytes_t X3DH::loadC25519Key(const std::string &filename) const {
     std::ifstream input{filename, std::ios::in | std::ios::binary};
     if (!input) throw Error("Could not load user public key.");
     zero::bytes_t key(C25519::KEY_BYTES_LEN);
@@ -121,4 +122,4 @@ zero::bytes_t X3DH::loadC25519Key(
     return key;
 }
 
-} //namespace helloworld
+}    // namespace helloworld

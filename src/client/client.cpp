@@ -73,16 +73,13 @@ void Client::login() {
     sendRequest({{Request::Type::LOGIN, _userId}, request.serialize()});
 }
 
-void Client::logout() {
-    sendRequest({{Request::Type::LOGOUT, _userId}, {}});
-}
+void Client::logout() { sendRequest({{Request::Type::LOGOUT, _userId}, {}}); }
 
 void Client::createAccount(const std::string &pubKeyFilename) {
     _userId = 0;
     _connection = std::make_unique<ClientToServerManager>(
         to_hex(Random().getKey(SYMMETRIC_KEY_SIZE)), serverPub);
-    if (_test)
-        _connection->_testing = _test;
+    if (_test) _connection->_testing = _test;
     std::ifstream input(pubKeyFilename);
     zero::str_t publicKey((std::istreambuf_iterator<char>(input)),
                           std::istreambuf_iterator<char>());
@@ -185,7 +182,8 @@ void Client::sendData(uint32_t receiverId,
         std::string time = std::ctime(&now);
 
         if (ratchet.hasReceivedMessage()) {
-            SendData toSend(time, _username, _userId, false, message.serialize());
+            SendData toSend(time, _username, _userId, false,
+                            message.serialize());
             sendRequest({{Request::Type::SEND, receiverId, _userId},
                          toSend.serialize()});
         } else {
@@ -268,8 +266,8 @@ void Client::decryptInitialMessage(SendData &sendData, Response::Type type) {
         }
     } else {
         _ratchets.emplace(
-                sendData.fromId,
-                DoubleRatchet(secret.sk, secret.ad, secret.pubKey, secret.privKey));
+            sendData.fromId,
+            DoubleRatchet(secret.sk, secret.ad, secret.pubKey, secret.privKey));
         Message message = Message::deserialize(messageEncrypted);
         auto decrypted = _ratchets.at(sendData.fromId).RatchetDecrypt(message);
         if (!decrypted.empty()) {
@@ -287,7 +285,8 @@ void Client::receiveData(const Response &response) {
     if (sendData.x3dh) {
         decryptInitialMessage(sendData, response.header.type);
     } else {
-        auto receivedData = _ratchets.at(sendData.fromId)
+        auto receivedData =
+            _ratchets.at(sendData.fromId)
                 .RatchetDecrypt(Message::deserialize(sendData.data));
         sendData.data = receivedData;
         _incomming = sendData;

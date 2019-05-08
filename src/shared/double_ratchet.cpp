@@ -4,8 +4,7 @@
 
 namespace helloworld {
 
-DoubleRatchet::DoubleRatchet(zero::bytes_t SK,
-                             zero::bytes_t AD,
+DoubleRatchet::DoubleRatchet(zero::bytes_t SK, zero::bytes_t AD,
                              zero::bytes_t other_dh_public_key)
     : _state({}) {
     _state.DHs = ext.GENERATE_DH();
@@ -20,8 +19,7 @@ DoubleRatchet::DoubleRatchet(zero::bytes_t SK,
         ext.KDF_RK(std::move(SK), ext.DH(_state.DHs, _state.DHr));
 }
 
-DoubleRatchet::DoubleRatchet(zero::bytes_t SK,
-                             zero::bytes_t AD,
+DoubleRatchet::DoubleRatchet(zero::bytes_t SK, zero::bytes_t AD,
                              zero::bytes_t dh_public_key,
                              zero::bytes_t dh_private_key)
     : _state({}), _receivedMessage(true) {
@@ -46,7 +44,8 @@ Message DoubleRatchet::RatchetEncrypt(
     MessageHeader header = ext.HEADER(_state.DHs, _state.PN, _state.Ns);
     ++_state.Ns;
 
-    return Message(header, ext.ENCRYPT(mk, plaintext, ext.CONCAT(_state.AD, header)));
+    return Message(header,
+                   ext.ENCRYPT(mk, plaintext, ext.CONCAT(_state.AD, header)));
 }
 
 std::vector<unsigned char> DoubleRatchet::RatchetDecrypt(
@@ -68,7 +67,8 @@ std::vector<unsigned char> DoubleRatchet::TryRatchetDecrypt(
     auto ciphertext = message.ciphertext;
     auto hmac = message.hmac;
 
-    std::vector<unsigned char> plaintext = TrySkippedMessageKeys(header, ciphertext, hmac);
+    std::vector<unsigned char> plaintext =
+        TrySkippedMessageKeys(header, ciphertext, hmac);
     if (!plaintext.empty()) {
         return plaintext;
     }
@@ -87,10 +87,8 @@ std::vector<unsigned char> DoubleRatchet::TryRatchetDecrypt(
 }
 
 std::vector<unsigned char> DoubleRatchet::TrySkippedMessageKeys(
-        const MessageHeader &header,
-        const std::vector<unsigned char> &ciphertext,
-        const std::vector<unsigned char> &hmac) {
-
+    const MessageHeader &header, const std::vector<unsigned char> &ciphertext,
+    const std::vector<unsigned char> &hmac) {
     auto found = _state.MKSKIPPED.find({header.dh, header.n});
     if (found == _state.MKSKIPPED.end()) {
         return {};

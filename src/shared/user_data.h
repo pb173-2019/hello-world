@@ -12,11 +12,11 @@
 #ifndef HELLOWORLD_SHARED_CLIENT_INFO_H_
 #define HELLOWORLD_SHARED_CLIENT_INFO_H_
 
-#include <string>
 #include <iostream>
+#include <string>
 
-#include "serializable.h"
 #include "key.h"
+#include "serializable.h"
 
 namespace helloworld {
 
@@ -28,13 +28,15 @@ struct UserData : public Serializable<UserData> {
 
     UserData() = default;
 
-    UserData(uint32_t id, std::string name, zero::str_t sessionKey, zero::bytes_t publicKey) :
-            id(id),
-            name(std::move(name)),
-            sessionKey(std::move(sessionKey)),
-            publicKey(std::move(publicKey)) {}
+    UserData(uint32_t id, std::string name, zero::str_t sessionKey,
+             zero::bytes_t publicKey)
+        : id(id),
+          name(std::move(name)),
+          sessionKey(std::move(sessionKey)),
+          publicKey(std::move(publicKey)) {}
 
-    serialize::structure &serialize(serialize::structure &result) const override {
+    serialize::structure &serialize(
+        serialize::structure &result) const override {
         serialize::serialize(id, result);
         serialize::serialize(name, result);
         serialize::serialize(sessionKey, result);
@@ -48,16 +50,16 @@ struct UserData : public Serializable<UserData> {
         return serialize(result);
     }
 
-    static UserData deserialize(const serialize::structure &data, uint64_t &from) {
+    static UserData deserialize(const serialize::structure &data,
+                                uint64_t &from) {
         UserData userData;
-        userData.id =
-                serialize::deserialize<decltype(userData.id)>(data, from);
+        userData.id = serialize::deserialize<decltype(userData.id)>(data, from);
         userData.name =
-                serialize::deserialize<decltype(userData.name)>(data, from);
+            serialize::deserialize<decltype(userData.name)>(data, from);
         userData.sessionKey =
-                serialize::deserialize<decltype(userData.sessionKey)>(data, from);
+            serialize::deserialize<decltype(userData.sessionKey)>(data, from);
         userData.publicKey =
-                serialize::deserialize<decltype(userData.publicKey)>(data, from);
+            serialize::deserialize<decltype(userData.publicKey)>(data, from);
         return userData;
     }
 
@@ -71,6 +73,6 @@ bool operator==(const UserData &a, const UserData &b);
 
 bool operator!=(const UserData &a, const UserData &b);
 
-}
+}    // namespace helloworld
 
-#endif //HELLOWORLD_SHARED_CLIENT_INFO_H_
+#endif    // HELLOWORLD_SHARED_CLIENT_INFO_H_

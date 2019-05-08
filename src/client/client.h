@@ -12,10 +12,10 @@
 #ifndef HELLOWORLD_CLIENT_CLIENT_H_
 #define HELLOWORLD_CLIENT_CLIENT_H_
 
+#include <QObject>
 #include <memory>
 #include <string>
 #include <vector>
-#include <QObject>
 
 #include "../shared/X3DH.h"
 #include "../shared/connection_manager.h"
@@ -23,8 +23,8 @@
 #include "../shared/request_response.h"
 #include "../shared/requests.h"
 #include "../shared/rsa_2048.h"
-#include "../shared/user_data.h"
 #include "../shared/transmission.h"
+#include "../shared/user_data.h"
 
 namespace helloworld {
 
@@ -32,31 +32,27 @@ class Client : public QObject, public Callable<void, std::stringstream &&> {
     static bool _test;
     static constexpr int SYMMETRIC_KEY_SIZE = 16;
     Q_OBJECT
-public:
+   public:
     Client(std::string username, const std::string &clientPrivKeyFilename,
            const zero::str_t &password, QObject *parent = nullptr);
-
 
     UserTransmissionManager *getTransmisionManger() {
         return _transmission.get();
     }
 
-    void setTransmissionManager(std::unique_ptr<UserTransmissionManager>&& ptr) {
+    void setTransmissionManager(
+        std::unique_ptr<UserTransmissionManager> &&ptr) {
         _transmission = std::move(ptr);
     }
 
     bool ready() {
-        return _transmission
-            && _transmission->status() == UserTransmissionManager::Status::OK;
+        return _transmission &&
+               _transmission->status() == UserTransmissionManager::Status::OK;
     }
 
-    const std::string& name() const {
-        return _username;
-    }
+    const std::string &name() const { return _username; }
 
-    static void setTest(bool isTesting) {
-        _test = isTesting;
-    }
+    static void setTest(bool isTesting) { _test = isTesting; }
     /**
      * @brief This function is called when transmission manager discovers new
      *        incoming request
@@ -106,7 +102,9 @@ public:
     /**
      * @brief Returns the userlist requested in send*()
      */
-    const std::map<uint32_t, std::string> &getUsers() const { return _userList; }
+    const std::map<uint32_t, std::string> &getUsers() const {
+        return _userList;
+    }
     std::map<uint32_t, std::string> &getUsers() { return _userList; }
 
     /**
@@ -161,8 +159,7 @@ public:
      * Get the message parsed by x3dh or ratchet
      * @return last message received
      */
-    SendData& getMessage() { return _incomming; }
-
+    SendData &getMessage() { return _incomming; }
 
     //
     // TESTING PURPOSE METHODS SECTION
@@ -174,7 +171,7 @@ public:
 
     uint32_t getId() { return _userId; }
 
-private:
+   private:
     const std::string _username;
     const zero::str_t _password;
     uint32_t _userId = 0;
@@ -237,12 +234,14 @@ private:
 
     void decryptInitialMessage(SendData &sendData, Response::Type type);
 
-    void sendX3DHMessage(uint32_t receiverId, const std::string &time, const Message &message);
-signals:
+    void sendX3DHMessage(uint32_t receiverId, const std::string &time,
+                         const Message &message);
+   signals:
     void error(QString);
 };
 
-//separated from client as this is used as testing extension that deletes the *key, *pub, *old files
+// separated from client as this is used as testing extension that deletes the
+// *key, *pub, *old files
 void ClientCleaner_Run();
 
 }    // namespace helloworld

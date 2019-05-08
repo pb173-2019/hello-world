@@ -12,10 +12,10 @@
 #ifndef HELLOWORLD_SHARED_X3DH_H_
 #define HELLOWORLD_SHARED_X3DH_H_
 
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <iostream>
 
 #include "../client/config.h"
 
@@ -25,7 +25,6 @@
 #include "request_response.h"
 #include "requests.h"
 
-
 namespace helloworld {
 
 class X3DH {
@@ -33,7 +32,7 @@ class X3DH {
     const zero::str_t& pwd;
     uint64_t timestamp = 0;
 
-public:
+   public:
     struct X3DHSecretPubKey {
         zero::bytes_t sk;
         zero::bytes_t ad;
@@ -54,12 +53,13 @@ public:
 
     /**
      * Perform the second part of the X3DH protocol
-     * 
-     * @param incoming incoming request, generated with sendInitialMessage() method
+     *
+     * @param incoming incoming request, generated with sendInitialMessage()
+     * method
      * @return encrypted data for ratchet, and the shared secret output
      */
     std::pair<std::vector<unsigned char>, X3DH::X3DHSecretKeyPair> getSecret(
-            const std::vector<unsigned char> &payload);
+        const std::vector<unsigned char>& payload);
 
     /**
      * Perform the first part of the X3DH protocol
@@ -70,7 +70,7 @@ public:
     std::pair<X3DHRequest<C25519>, X3DHSecretPubKey> setSecret(
         const KeyBundle<C25519>& bundle) const;
 
-private:
+   private:
     /**
      * Verify signature on prekey used
      *
@@ -79,8 +79,8 @@ private:
      * @param signature signature of the prekeyPub
      * @return true if verified
      */
-    bool verifyPrekey(const zero::bytes_t &identityPub,
-                      const zero::bytes_t &prekeyPub,
+    bool verifyPrekey(const zero::bytes_t& identityPub,
+                      const zero::bytes_t& prekeyPub,
                       const KeyBundle<C25519>::signiture_t& signature) const;
 
     /**
@@ -88,7 +88,7 @@ private:
      * @param to vector to append to
      * @param from vector to append
      */
-    void append(zero::bytes_t &to, const zero::bytes_t &from) const;
+    void append(zero::bytes_t& to, const zero::bytes_t& from) const;
 
     /**
      * Load owner id key from file created on registration

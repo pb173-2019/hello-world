@@ -9,11 +9,11 @@
  *
  */
 
-#include "config.h"
 #include "aes_gcm.h"
+#include "config.h"
 
-#include "symmetric_cipher_base.h"
 #include "mbedtls/cipher.h"
+#include "symmetric_cipher_base.h"
 
 using namespace helloworld;
 
@@ -34,7 +34,8 @@ void AESGCM::encrypt(std::istream &in, std::ostream &out) {
     out << tmp.str();
 }
 
-void AESGCM::encryptWithAd(std::istream &in, std::istream &ad, std::ostream &out) {
+void AESGCM::encryptWithAd(std::istream &in, std::istream &ad,
+                           std::ostream &out) {
     if (dirty) {
         _reset();
     }
@@ -52,7 +53,9 @@ void AESGCM::encryptWithAd(std::istream &in, std::istream &ad, std::ostream &out
     out.write(tmp.str().data(), tmp.str().size());
 }
 
-void AESGCM::encryptWithAd(const std::vector<unsigned char> &in, const std::vector<unsigned char> &ad, std::vector<unsigned char> &out) {
+void AESGCM::encryptWithAd(const std::vector<unsigned char> &in,
+                           const std::vector<unsigned char> &ad,
+                           std::vector<unsigned char> &out) {
     if (dirty) {
         _reset();
     }
@@ -87,7 +90,8 @@ void AESGCM::decrypt(std::istream &in, std::ostream &out) {
         throw Error("mbedTLS authetification error");
 }
 
-void AESGCM::decryptWithAd(std::istream &in, std::istream &ad, std::ostream &out) {
+void AESGCM::decryptWithAd(std::istream &in, std::istream &ad,
+                           std::ostream &out) {
     if (dirty) {
         _reset();
     }
@@ -106,7 +110,9 @@ void AESGCM::decryptWithAd(std::istream &in, std::istream &ad, std::ostream &out
         throw Error("mbedTLS authetification error");
 }
 
-void AESGCM::decryptWithAd(const std::vector<unsigned char> &in, const std::vector<unsigned char> &ad, std::vector<unsigned char> &out) {
+void AESGCM::decryptWithAd(const std::vector<unsigned char> &in,
+                           const std::vector<unsigned char> &ad,
+                           std::vector<unsigned char> &out) {
     if (dirty) {
         _reset();
     }
@@ -137,7 +143,7 @@ void AESGCM::_additional(std::istream &ad) {
     }
 }
 
-void AESGCM::_additional(const std::vector<unsigned char>& ad) {
+void AESGCM::_additional(const std::vector<unsigned char> &ad) {
     if (mbedtls_cipher_update_ad(&_context, ad.data(), ad.size()) != 0) {
         throw Error("Failed to update ad.");
     }

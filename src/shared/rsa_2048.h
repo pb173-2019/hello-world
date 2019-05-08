@@ -31,7 +31,9 @@ class RSAKeyGen : AsymmetricKeyGen {
     unsigned char _buffer_public[MBEDTLS_MPI_MAX_SIZE];
     size_t _pub_olen;
 
-public:
+    Random random;
+
+   public:
     RSAKeyGen();
 
     // Copying is not available
@@ -41,9 +43,11 @@ public:
 
     ~RSAKeyGen() override;
 
-    bool savePrivateKey(const std::string &filename, const zero::str_t &key, const std::string& iv) override;
+    bool savePrivateKey(const std::string &filename, const zero::str_t &key,
+                        const std::string &iv) override;
 
-    bool savePrivateKeyPassword(const std::string &filename, const zero::str_t &pwd) override;
+    bool savePrivateKeyPassword(const std::string &filename,
+                                const zero::str_t &pwd) override;
 
     bool savePublicKey(const std::string &filename) const override;
 
@@ -51,38 +55,38 @@ public:
         return zero::bytes_t(_buffer_public, _buffer_public + _pub_olen);
     }
 
-    static zero::str_t getHexPwd(const zero::str_t& pwd) {
+    static zero::str_t getHexPwd(const zero::str_t &pwd) {
         return SHA512{}.getSafeHex(pwd).substr(0, 32);
     }
 
-    static std::string getHexIv(const zero::str_t& pwd) {
+    static std::string getHexIv(const zero::str_t &pwd) {
         return SHA512{}.getHex(pwd).substr(30, 32);
     }
 
-private:
-    size_t _getKeyLength(const unsigned char *key, size_t len, const std::string &terminator);
+   private:
+    size_t _getKeyLength(const unsigned char *key, size_t len,
+                         const std::string &terminator);
 };
 
 class RSA2048 : public AsymmetricCipher {
     friend RSAKeyGen;
 
     mbedtls_pk_context _context{};
-    mbedtls_rsa_context* _basic_context;
+    mbedtls_rsa_context *_basic_context;
 
     KeyType _keyLoaded = KeyType::NO_KEY;
+    Random random;
 
-public:
+   public:
     const static int KEY_SIZE = 2048;
     const static int EXPONENT = 65537;
     const static int BLOCK_SIZE_OAEP = 256;
 
     explicit RSA2048();
 
-    ~RSA2048() override {
-        mbedtls_pk_free(&_context);
-    }
+    ~RSA2048() override { mbedtls_pk_free(&_context); }
 
-    void setPublicKey(const zero::bytes_t& key) override;
+    void setPublicKey(const zero::bytes_t &key) override;
 
     void loadPublicKey(const std::string &keyFile) override;
 
@@ -92,33 +96,40 @@ public:
      * @param key key for aes to decrypt
      * @param iv iv for aes to decrypt
      */
-    void loadPrivateKey(const std::string &keyFile, const zero::str_t &key, const std::string& iv) override;
+    void loadPrivateKey(const std::string &keyFile, const zero::str_t &key,
+                        const std::string &iv) override;
 
-    void loadPrivateKey(const std::string &keyFile, const zero::str_t &pwd) override;
+    void loadPrivateKey(const std::string &keyFile,
+                        const zero::str_t &pwd) override;
 
-    std::vector<unsigned char> encrypt(const std::vector<unsigned char> &msg) override;
+    std::vector<unsigned char> encrypt(
+        const std::vector<unsigned char> &msg) override;
     std::vector<unsigned char> encryptKey(const zero::bytes_t &key);
 
-    std::vector<unsigned char> decrypt(const std::vector<unsigned char> &data) override;
+    std::vector<unsigned char> decrypt(
+        const std::vector<unsigned char> &data) override;
     zero::bytes_t decryptKey(const std::vector<unsigned char> &data);
 
-    std::vector<unsigned char> sign(const std::vector<unsigned char> &hash) override;
+    std::vector<unsigned char> sign(
+        const std::vector<unsigned char> &hash) override;
     std::vector<unsigned char> sign(const std::string &hash) override;
 
-    bool verify(const std::vector<unsigned char> &signedData, const std::vector<unsigned char> &hash) override;
-    bool verify(const std::vector<unsigned char> &signedData, const std::string &hash) override;
+    bool verify(const std::vector<unsigned char> &signedData,
+                const std::vector<unsigned char> &hash) override;
+    bool verify(const std::vector<unsigned char> &signedData,
+                const std::string &hash) override;
 
-private:
-
+   private:
     bool _valid(KeyType keyNeeded) {
-        return mbedtls_pk_can_do(&_context, MBEDTLS_PK_RSA) == 1 && _keyLoaded == keyNeeded;
+        return mbedtls_pk_can_do(&_context, MBEDTLS_PK_RSA) == 1 &&
+               _keyLoaded == keyNeeded;
     }
 
     void _setup(KeyType type);
 
-    void _loadKeyFromStream(std::istream& input);
+    void _loadKeyFromStream(std::istream &input);
 };
 
-} //namespace helloworld
+}    // namespace helloworld
 
-#endif //HELLOWORLD_SHARED_RSA_2048_H_
+#endif    // HELLOWORLD_SHARED_RSA_2048_H_

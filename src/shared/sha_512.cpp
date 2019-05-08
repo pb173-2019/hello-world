@@ -20,7 +20,7 @@ std::string SHA512::getHex(const zero::str_t &in) {
     return std::string(hex.data(), hex.size());
 }
 
-zero::str_t SHA512::getSafeHex(const zero::str_t& in) {
+zero::str_t SHA512::getSafeHex(const zero::str_t &in) {
     zero::bytes_t data = getSafe(in);
     zero::str_t hex = to_hex(data);
     return hex;
@@ -44,7 +44,9 @@ std::vector<unsigned char> SHA512::get(std::istream &in) {
 }
 
 std::vector<unsigned char> SHA512::get(const std::string &in) {
-    if (mbedtls_sha512_update_ret(&_context, reinterpret_cast<const unsigned char *>(in.data()), in.size()) != 0) {
+    if (mbedtls_sha512_update_ret(
+            &_context, reinterpret_cast<const unsigned char *>(in.data()),
+            in.size()) != 0) {
         throw Error("Failed to update hash.");
     }
     std::vector<unsigned char> result(HASH_SIZE);
@@ -54,8 +56,10 @@ std::vector<unsigned char> SHA512::get(const std::string &in) {
     return result;
 }
 
-zero::bytes_t SHA512::getSafe(const std::string& in) {
-    if (mbedtls_sha512_update_ret(&_context, reinterpret_cast<const unsigned char *>(in.data()), in.size()) != 0) {
+zero::bytes_t SHA512::getSafe(const std::string &in) {
+    if (mbedtls_sha512_update_ret(
+            &_context, reinterpret_cast<const unsigned char *>(in.data()),
+            in.size()) != 0) {
         throw Error("Failed to update hash.");
     }
     zero::bytes_t result(HASH_SIZE);
@@ -66,7 +70,9 @@ zero::bytes_t SHA512::getSafe(const std::string& in) {
 }
 
 zero::bytes_t SHA512::getSafe(const zero::str_t &in) {
-    if (mbedtls_sha512_update_ret(&_context, reinterpret_cast<const unsigned char *>(in.data()), in.size()) != 0) {
+    if (mbedtls_sha512_update_ret(
+            &_context, reinterpret_cast<const unsigned char *>(in.data()),
+            in.size()) != 0) {
         throw Error("Failed to update hash.");
     }
     zero::bytes_t result(HASH_SIZE);
@@ -76,5 +82,4 @@ zero::bytes_t SHA512::getSafe(const zero::str_t &in) {
     return result;
 }
 
-
-} //namespace helloworld
+}    // namespace helloworld
