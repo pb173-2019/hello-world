@@ -49,18 +49,24 @@ void CMDApp::init() {
 
     username = getInput("Username");
     // TODO: find safer way to get password
-    zero::str_t password = getSafeInput("Password");
+
+    zero::str_t password;
+    while ((password = getSafeInput("Password")).size() <
+           RSA2048::MIN_PASS_LEN) {
+        os << "Password must be at least " << RSA2048::MIN_PASS_LEN
+           << " characters long\n";
+    }
     try {
-        std::cout << "Trying to load keys...\n";
+        os << "Trying to load keys...\n";
         client = std::make_unique<Client>(username, username + "_priv.pem",
                                           password);
     } catch (Error & /*e*/) {
-        std::cout << "Generating new keys...\n";
+        os << "Generating new keys...\n";
         _generateKeypair(password);
         client = std::make_unique<Client>(username, username + "_priv.pem",
                                           password);
     }
-    std::cout << "Keys loaded successfuly\n";
+    os << "Keys loaded successfuly\n";
     client->setTransmissionManager(
         std::make_unique<ClientSocket>(client.get(), username));
     connect(client.get(), &Client::error, this, &CMDApp::onError);

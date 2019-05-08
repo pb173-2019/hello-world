@@ -121,11 +121,11 @@ void callRandomMethod(Client& alice, Client& bob, size_t rand, Random& random,
 // messages
 TEST_CASE("Create keys") {
     RSAKeyGen alice;
-    alice.savePrivateKeyPassword("alice_messaging.pem", "123456");
+    alice.savePrivateKeyPassword("alice_messaging.pem", "12345678");
     alice.savePublicKey("alice_messaging_pub.pem");
 
     RSAKeyGen bob;
-    bob.savePrivateKeyPassword("bob_messaging.pem", "123456");
+    bob.savePrivateKeyPassword("bob_messaging.pem", "12345678");
     bob.savePublicKey("bob_messaging_pub.pem");
 
     Server::setTest(false);
@@ -140,10 +140,10 @@ TEST_CASE("Problematic scenarios explicitly performed, found by test below") {
 
     Random random;
 
-    Client alice("alice", "alice_messaging.pem", "123456");
+    Client alice("alice", "alice_messaging.pem", "12345678");
     alice.setTransmissionManager(
         std::make_unique<ClientFiles>(&alice, alice.name()));
-    Client bob("bob", "bob_messaging.pem", "123456");
+    Client bob("bob", "bob_messaging.pem", "12345678");
     bob.setTransmissionManager(std::make_unique<ClientFiles>(&bob, bob.name()));
 
     alice.createAccount("alice_messaging_pub.pem");
@@ -183,11 +183,11 @@ TEST_CASE("Random testing 1:1 messaging") {
     Server::setTest(true);
     Client::setTest(true);
 
-    Client alice("alice", "alice_messaging.pem", "123456");
+    Client alice("alice", "alice_messaging.pem", "12345678");
 
     alice.setTransmissionManager(
         std::make_unique<ClientFiles>(&alice, alice.name()));
-    Client bob("bob", "bob_messaging.pem", "123456");
+    Client bob("bob", "bob_messaging.pem", "12345678");
 
     bob.setTransmissionManager(std::make_unique<ClientFiles>(&bob, bob.name()));
 

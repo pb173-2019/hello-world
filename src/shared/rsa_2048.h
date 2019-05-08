@@ -34,6 +34,8 @@ class RSAKeyGen : AsymmetricKeyGen {
     Random random;
 
    public:
+    const static int MIN_PASS_LEN = 8;
+
     RSAKeyGen();
 
     // Copying is not available
@@ -78,6 +80,7 @@ class RSA2048 : public AsymmetricCipher {
     Random random;
 
    public:
+    const static int MIN_PASS_LEN = RSAKeyGen::MIN_PASS_LEN;
     const static int KEY_SIZE = 2048;
     const static int EXPONENT = 65537;
     const static int BLOCK_SIZE_OAEP = 256;
