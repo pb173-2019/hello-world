@@ -107,7 +107,7 @@ namespace helloworld {
 
 
     struct noCallback : public Callable<void, bool, const std::string&, std::stringstream&&> {
-        void callback(bool, const std::string&, std::stringstream&& ss) {}
+        void callback(bool, const std::string&, std::stringstream&& /*unused*/) {}
     };
 
     struct messageStorage : public QObject, public Callable<void, bool, const std::string&, std::stringstream&&> {

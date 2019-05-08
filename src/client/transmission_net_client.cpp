@@ -37,7 +37,7 @@ void ClientSocket::send(std::iostream &data) {
     if (!wait_connected()) {
         return;
     }
-    QByteArray qdata(inBase.str().data(), inBase.str().size());
+    QByteArray qdata(inBase.str().data(), static_cast<int>(inBase.str().size()));
     _socket->write(qdata);
     _socket->flush();
     emit sent();
@@ -67,7 +67,7 @@ void ClientSocket::receive() {
 }
 
 void ClientSocket::init() {
-    _socket->connectToHost(_address, _port);
+    _socket->connectToHost(_address, static_cast<quint16>(_port));
     if (wait_connected()) {
         _status = OK;
     }

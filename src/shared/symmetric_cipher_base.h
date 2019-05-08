@@ -41,17 +41,8 @@ protected:
     bool dirty = false;
 
     mbedtls_cipher_context_t _context{};
-    std::string _key{};
+    zero::str_t _key{};
     std::string _iv{};
-
-    /**
-     * @brief Generates random key
-     *
-     * @return string converted key
-     */
-    std::string _generateRandomKey() const {
-        return to_hex(Random{}.get(key_size));
-    }
 
     /**
      * @brief Generates random initialization vector
@@ -98,14 +89,11 @@ protected:
         if (_key.empty()) {
             throw Error("Key is missing.");
         }
-        unsigned char keyData[KEY_SIZE];
-        from_hex(_key, keyData, KEY_SIZE);
-
-        if (mbedtls_cipher_setkey(&_context, keyData, KEY_SIZE * 8,
+        zero::bytes_t keyData = from_hex(_key);
+        if (mbedtls_cipher_setkey(&_context, keyData.data(), KEY_SIZE * 8,
                                   willEncrypt ? MBEDTLS_ENCRYPT : MBEDTLS_DECRYPT) != 0) {
             throw Error("Failed to initialize AES key - unable to continue.");
         }
-        clear<unsigned char>(keyData, KEY_SIZE);
     }
 
     void _process(std::istream &in, std::ostream &out) {
@@ -190,7 +178,7 @@ public:
     * @param newKey
     * @return
     */
-    bool setKey(const std::string &newKey) override {
+    bool setKey(const zero::str_t &newKey) override {
         if (newKey.size() != key_size * 2)
             return false;
         _key = newKey;
@@ -209,13 +197,20 @@ public:
         _iv = newIv;
         return true;
     }
+    bool setIv(const zero::str_t &newIv) {
+        if (newIv.size() != iv_size * 2)
+            return false;
+        _iv.clear();
+        _iv.insert(_iv.begin(), newIv.begin(), newIv.end());
+        return true;
+    }
 
     /**
      * @brief Gets encryption key
      *
      * @return encryption key
      */
-    const std::string &getKey() const override { return _key; }
+    const zero::str_t &getKey() const override { return _key; }
 
     /**
      * @brief Gets initialization vector
@@ -229,8 +224,8 @@ public:
      *
      * @return random key string
      */
-    std::string generateKey() const override {
-        return _generateRandomKey();
+    zero::str_t generateKey() const override {
+        return to_hex(Random{}.getKey(key_size));
     }
 };
 

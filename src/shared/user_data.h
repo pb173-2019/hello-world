@@ -16,18 +16,19 @@
 #include <iostream>
 
 #include "serializable.h"
+#include "key.h"
 
 namespace helloworld {
 
 struct UserData : public Serializable<UserData> {
     uint32_t id = 0;
     std::string name;
-    std::string sessionKey;
-    std::vector<unsigned char> publicKey;
+    zero::str_t sessionKey;
+    zero::bytes_t publicKey;
 
     UserData() = default;
 
-    UserData(uint32_t id, std::string name, std::string sessionKey, std::vector<unsigned char> publicKey) :
+    UserData(uint32_t id, std::string name, zero::str_t sessionKey, zero::bytes_t publicKey) :
              id(id),
              name(std::move(name)),
              sessionKey(std::move(sessionKey)),

@@ -54,7 +54,7 @@ void CMDApp::init() {
 
     username = getInput("Username");
     // TODO: find safer way to get password
-    std::string password = getInput("Password");
+    zero::str_t password = getSafeInput("Password");
     try {
         std::cout << "Trying to load keys...\n";
         client = std::make_unique<Client>(username, username + "_priv.pem", password);
@@ -233,7 +233,7 @@ void CMDApp::_loop(QString input) {
 }
 
 
-void CMDApp::_generateKeypair(const std::string &password) {
+void CMDApp::_generateKeypair(const zero::str_t &password) {
     RSAKeyGen keygen;
     keygen.savePrivateKeyPassword(username + "_priv.pem", password);
     keygen.savePublicKey(username + "_pub.pem");
@@ -246,6 +246,16 @@ std::string CMDApp::getInput(const std::string &prompt) {
 
     std::ws(is);
     std::string data;
+    std::getline(is, data);
+    return data;
+}
+
+zero::str_t CMDApp::getSafeInput(const std::string &prompt) {
+    os << prompt << ": ";
+    os.flush();
+
+    std::ws(is);
+    zero::str_t data;
     std::getline(is, data);
     return data;
 }

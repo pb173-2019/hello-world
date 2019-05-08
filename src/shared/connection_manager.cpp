@@ -4,13 +4,13 @@
 
 namespace helloworld {
 
-ClientToServerManager::ClientToServerManager(const std::string& sessionKey,
+ClientToServerManager::ClientToServerManager(const zero::str_t& sessionKey,
         const std::string &pubkeyFilename) : BasicConnectionManager(sessionKey) {
     _rsa_out.loadPublicKey(pubkeyFilename);
 }
 
-ClientToServerManager::ClientToServerManager(const std::string& sessionKey,
-        const std::vector<unsigned char> &publicKeyData)  : BasicConnectionManager(sessionKey) {
+ClientToServerManager::ClientToServerManager(const zero::str_t& sessionKey,
+        const zero::bytes_t &publicKeyData)  : BasicConnectionManager(sessionKey) {
     _rsa_out.setPublicKey(publicKeyData);
 }
 
@@ -45,7 +45,7 @@ std::stringstream ClientToServerManager::parseOutgoing(Request data) {
         _GCMencryptBody(result, data);
     } else {
         //this section sent only once: when registered / authenticated
-        write_n(result, _rsa_out.encrypt(from_hex(_sessionKey)));
+        write_n(result, _rsa_out.encryptKey(from_hex(_sessionKey)));
         write_n(result, _rsa_out.encrypt(data.header.serialize()));
         write_n(result, data.payload);
         //session key sent, switch to secure state
@@ -55,7 +55,7 @@ std::stringstream ClientToServerManager::parseOutgoing(Request data) {
     return result;
 }
 
-GenericServerManager::GenericServerManager(const std::string &privkeyFilename, const std::string &key,
+GenericServerManager::GenericServerManager(const std::string &privkeyFilename, const zero::str_t &key,
                                            const std::string &iv) : BasicConnectionManager("") {
     _rsa_in.loadPrivateKey(privkeyFilename, key, iv);
 }
@@ -63,9 +63,9 @@ GenericServerManager::GenericServerManager(const std::string &privkeyFilename, c
 Request GenericServerManager::parseIncoming(std::stringstream &&data) {
     Request request;
     //encrypted session key
-    std::vector<unsigned char> sessionKey = std::vector<unsigned char>(RSA2048::BLOCK_SIZE_OAEP);
-    read_n(data, sessionKey.data(), sessionKey.size());
-    sessionKey = _rsa_in.decrypt(sessionKey);
+    std::vector<unsigned char> encryptedKey = std::vector<unsigned char>(RSA2048::BLOCK_SIZE_OAEP);
+    read_n(data, encryptedKey.data(), encryptedKey.size());
+    zero::bytes_t sessionKey = _rsa_in.decryptKey(encryptedKey);
     //encrypted head
     std::vector<unsigned char> header = std::vector<unsigned char>(RSA2048::BLOCK_SIZE_OAEP);
     read_n(data, header.data(), header.size());
@@ -91,7 +91,7 @@ std::stringstream GenericServerManager::returnErrorGeneric() {
     return std::stringstream{};
 }
 
-void GenericServerManager::setKey(const std::string &key) {
+void GenericServerManager::setKey(const zero::str_t &key) {
     _sessionKey = key;
 }
 
@@ -105,7 +105,7 @@ std::stringstream GenericServerManager::parseOutgoing(Response data) {
     return result;
 }
 
-ServerToClientManager::ServerToClientManager(const std::string &sessionKey) : BasicConnectionManager(sessionKey) {
+ServerToClientManager::ServerToClientManager(const zero::str_t &sessionKey) : BasicConnectionManager(sessionKey) {
     switchSecureChannel(true);
 }
 

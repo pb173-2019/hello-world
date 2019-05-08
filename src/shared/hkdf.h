@@ -12,7 +12,6 @@
 #ifndef HELLOWORLD_HKDF_H
 #define HELLOWORLD_HKDF_H
 
-
 #include "hmac_base.h"
 #include <memory>
 
@@ -21,8 +20,8 @@ namespace helloworld {
 class hkdf {
 
     std::unique_ptr<hmac> _hash;
-    std::string _salt;
-    const std::string _info;
+    zero::str_t _salt;
+    const zero::str_t _info;
 
     /**
      * extracts pseudo random key from input keying material and salt
@@ -31,7 +30,7 @@ class hkdf {
      * @param salt
      * @return
      */
-    std::string _extract(const std::string &IKM, const std::string &salt) const;
+    zero::str_t _extract(const zero::str_t &IKM, const zero::str_t &salt) const;
 
     /**
      * expands pseudo random key into output keying material with length len
@@ -41,7 +40,7 @@ class hkdf {
      * @param len output length
      * @return hex representation of keying material
      */
-    std::string _expand(const std::string &PRK, const std::string &info, size_t len) const;
+    zero::str_t _expand(const zero::str_t &PRK, const zero::str_t &info, size_t len) const;
 
 public:
 
@@ -51,13 +50,13 @@ public:
      * @param info application specific information ("Hello world!" predefined, different just for testing)
      */
     explicit hkdf(std::unique_ptr<hmac> &&hash = std::make_unique<hmac_base<> >(),
-                  std::string info = "Hello world!");
+                  zero::str_t info = "Hello world!");
 
     /**
      * salt setter
      * @param newSalt new hex representation of salt
      */
-    void setSalt(const std::string &newSalt);
+    void setSalt(const zero::str_t &newSalt);
 
     /**
      * generates keying material from input keying material
@@ -65,7 +64,7 @@ public:
      * @param outputLength length of output in bytes
      * @return hex representation of output keying material
      */
-    std::string generate(const std::string &IKM, size_t outputLength) const;
+    zero::str_t generate(const zero::str_t &IKM, size_t outputLength) const;
 };
 
 } // namespace helloworld

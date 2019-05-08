@@ -85,9 +85,7 @@ void from_hex(const std::string &input, unsigned char *output, size_t length) {
         throw Error("Invalid conversion dimensions.");
     }
     std::vector<unsigned char> vector = from_hex(input);
-    //todo too much copying
     std::copy_n(vector.data(), length, output);
-    clear<unsigned char>(vector.data(), vector.size());
 }
 
 std::vector<unsigned char> from_hex(const std::string &input) {
@@ -140,17 +138,17 @@ std::string getFile(const std::string &suffix) {
     //from https://stackoverflow.com/questions/11140483/how-to-get-list-of-files-with-a-specific-extension-in-a-given-folder
 
     WIN32_FIND_DATAA data;
-        HANDLE handle = FindFirstFile(".\\*", &data);
+    HANDLE handle = FindFirstFile(".\\*", &data);
 
-        if (handle) {
-            do {
-                if (std::strstr(data.cFileName, suffix.c_str())) {
-                    file = data.cFileName;
-                    break;
-                }
-            } while ( FindNextFile(handle, &data));
-            FindClose(handle);
-        }
+    if (handle) {
+        do {
+            if (std::strstr(data.cFileName, suffix.c_str())) {
+                file = data.cFileName;
+                break;
+            }
+        } while ( FindNextFile(handle, &data));
+        FindClose(handle);
+    }
 
 #else
 

@@ -41,21 +41,21 @@ public:
 
     ~RSAKeyGen() override;
 
-    bool savePrivateKey(const std::string &filename, const std::string &key, const std::string& iv) override;
+    bool savePrivateKey(const std::string &filename, const zero::str_t &key, const std::string& iv) override;
 
-    bool savePrivateKeyPassword(const std::string &filename, const std::string &pwd) override;
+    bool savePrivateKeyPassword(const std::string &filename, const zero::str_t &pwd) override;
 
     bool savePublicKey(const std::string &filename) const override;
 
-    std::vector<unsigned char> getPublicKey() const override {
-        return std::vector<unsigned char>(_buffer_public, _buffer_public + _pub_olen);
+    zero::bytes_t getPublicKey() const override {
+        return zero::bytes_t(_buffer_public, _buffer_public + _pub_olen);
     }
 
-    static std::string getHexPwd(const std::string& pwd) {
-        return SHA512{}.getHex(pwd).substr(0, 32);
+    static zero::str_t getHexPwd(const zero::str_t& pwd) {
+        return SHA512{}.getSafeHex(pwd).substr(0, 32);
     }
 
-    static std::string getHexIv(const std::string& pwd) {
+    static std::string getHexIv(const zero::str_t& pwd) {
         return SHA512{}.getHex(pwd).substr(30, 32);
     }
 
@@ -82,7 +82,7 @@ public:
         mbedtls_pk_free(&_context);
     }
 
-    void setPublicKey(const std::vector<unsigned char>& key) override;
+    void setPublicKey(const zero::bytes_t& key) override;
 
     void loadPublicKey(const std::string &keyFile) override;
 
@@ -92,13 +92,15 @@ public:
      * @param key key for aes to decrypt
      * @param iv iv for aes to decrypt
      */
-    void loadPrivateKey(const std::string &keyFile, const std::string &key, const std::string& iv) override;
+    void loadPrivateKey(const std::string &keyFile, const zero::str_t &key, const std::string& iv) override;
 
-    void loadPrivateKey(const std::string &keyFile, const std::string &pwd) override;
+    void loadPrivateKey(const std::string &keyFile, const zero::str_t &pwd) override;
 
     std::vector<unsigned char> encrypt(const std::vector<unsigned char> &msg) override;
+    std::vector<unsigned char> encryptKey(const zero::bytes_t &key);
 
     std::vector<unsigned char> decrypt(const std::vector<unsigned char> &data) override;
+    zero::bytes_t decryptKey(const std::vector<unsigned char> &data);
 
     std::vector<unsigned char> sign(const std::vector<unsigned char> &hash) override;
     std::vector<unsigned char> sign(const std::string &hash) override;

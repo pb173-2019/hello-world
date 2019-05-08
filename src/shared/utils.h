@@ -123,7 +123,7 @@ std::string to_hex(const std::string &buff);
 
 std::string to_hex(const std::vector<unsigned char> &bytes);
 
-std::string to_hex(const unsigned char *bytes, size_t length);
+std::string to_hex(const unsigned char bytes[], size_t length);
 
 std::vector<unsigned char> from_hex(const std::string &input);
 

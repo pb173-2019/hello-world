@@ -4,8 +4,8 @@
 
 using namespace helloworld;
 
-std::vector<unsigned char> strToVec(const std::string &data) {
-    return std::vector<unsigned char>(data.begin(), data.end());
+zero::bytes_t strToVec(const std::string &data) {
+    return zero::bytes_t(data.begin(), data.end());
 }
 
 
@@ -189,7 +189,6 @@ TEST_CASE("SQLITE basic operations messages / bundles table simple") {
 }
 
 
-
 TEST_CASE("SQLITE blob storage advanced") {
 
     UserData s1{34, "novere", "asdfasdfasdfasdfafb", {1, 2, 3, 4}};
@@ -223,12 +222,12 @@ TEST_CASE("SQLITE blob storage advanced") {
         UserData res2 = UserData::deserialize(resultData);
         CHECK(res2.id == 34);
 
-        if(res2.name == "novere") {
-            CHECK(res2.publicKey == std::vector<unsigned char>{1, 2, 3, 4});
+        if (res2.name == "novere") {
+            CHECK(res2.publicKey == zero::bytes_t{1, 2, 3, 4});
         } else {
             CHECK(res2.name == "honza");
-            CHECK(res2.publicKey == std::vector<unsigned char>{11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-                                                               11, 11, 11, 11, 11, 11});
+            CHECK(res2.publicKey == zero::bytes_t{11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
+                                                  11, 11, 11, 11, 11, 11});
         }
 
         resultData = db.selectData(5);
@@ -260,8 +259,8 @@ TEST_CASE("SQLITE blob storage advanced") {
         resultData = db.selectBundle(99); //doesn't delete
         resultData = db.selectBundle(99);
         UserData res2 = UserData::deserialize(resultData);
-        CHECK(res2.publicKey == std::vector<unsigned char>{11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-                                                           11, 11, 11, 11, 11, 11, 11});
+        CHECK(res2.publicKey == zero::bytes_t{11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
+                                              11, 11, 11, 11, 11, 11, 11});
         CHECK(res2.sessionKey == "asdfasdfasdfasdfafb");
         CHECK(res2.id == 34);
         CHECK(res2.name == "honza");
@@ -270,7 +269,7 @@ TEST_CASE("SQLITE blob storage advanced") {
         resultData = db.selectBundle(5);
         CHECK(resultData.empty());
 
-        db.updateBundle(6, {1,2,3});
+        db.updateBundle(6, {1, 2, 3});
         resultData = db.selectBundle(6);
         CHECK(resultData.empty());
 
@@ -285,22 +284,22 @@ TEST_CASE("SQLITE bundles re-insertion updates") {
 
     ServerSQLite db{};
 
-    db.insertBundle(3, std::vector<unsigned char>{1,2,3});
-    db.insertBundle(4, std::vector<unsigned char>{4,2,3});
-    db.insertBundle(2, std::vector<unsigned char>{1,2,4});
+    db.insertBundle(3, std::vector<unsigned char>{1, 2, 3});
+    db.insertBundle(4, std::vector<unsigned char>{4, 2, 3});
+    db.insertBundle(2, std::vector<unsigned char>{1, 2, 4});
 
     //insertion update
     db.insertBundle(2, std::vector<unsigned char>{5, 5, 5});
 
     CHECK(db.selectBundle(2) == std::vector<unsigned char>{5, 5, 5});
-    CHECK(db.selectBundle(4) == std::vector<unsigned char>{4,2,3});
-    CHECK(db.selectBundle(3) == std::vector<unsigned char>{1,2,3});
+    CHECK(db.selectBundle(4) == std::vector<unsigned char>{4, 2, 3});
+    CHECK(db.selectBundle(3) == std::vector<unsigned char>{1, 2, 3});
 
     //insertion update 2x
     db.insertBundle(2, std::vector<unsigned char>{1, 5});
     db.insertBundle(2, std::vector<unsigned char>{8, 8, 8, 8, 1});
 
-    CHECK(db.selectBundle(4) == std::vector<unsigned char>{4,2,3});
-    CHECK(db.selectBundle(3) == std::vector<unsigned char>{1,2,3});
+    CHECK(db.selectBundle(4) == std::vector<unsigned char>{4, 2, 3});
+    CHECK(db.selectBundle(3) == std::vector<unsigned char>{1, 2, 3});
     CHECK(db.selectBundle(2) == std::vector<unsigned char>{8, 8, 8, 8, 1});
 }

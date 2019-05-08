@@ -39,7 +39,7 @@ struct Challenge {
     UserData userData;
     std::unique_ptr<ServerToClientManager> manager;
     std::vector<unsigned char> secret;
-    Challenge(UserData userData, std::vector<unsigned char> secret, const std::string &sessionKey)
+    Challenge(UserData userData, std::vector<unsigned char> secret, const zero::str_t &sessionKey)
             : userData(std::move(userData)), manager(std::make_unique<ServerToClientManager>(sessionKey)),
               secret(std::move(secret)) {}
 };
@@ -302,7 +302,7 @@ public:
      * @param response response to parse
      * @param sessionKey session key to use to encrypt reponse, or empty string - the server will return generic error
      */
-    void sendReponse(const std::string& username, const Response &response, const std::string& sessionKey);
+    void sendReponse(const std::string& username, const Response &response, const zero::str_t& sessionKey);
 
     /**
      *

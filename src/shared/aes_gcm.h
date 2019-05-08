@@ -73,8 +73,6 @@ public:
      */
     void encryptWithAd(const std::vector<unsigned char> &in, const std::vector<unsigned char> &ad, std::vector<unsigned char> &out);
 
-
-
     /**
      * @brief Decrypts and authenticates
      *

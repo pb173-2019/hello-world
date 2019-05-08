@@ -50,9 +50,17 @@ public:
 
     std::string getHex(const std::string& in) override;
 
+    std::string getHex(const zero::str_t &in) override;
+
+    zero::str_t getSafeHex(const zero::str_t& in) override;
+
     std::vector<unsigned char> get(std::istream &in) override;
 
     std::vector<unsigned char> get(const std::string& in) override;
+
+    zero::bytes_t getSafe(const std::string& in) override;
+
+    zero::bytes_t getSafe(const zero::str_t& in) override;
 };
 
 } //namespace helloworld

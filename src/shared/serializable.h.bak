@@ -230,9 +230,9 @@ namespace helloworld {
         template<typename K, typename V, typename key_value_type = typename K::value_type, typename value_value_type = typename V::value_type>
         std::pair<K, V> deserialize(const serialize::structure &input, uint64_t &from) {
             std::pair<K, V> result;
-            key_value_type key_tmp = deserialize<key_value_type>(input, from);
+            key_value_type zero::bytes_tmp = deserialize<key_value_type>(input, from);
             value_value_type value_tmp = deserialize<value_value_type>(input, from);
-            return {std::move(key_tmp), std::move(value_tmp)};
+            return {std::move(zero::bytes_tmp), std::move(value_tmp)};
         }
 
         /**

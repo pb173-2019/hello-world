@@ -40,7 +40,7 @@ void server_recieve_1ucnm(int n, std::string msg) {
 }
 
 
-void server_recieve_1rcnm(int n, std::string name,std::string msg) {
+void server_recieve_1rcnm(int n, std::string /*unused*/,std::string msg) {
     SECTION("1 registered client sending " + std::to_string(n) + "x" + msg) {
         int argc = 0;
         char name[] = "Test";
@@ -78,7 +78,7 @@ void server_recieve_1rcnm(int n, std::string name,std::string msg) {
     }
 }
 
-void server_send_1rcnm(int n, std::string name,std::string msg) {
+void server_send_1rcnm(int n, std::string /*unused*/,std::string msg) {
     SECTION("1 registered client recieving " + std::to_string(n) + "x" + msg) {
         int argc = 0;
         char name[] = "Test";
@@ -103,7 +103,7 @@ void server_send_1rcnm(int n, std::string name,std::string msg) {
 
         QObject::connect(&call, SIGNAL(done()), &a, SLOT(quit()));
 
-        client.onMessageRecieved = [&, c = 0](std::string s) mutable {  ++c; if (c == n) a.quit(); };
+        client.onMessageRecieved = [&, c = 0](std::string /*unused*/) mutable {  ++c; if (c == n) a.quit(); };
 
         REQUIRE_NOTHROW(client.connect(localhost, 5000));
         client.send(name);
@@ -137,7 +137,7 @@ void server_send_1ucnm(int n, std::string msg) {
             }
         };
 
-        client.onMessageRecieved = [&, c = 0](std::string s) mutable {  ++c; if (c == n) a.quit(); };
+        client.onMessageRecieved = [&, c = 0](std::string /*unused*/) mutable {  ++c; if (c == n) a.quit(); };
         QObject::connect(&server, SIGNAL(conn(QHostAddress, quint16 )), &r, SLOT(onEmmit(QHostAddress, quint16 )));
 
         REQUIRE_NOTHROW(client.connect(localhost, 5000));

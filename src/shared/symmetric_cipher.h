@@ -16,6 +16,8 @@
 #include <string>
 #include <vector>
 
+#include "key.h"
+
 namespace helloworld {
 
 enum class Padding;
@@ -37,14 +39,14 @@ public:
      * @param key key to encrypt or decrypt data
      * @return bool true if key succesfully set
      */
-    virtual bool setKey(const std::string &key) = 0;
+    virtual bool setKey(const zero::str_t &key) = 0;
 
     /**
      * @brief Retrieve the key the cipher is working with
      *
-     * @return std::string key associated with cipher instance
+     * @return zero::str_t key associated with cipher instance
      */
-    virtual const std::string &getKey() const = 0;
+    virtual const zero::str_t &getKey() const = 0;
 
     /**
      * @brief Set custom iv for cipher, generated random if not present
@@ -90,7 +92,7 @@ public:
      *
      * @return std::string key in hex string suitable for cipher
      */
-    virtual std::string generateKey() const = 0;
+    virtual zero::str_t generateKey() const = 0;
 };
 
 }  // namespace helloworld

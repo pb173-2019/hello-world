@@ -209,7 +209,7 @@ private:
      * genereates new key pair
      * @param password password to encrypt private key
      */
-    void _generateKeypair(const std::string &password);
+    void _generateKeypair(const zero::str_t &password);
 
 
     /*
@@ -247,6 +247,7 @@ private:
      * @return users input
      */
     std::string getInput(const std::string &prompt);
+    zero::str_t getSafeInput(const std::string &prompt);
 
     /**
      * get option from user

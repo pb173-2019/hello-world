@@ -12,12 +12,12 @@ using namespace helloworld;
 
 
 Response registerAlice(Server &server, const std::string &name, MessageNumberGenerator& counter) {
-    std::string sessionKey = "2b7e151628aed2a6abf7158809cf4f3c";
+    zero::str_t sessionKey = "2b7e151628aed2a6abf7158809cf4f3c";
     std::ifstream input("alice_pub.pem");
-    std::string publicKey((std::istreambuf_iterator<char>(input)),
+    zero::str_t publicKey((std::istreambuf_iterator<char>(input)),
                           std::istreambuf_iterator<char>());
 
-    std::vector<unsigned char> key(publicKey.begin(), publicKey.end());
+    zero::bytes_t key(publicKey.begin(), publicKey.end());
 
     AuthenticateRequest registerRequest(name, key);
     //sets the transmission manager for server
@@ -222,23 +222,23 @@ TEST_CASE("Key Bundles") {
     Response r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, id}, GenericRequest{0, "jenda"}.serialize()});
     KeyBundle<C25519> received = KeyBundle<C25519>::deserialize(r.payload);
     CHECK(received.preKeySingiture == std::vector<unsigned char>{5});
-    CHECK(received.preKey == std::vector<unsigned char>{6});
-    CHECK(received.identityKey == std::vector<unsigned char>{7});
-    CHECK(received.oneTimeKeys == std::vector<std::vector<unsigned char>>{{1}, {2}});
+    CHECK(received.preKey == zero::bytes_t{6});
+    CHECK(received.identityKey == zero::bytes_t{7});
+    CHECK(received.oneTimeKeys == std::vector<zero::bytes_t>{{1}, {2}});
 
     r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, id}, GenericRequest{0, "jenda"}.serialize()});
     received = KeyBundle<C25519>::deserialize(r.payload);
     CHECK(received.preKeySingiture == std::vector<unsigned char>{5});
-    CHECK(received.preKey == std::vector<unsigned char>{6});
-    CHECK(received.identityKey == std::vector<unsigned char>{7});
-    CHECK(received.oneTimeKeys == std::vector<std::vector<unsigned char>>{{1}});
+    CHECK(received.preKey == zero::bytes_t{6});
+    CHECK(received.identityKey == zero::bytes_t{7});
+    CHECK(received.oneTimeKeys == std::vector<zero::bytes_t>{{1}});
 
     r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, id}, GenericRequest{0, "jenda"}.serialize()});
     received = KeyBundle<C25519>::deserialize(r.payload);
     CHECK(received.preKeySingiture == std::vector<unsigned char>{5});
-    CHECK(received.preKey == std::vector<unsigned char>{6});
-    CHECK(received.identityKey == std::vector<unsigned char>{7});
-    CHECK(received.oneTimeKeys == std::vector<std::vector<unsigned char>>{});
+    CHECK(received.preKey == zero::bytes_t{6});
+    CHECK(received.identityKey == zero::bytes_t{7});
+    CHECK(received.oneTimeKeys == std::vector<zero::bytes_t>{});
     
     server.dropDatabase();
 }

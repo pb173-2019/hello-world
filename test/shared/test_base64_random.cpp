@@ -41,7 +41,6 @@ TEST_CASE("Random generator") {
     CHECK(num < 6854635);
 
     num = random.getBounded(0, 2);
-    CHECK(num >= 0);
     CHECK(num < 2);
 
     num = random.getBounded(5, 58);

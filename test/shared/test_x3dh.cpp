@@ -3,17 +3,17 @@
 
 #include "../../src/shared/X3DH.h"
 
-void appendVector(std::vector<unsigned char>& to, const std::vector<unsigned char> &from) {
+using namespace helloworld;
+
+void appendVector(zero::bytes_t& to, const zero::bytes_t &from) {
     to.insert(to.end(), from.begin(), from.end());
 }
-
-using namespace helloworld;
 
 TEST_CASE("X3DH process test one-time keys present") {
     //X3DH assumes the files with public key saved in identityKey.key, identityKey.pub
 
     std::string alice = "alice";
-    std::string alice_pwd = "1234";
+    zero::str_t alice_pwd = "1234";
 
     C25519KeyGen keyGen; //alice's identity keys
     keyGen.savePrivateKeyPassword(alice + idC25519priv, alice_pwd);
@@ -32,7 +32,7 @@ TEST_CASE("X3DH process test one-time keys present") {
     bundle.identityKey = bobIdentity.getPublicKey();
     bundle.preKey = bobPreKey.getPublicKey();
     bundle.preKeySingiture = identity.sign(bundle.preKey);
-    bundle.oneTimeKeys = std::vector<KeyBundle<C25519>::key_t>{
+    bundle.oneTimeKeys = std::vector<zero::bytes_t>{
         bobOneTime1.getPublicKey(),
         bobOneTime2.getPublicKey()
     };
@@ -51,7 +51,7 @@ TEST_CASE("X3DH process test one-time keys present") {
         REQUIRE(request.opKeyUsed == 0x01);
         REQUIRE(request.opKeyId == 1);
 
-        std::vector <unsigned char> dhs;
+        zero::bytes_t dhs;
 
         // DH1 step
         C25519 dhcurve;
@@ -72,14 +72,14 @@ TEST_CASE("X3DH process test one-time keys present") {
         appendVector(dhs, dhcurve.getShared());
 
         hkdf kdf;
-        std::string sk = kdf.generate(to_hex(dhs), 16);
+        zero::str_t sk = kdf.generate(to_hex(dhs), 16);
 
         CHECK(sk == to_hex(secret.sk));
     }
 
     SECTION("ACTUAL receiver current pwdSet") {
         std::string bob = "bob";
-        std::string bob_pwd = "bob je svaloun";
+        zero::str_t bob_pwd = "bob je svaloun";
 
         Response r{{Response::Type::RECEIVE, 0}, request.serialize()};
 
@@ -104,7 +104,7 @@ TEST_CASE("X3DH process test one-time keys present") {
 
     SECTION("ACTUAL receiver old pwdSet") {
         std::string bob = "bob";
-        std::string bob_pwd = "bob je svaloun";
+        zero::str_t bob_pwd = "bob je svaloun";
 
         Response r{{Response::Type::RECEIVE, 0}, request.serialize()};
 
@@ -132,7 +132,7 @@ TEST_CASE("X3DH process test no one time keys") {
     //X3DH assumes the files with public key saved in identityKey.key, identityKey.pub
 
     std::string alice = "alice";
-    std::string alice_pwd = "1234";
+    zero::str_t alice_pwd = "1234";
 
     C25519KeyGen keyGen; //alice's identity keys
     keyGen.savePrivateKeyPassword(alice + idC25519priv, alice_pwd);
@@ -163,7 +163,7 @@ TEST_CASE("X3DH process test no one time keys") {
         CHECK(secret.sk.size() == 16);
         REQUIRE(request.opKeyUsed == 0x00);
 
-        std::vector <unsigned char> dhs;
+        zero::bytes_t dhs;
 
         // DH1 step
         C25519 dhcurve;
@@ -180,14 +180,14 @@ TEST_CASE("X3DH process test no one time keys") {
         appendVector(dhs, dhcurve.getShared());
 
         hkdf kdf;
-        std::string sk = kdf.generate(to_hex(dhs), 16);
+        zero::str_t sk = kdf.generate(to_hex(dhs), 16);
 
         CHECK(sk == to_hex(secret.sk));
     }
 
     SECTION("ACTUAL receiver current pwdSet") {
         std::string bob = "bob";
-        std::string bob_pwd = "bob je svaloun";
+        zero::str_t bob_pwd = "bob je svaloun";
 
         Response r{{Response::Type::RECEIVE, 0}, request.serialize()};
 
@@ -208,7 +208,7 @@ TEST_CASE("X3DH process test no one time keys") {
 
     SECTION("ACTUAL receiver old pwdSet") {
         std::string bob = "bob";
-        std::string bob_pwd = "bob je svaloun";
+        zero::str_t bob_pwd = "bob je svaloun";
 
         Response r{{Response::Type::RECEIVE, 0}, request.serialize()};
 

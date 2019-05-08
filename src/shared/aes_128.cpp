@@ -22,6 +22,4 @@ void AES128::decrypt(std::istream &in, std::ostream &out) {
     _process(in, out);
 }
 
-
-
 } //namespace helloworld
