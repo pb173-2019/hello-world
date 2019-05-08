@@ -87,7 +87,7 @@ TEST_CASE("ENCRYPT: AES-128 | CBC | 16 byte msg | PADDING none") {
             "KEY 80000000000000000000000000000000") {
 
         aes128.setKey("80000000000000000000000000000000");
-        aes128.setIv("00000000000000000000000000000000");
+        aes128.setIv(std::string("00000000000000000000000000000000"));
 
         unsigned char bytes[16];
         from_hex("00000000000000000000000000000000", bytes, 16);
@@ -99,7 +99,7 @@ TEST_CASE("ENCRYPT: AES-128 | CBC | 16 byte msg | PADDING none") {
             "MSG 6bc1bee22e409f96e93d7e117393172a | "
             "KEY 2b7e151628aed2a6abf7158809cf4f3c") {
 
-        aes128.setIv("000102030405060708090A0B0C0D0E0F");
+        aes128.setIv(std::string("000102030405060708090A0B0C0D0E0F"));
         aes128.setKey("2b7e151628aed2a6abf7158809cf4f3c");
 
         unsigned char bytes[16];
@@ -112,7 +112,7 @@ TEST_CASE("ENCRYPT: AES-128 | CBC | 16 byte msg | PADDING none") {
             "MSG f69f2445df4f9b17ad2b417be66c3710 | "
             "KEY 2b7e151628aed2a6abf7158809cf4f3c") {
 
-        aes128.setIv("73bed6b8e3c1743b7116e69e22229516");
+        aes128.setIv(std::string("73bed6b8e3c1743b7116e69e22229516"));
         aes128.setKey("2b7e151628aed2a6abf7158809cf4f3c");
         unsigned char bytes[16];
         from_hex("f69f2445df4f9b17ad2b417be66c3710", bytes, 16);
@@ -124,7 +124,7 @@ TEST_CASE("ENCRYPT: AES-128 | CBC | 16 byte msg | PADDING none") {
             "MSG 6a118a874519e64e9963798a503f1d35 | "
             "KEY 00000000000000000000000000000000") {
 
-        aes128.setIv("00000000000000000000000000000000");
+        aes128.setIv(std::string("00000000000000000000000000000000"));
         aes128.setKey("00000000000000000000000000000000");
         unsigned char bytes[16];
         from_hex("6a118a874519e64e9963798a503f1d35", bytes, 16);
@@ -136,7 +136,7 @@ TEST_CASE("ENCRYPT: AES-128 | CBC | 16 byte msg | PADDING none") {
             "MSG 00000000000000000000000000000000 | "
             "KEY a2e2fa9baf7d20822ca9f0542f764a41") {
 
-        aes128.setIv("00000000000000000000000000000000");
+        aes128.setIv(std::string("00000000000000000000000000000000"));
         aes128.setKey("a2e2fa9baf7d20822ca9f0542f764a41");
         unsigned char bytes[16];
         from_hex("00000000000000000000000000000000", bytes, 16);
@@ -161,7 +161,7 @@ TEST_CASE("DECRYPT: AES-128 | CBC | 16 byte msg | PADDING none") {
             "CIPHER 7649abac8119b246cee98e9b12e9197d | "
             "KEY 2b7e151628aed2a6abf7158809cf4f3c") {
 
-        aes128.setIv("000102030405060708090A0B0C0D0E0F");
+        aes128.setIv(std::string("000102030405060708090A0B0C0D0E0F"));
         aes128.setKey("2b7e151628aed2a6abf7158809cf4f3c");
         unsigned char cipher[16];
         from_hex("7649abac8119b246cee98e9b12e9197d", cipher, 16);
@@ -173,7 +173,7 @@ TEST_CASE("DECRYPT: AES-128 | CBC | 16 byte msg | PADDING none") {
             "CIPHER 69c4e0d86a7b0430d8cdb78070b4c55a | "
             "KEY 000102030405060708090a0b0c0d0e0f") {
 
-        aes128.setIv("00000000000000000000000000000000");
+        aes128.setIv(std::string("00000000000000000000000000000000"));
         aes128.setKey("000102030405060708090a0b0c0d0e0f");
         unsigned char cipher[16];
         from_hex("69c4e0d86a7b0430d8cdb78070b4c55a", cipher, 16);
@@ -185,7 +185,7 @@ TEST_CASE("DECRYPT: AES-128 | CBC | 16 byte msg | PADDING none") {
             "CIPHER 4bc3f883450c113c64ca42e1112a9e87 | "
             "KEY c0000000000000000000000000000000") {
 
-        aes128.setIv("00000000000000000000000000000000");
+        aes128.setIv(std::string("00000000000000000000000000000000"));
         aes128.setKey("c0000000000000000000000000000000");
         unsigned char cipher[16];
         from_hex("4bc3f883450c113c64ca42e1112a9e87", cipher, 16);
@@ -197,7 +197,7 @@ TEST_CASE("DECRYPT: AES-128 | CBC | 16 byte msg | PADDING none") {
             "CIPHER 323994cfb9da285a5d9642e1759b224a | "
             "KEY ffffffffffffffffffffffffffffe000") {
 
-        aes128.setIv("00000000000000000000000000000000");
+        aes128.setIv(std::string("00000000000000000000000000000000"));
         aes128.setKey("ffffffffffffffffffffffffffffe000");
         unsigned char cipher[16];
         from_hex("323994cfb9da285a5d9642e1759b224a", cipher, 16);
@@ -209,7 +209,7 @@ TEST_CASE("DECRYPT: AES-128 | CBC | 16 byte msg | PADDING none") {
             "CIPHER 1dbf57877b7b17385c85d0b54851e371 | "
             "KEY fffffffffffffffffffffffffffff000") {
 
-        aes128.setIv("00000000000000000000000000000000");
+        aes128.setIv(std::string("00000000000000000000000000000000"));
         aes128.setKey("fffffffffffffffffffffffffffff000");
         unsigned char cipher[16];
         from_hex("1dbf57877b7b17385c85d0b54851e371", cipher, 16);
@@ -230,7 +230,7 @@ TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding") {
     std::string msg;
 
     SECTION("Short text") {
-        aes128.setIv("69c4e0d86a7b0430d8cdb78070b4c55a");
+        aes128.setIv(std::string("69c4e0d86a7b0430d8cdb78070b4c55a"));
         aes128.setKey("2b7e151628aed2a6abf7158809cf4f3c");
         msg = "Hello, world!";
         input << msg;
@@ -270,7 +270,7 @@ TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding") {
     }
 
     SECTION("Long text") {
-        aes128.setIv("30c81c46a35ce411e5fbc1191a0a52ef");
+        aes128.setIv(std::string("30c81c46a35ce411e5fbc1191a0a52ef"));
         aes128.setKey("73bed6b8e3c1743b7116e69e22229516");
         msg = "Miusov, as a man man of breeding and deilcacy, could not but feel some inwrd qualms,\n"
               "when he reached the Father Superior's with Ivan: he felt ashamed of havin lost his temper.\n"
@@ -352,7 +352,7 @@ TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding and generated IV") {
 TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding and generated KEY") {
     AES128 aes1{};
     aes1.setPadding(Padding::PKCS7);
-    aes1.setIv("2b7e151628aed2a6abf7158809cf4f3c");
+    aes1.setIv(std::string("2b7e151628aed2a6abf7158809cf4f3c"));
     aes1.setKey(aes1.generateKey());
 
     std::stringstream in("Hello, world!, the best app ever.");
@@ -362,7 +362,7 @@ TEST_CASE("ALL: AES-128 custom msg with PKCS7 padding and generated KEY") {
     AES128 aes2{};
     aes2.setPadding(Padding::PKCS7);
     aes2.setKey(aes1.getKey());
-    aes2.setIv("2b7e151628aed2a6abf7158809cf4f3c");
+    aes2.setIv(std::string("2b7e151628aed2a6abf7158809cf4f3c"));
 
     std::stringstream result;
     CHECK_NOTHROW(aes2.decrypt(crypt, result));
@@ -379,7 +379,7 @@ TEST_CASE("AES lengthy errors") {
     AES128 aes128{};
 
     CHECK(!aes128.setKey("73bed6b8e3c1743b7116e69e2222951"));
-    CHECK(!aes128.setIv("30c81c46a35ce411e5fbc1191a"));
+    CHECK(!aes128.setIv(std::string("30c81c46a35ce411e5fbc1191a")));
 
     std::stringstream in;
     std::stringstream out;
@@ -397,7 +397,7 @@ TEST_CASE("file not exists or cannot be read/written into") {
     AES128 aes{};
     aes.setPadding(Padding::PKCS7);
     aes.setKey("00000000000000000000000000000000");
-    aes.setIv("00000000000000000000000000000000");
+    aes.setIv(std::string("00000000000000000000000000000000"));
 
     SECTION("stream cannot be read from") {
         std::ifstream input;

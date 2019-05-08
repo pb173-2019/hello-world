@@ -38,6 +38,14 @@ std::vector<unsigned char> Random::get(size_t size) {
     return result;
 }
 
+zero::bytes_t Random::getKey(size_t size) {
+    zero::bytes_t key(size);
+    if (mbedtls_ctr_drbg_random(&_ctr_drbg, key.data(), key.size()) != 0) {
+        throw Error("Could not generate random sequence.");
+    }
+    return key;
+}
+
 size_t Random::getBounded(size_t lower, size_t upper) {
     unsigned char data[3];
     if (mbedtls_ctr_drbg_random(&_ctr_drbg, data, 3) != 0) {

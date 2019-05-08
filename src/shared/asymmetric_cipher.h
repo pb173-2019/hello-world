@@ -15,6 +15,8 @@
 #include <string>
 #include <vector>
 
+#include "key.h"
+
 namespace helloworld {
 
 enum class KeyType {
@@ -40,7 +42,7 @@ public:
      * @param iv iv for aes
      * @return bool true if succesfully saved
      */
-    virtual bool savePrivateKey(const std::string &filename, const std::string &key, const std::string &iv) = 0;
+    virtual bool savePrivateKey(const std::string &filename, const zero::str_t &key, const std::string &iv) = 0;
 
     /**
     * @brief Save private key into file
@@ -49,7 +51,7 @@ public:
     * @param pwd password to protect the key
     * @return bool true if succesfully saved
     */
-    virtual bool savePrivateKeyPassword(const std::string &filename, const std::string &pwd) = 0;
+    virtual bool savePrivateKeyPassword(const std::string &filename, const zero::str_t &pwd) = 0;
 
     /**
      * @brief Save public key into file
@@ -62,11 +64,9 @@ public:
     /**
      * Direct getter for public key
      *
-     * @return std::vector<unsigned char> public key
+     * @return zero::bytes_t public key
      */
-    virtual std::vector<unsigned char> getPublicKey() const = 0;
-
-
+    virtual zero::bytes_t getPublicKey() const = 0;
 };
 
 class AsymmetricCipher {
@@ -87,7 +87,7 @@ public:
      *
      * @param key public key in pem format
      */
-    virtual void setPublicKey(const std::vector<unsigned char> &key) = 0;
+    virtual void setPublicKey(const zero::bytes_t &key) = 0;
 
     /**
      * @brief Set required key for operation
@@ -103,7 +103,7 @@ public:
      * @param key key to decrypt private key or empty string
      * @param iv iv for encryption or empty string if not encrypted
     */
-    virtual void loadPrivateKey(const std::string &keyFile, const std::string &key, const std::string &iv) = 0;
+    virtual void loadPrivateKey(const std::string &keyFile, const zero::str_t &key, const std::string &iv) = 0;
 
     /**
      * @brief Set required key for operation
@@ -111,7 +111,7 @@ public:
      * @param keyFile key filename to load
      * @param pwd password to decrypt key
     */
-    virtual void loadPrivateKey(const std::string &keyFile, const std::string &pwd) = 0;
+    virtual void loadPrivateKey(const std::string &keyFile, const zero::str_t &pwd) = 0;
 
     /**
      * @brief Encrypt given message with key given

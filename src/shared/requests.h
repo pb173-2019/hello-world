@@ -15,6 +15,7 @@
 #include <ctime>
 #include "utils.h"
 #include "serializable.h"
+#include "key.h"
 
 namespace helloworld {
 
@@ -24,14 +25,13 @@ struct KeyBundle : Serializable<KeyBundle<Asymmetric> > {
     static constexpr int signiture_len = Asymmetric::SIGN_BYTES_LEN;
 
     // can be changed to fixed storage container for length checking in the future
-    using key_t = std::vector<unsigned char>;
     using signiture_t = std::vector<unsigned char>;
 
     uint64_t timestamp;
-    key_t identityKey;
-    key_t preKey;
+    zero::bytes_t identityKey;
+    zero::bytes_t preKey;
     signiture_t preKeySingiture;
-    std::vector<key_t> oneTimeKeys;
+    std::vector<zero::bytes_t> oneTimeKeys;
 
     void generateTimeStamp() {
         timestamp = getTimestampOf(nullptr);
@@ -73,13 +73,13 @@ struct KeyBundle : Serializable<KeyBundle<Asymmetric> > {
 
 
 struct AuthenticateRequest : public Serializable<AuthenticateRequest> {
-    std::string sessionKey = ""; //session key filled on server side
+    zero::str_t sessionKey = ""; //session key filled on server side (the key is sent from user separately)
     std::string name;
-    std::vector<unsigned char> publicKey;
+    zero::bytes_t publicKey;
 
     AuthenticateRequest() = default;
 
-    AuthenticateRequest(std::string name, std::vector<unsigned char> publicKey)
+    AuthenticateRequest(std::string name, zero::bytes_t publicKey)
             : name(std::move(name)), publicKey(std::move(publicKey)) {}
 
     serialize::structure& serialize(serialize::structure& result) const override {
@@ -95,12 +95,9 @@ struct AuthenticateRequest : public Serializable<AuthenticateRequest> {
 
     static AuthenticateRequest deserialize(const serialize::structure  &data, uint64_t& from) {
         AuthenticateRequest result;
-        result.name =
-                serialize::deserialize<decltype(result.name)>(data, from);
-        result.sessionKey =
-                serialize::deserialize<decltype(result.sessionKey)>(data, from);
-        result.publicKey =
-                serialize::deserialize<decltype(result.publicKey)>(data, from);
+        result.name = serialize::deserialize<decltype(result.name)>(data, from);
+        result.sessionKey = serialize::deserialize<decltype(result.sessionKey)>(data, from);
+        result.publicKey = serialize::deserialize<decltype(result.publicKey)>(data, from);
         return result;
     }
     static AuthenticateRequest deserialize(const serialize::structure& data) {
@@ -259,15 +256,13 @@ struct SendData : public Serializable<SendData> {
 
 template<typename Asymmetric>
 struct X3DHRequest : public Serializable<X3DHRequest<Asymmetric>> {
-    using key_t = typename KeyBundle<Asymmetric>::key_t;
-
     static constexpr unsigned char OP_KEY_NONE = 0x00;
     static constexpr unsigned char OP_KEY_USED = 0x01;
 
     uint64_t timestamp;
 
-    key_t senderIdPubKey;
-    key_t senderEphermalPubKey;
+    zero::bytes_t senderIdPubKey;
+    zero::bytes_t senderEphermalPubKey;
     unsigned char opKeyUsed = OP_KEY_NONE;
     size_t opKeyId;
     std::vector<unsigned char> AEADenrypted;

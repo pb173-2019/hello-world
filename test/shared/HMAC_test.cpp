@@ -11,13 +11,13 @@
 using namespace helloworld;
 
 TEST_CASE("TEST VECTORS") {
-    std::vector<unsigned char> key;
+    zero::bytes_t key;
     std::string data;
     std::string output;
 
     // test vectors from rfc4231
     SECTION("TEST 1") {
-        key = std::vector<unsigned char>(20, 0x0b);
+        key = zero::bytes_t(20, 0x0b);
         data = "Hi There";
         output = "87aa7cdea5ef619d4ff0b4241a1d6cb0"
                  "2379f4e2ce4ec2787ad0b30545e17cde"
@@ -26,7 +26,7 @@ TEST_CASE("TEST VECTORS") {
     }
     SECTION("TEST 2 : Test with a key shorter than the length of the HMAC output.") {
         std::string key_string = "Jefe";
-        key = std::vector<unsigned char>(key_string.begin(), key_string.end());
+        key = zero::bytes_t(key_string.begin(), key_string.end());
         data = "what do ya want for nothing?";
         output = "164b7a7bfcf819e2e395fbe73b56e0a3"
                  "87bd64222e831fd610270cd7ea250554"
@@ -34,7 +34,7 @@ TEST_CASE("TEST VECTORS") {
                  "caeab1a34d4a6b4b636e070a38bce737";
     }
     SECTION("TEST 3 : Test with a combined length of key and data that is larger than 64 bytes") {
-        key = std::vector<unsigned char>(20, 0xaa);
+        key = zero::bytes_t(20, 0xaa);
         data = std::string(50, 0xdd);
         output = "fa73b0089d56a284efb0f0756c890be9"
                  "b1b5dbdd8ee81a3655f83e33b2279d39"
@@ -51,13 +51,13 @@ TEST_CASE("TEST VECTORS") {
                  "a5f19741120c4f2de2adebeb10a298dd";
     }
     SECTION("TEST 5 : with trucation") {
-        key = std::vector<unsigned char>(20, 0x0c);
+        key = zero::bytes_t(20, 0x0c);
         data = "Test With Truncation";
 
         output = "415fad6271580a531d4179bc891d87a6";
     }
     SECTION("TEST 6 : Test with a key larger than 128 bytes") {
-        key = std::vector<unsigned char>(131, 0xaa);
+        key = zero::bytes_t(131, 0xaa);
         data = "Test Using Larger Than Block-Size Key - Hash Key First";
         output = "80b24263c7c1a3ebb71493c1dd7be8b4"
                  "9b46d1f41b4aeec1121b013783f8f352"
@@ -65,7 +65,7 @@ TEST_CASE("TEST VECTORS") {
                  "95e64f73f63f0aec8b915a985d786598";
     }
     SECTION("TEST 7 : Test with a key and data that is larger than 128 bytes") {
-        key = std::vector<unsigned char>(131, 0xaa);
+        key = zero::bytes_t(131, 0xaa);
         data = "This is a test using a larger than block-size key and a larger than block-size data. "
                "The key needs to be hashed before being used by the HMAC algorithm.";
     }

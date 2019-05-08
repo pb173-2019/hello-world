@@ -9,29 +9,28 @@ DHPair DoubleRatchetAdapter::GENERATE_DH() const {
     return {c25519generator.getPublicKey(), c25519generator.getPrivateKey()};
 }
 
-key DoubleRatchetAdapter::DH(const DHPair &dh_pair, const key &dh_pub) const {
+zero::bytes_t DoubleRatchetAdapter::DH(const DHPair &dh_pair, const zero::bytes_t &dh_pub) const {
     C25519 c25519;
     c25519.setPrivateKey(dh_pair.priv);
     c25519.setPublicKey(dh_pub);
     return c25519.getShared();
 }
 
-std::pair<key, key> DoubleRatchetAdapter::KDF_RK(const key &rk,
-                                                 const key &dh_out) {
+std::pair<zero::bytes_t, zero::bytes_t> DoubleRatchetAdapter::KDF_RK(const zero::bytes_t &rk, const zero::bytes_t &dh_out) {
     _hkdf_rk.setSalt(to_hex(rk));
     return split(from_hex(_hkdf_rk.generate(to_hex(dh_out), KDF_RK_SIZE)));
 }
 
-std::pair<key, key> DoubleRatchetAdapter::KDF_CK(const key &ck,
+std::pair<zero::bytes_t, zero::bytes_t> DoubleRatchetAdapter::KDF_CK(const zero::bytes_t &ck,
                                                  unsigned char input) {
     _hmac.setKey(to_hex(ck));
-    return split(_hmac.generate({input}));
+    return split(_hmac.generate(zero::bytes_t{input}));
 }
 
-CipherHMAC DoubleRatchetAdapter::ENCRYPT(const key &mk, const key &plaintext,
-                                         const key &associated_data) {
-    auto keys = from_hex(_hkdf_encrypt.generate(to_hex(mk), 60));
-    key encryptionKey, authenticationKey, iv;
+CipherHMAC DoubleRatchetAdapter::ENCRYPT(const zero::bytes_t &mk, const std::vector<unsigned char> &plaintext,
+                                         const std::vector<unsigned char> &associated_data) {
+    zero::bytes_t keys = from_hex(_hkdf_encrypt.generate(to_hex(mk), 60));
+    zero::bytes_t encryptionKey, authenticationKey, iv;
     std::tie(encryptionKey, keys) = split(keys, 16);
     std::tie(authenticationKey, iv) = split(keys, 32);
 
@@ -41,16 +40,17 @@ CipherHMAC DoubleRatchetAdapter::ENCRYPT(const key &mk, const key &plaintext,
     std::vector<unsigned char> ciphertext;
     gcm.encryptWithAd(plaintext, associated_data, ciphertext);
 
-    return {ciphertext,
-            getHmac(authenticationKey, associated_data, ciphertext)};
+    return {ciphertext, getHmac(authenticationKey, associated_data, ciphertext)};
 }
 
 std::vector<unsigned char> DoubleRatchetAdapter::DECRYPT(
-    const key &mk, const key &ciphertext, const key &hmac,
-    const key &associated_data) {
-    std::vector<unsigned char> keys =
+    const zero::bytes_t &mk, const std::vector<unsigned char> &ciphertext, const std::vector<unsigned char> &hmac,
+    const std::vector<unsigned char> &associated_data) {
+
+    zero::bytes_t keys =
         from_hex(_hkdf_encrypt.generate(to_hex(mk), 60));
-    key encryptionKey, authenticationKey, iv;
+    zero::bytes_t encryptionKey, authenticationKey, iv;
+
     std::tie(encryptionKey, keys) = split(keys, 16);
     std::tie(authenticationKey, iv) = split(keys, 32);
 
@@ -74,12 +74,13 @@ MessageHeader DoubleRatchetAdapter::HEADER(const DHPair &dh_pair, size_t pn,
 }
 
 std::vector<unsigned char> DoubleRatchetAdapter::CONCAT(
-    const key &ad, const MessageHeader &header) const {
-    auto result = ad;
+    const zero::bytes_t &ad, const MessageHeader &header) const {
+
+    std::vector<unsigned char> result;
+    result.insert(result.begin(), ad.begin(), ad.end());
     auto serializedMessageHeader = header.serialize();
     result.insert(result.end(), serializedMessageHeader.begin(),
                   serializedMessageHeader.end());
-
     return result;
 }
 

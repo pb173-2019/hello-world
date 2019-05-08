@@ -13,17 +13,16 @@
 
 using namespace helloworld;
 
-Request registerUser(const std::string &name, const std::string& sessionKey, const std::string& pubKeyFilename) {
+Request registerUser(const std::string &name, const std::string& pubKeyFilename) {
     std::ifstream input(pubKeyFilename);
-    std::string publicKey((std::istreambuf_iterator<char>(input)),
+    zero::str_t publicKey((std::istreambuf_iterator<char>(input)),
                           std::istreambuf_iterator<char>());
-    std::vector<unsigned char> key(publicKey.begin(), publicKey.end());
+    zero::bytes_t key(publicKey.begin(), publicKey.end());
     AuthenticateRequest registerRequest(name, key);
     return {{Request::Type::CREATE, 0}, registerRequest.serialize()};
 }
 
-Request loginUser(const std::string &name, const std::string& sessionKey) {
-
+Request loginUser(const std::string &name) {
     AuthenticateRequest auth(name, {});
     return {{Request::Type::LOGIN, 0}, auth.serialize()};
 }
@@ -31,7 +30,7 @@ Request loginUser(const std::string &name, const std::string& sessionKey) {
 Request completeAuth(const std::vector<unsigned char>& secret,
         const std::string &name,
         const std::string &privKeyFilename,
-        const std::string &pwd,
+        const zero::str_t &pwd,
         Request::Type type) {
 
     RSA2048 rsa;
@@ -127,7 +126,7 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
 
 
     std::stringstream registration = client._connection->parseOutgoing(
-            registerUser("alice", "2b7e151628aed2a6abf7158809cf4f3c", "alice_pub.pem"));
+            registerUser("alice", "alice_pub.pem"));
 
     //!! now when parsed, can set secure channel
     client._connection->switchSecureChannel(true);
@@ -157,7 +156,7 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
     client._connection = std::make_unique<ClientToServerManager>("2b7e151628aed2a6abf7158809cf4f3c", "server_pub.pem");
 
     std::stringstream loggingin = client._connection->parseOutgoing(
-            loginUser("alice", "2b7e151628aed2a6abf7158809cf4f3c"));
+            loginUser("alice"));
     client._connection->switchSecureChannel(true);
     server.cleanAfterConenction("alice");
 
@@ -186,7 +185,9 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
 void registerUserRoutine(Server& server, ClientMock& client) {
     client._connection = std::make_unique<ClientToServerManager>("2b7e151628aed2a6abf7158809cf4f3c", "server_pub.pem");
     std::stringstream registration = client._connection->parseOutgoing(
-            registerUser(client._username, "2b7e151628aed2a6abf7158809cf4f3c", "alice_pub.pem"));
+            registerUser(client._username, "alice_pub.pem")
+    );
+
     //!! now when parsed, can set secure channel
     client._connection->switchSecureChannel(true);
     client._transmission->send(registration);

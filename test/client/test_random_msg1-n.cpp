@@ -11,7 +11,7 @@ using namespace helloworld;
 
 class ClientAdapter {
     std::string _name;
-    std::string _password;
+    zero::str_t _password;
     std::string _privateKeyName;
     std::string _publicKeyName;
 

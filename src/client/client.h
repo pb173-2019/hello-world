@@ -34,7 +34,7 @@ class Client : public QObject, public Callable<void, std::stringstream &&> {
     Q_OBJECT
 public:
     Client(std::string username, const std::string &clientPrivKeyFilename,
-           const std::string &password, QObject *parent = nullptr);
+           const zero::str_t &password, QObject *parent = nullptr);
 
 
     UserTransmissionManager *getTransmisionManger() {
@@ -176,7 +176,7 @@ public:
 
 private:
     const std::string _username;
-    const std::string _password;
+    const zero::str_t _password;
     uint32_t _userId = 0;
 
     // todo think of better way to get incomming message

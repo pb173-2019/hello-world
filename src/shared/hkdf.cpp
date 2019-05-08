@@ -7,21 +7,20 @@
 
 using namespace helloworld;
 
-std::string hkdf::_extract(const std::string &IKM, const std::string &salt) const {
+zero::str_t hkdf::_extract(const zero::str_t &IKM, const zero::str_t &salt) const {
     _hash->setKey(salt);
     return to_hex(_hash->generate(from_hex(IKM)));
 }
 
-std::string hkdf::_expand(const std::string &PRK, const std::string &info, size_t len) const {
+zero::str_t hkdf::_expand(const zero::str_t &PRK, const zero::str_t &info, size_t len) const {
     auto N = static_cast<size_t >(ceil(static_cast<double>(len) / _hash->hmacLength()));
     _hash->setKey(PRK);
-    std::vector<unsigned char> T;
+    zero::bytes_t T;
 
-    std::vector<unsigned char> prevT;
+    zero::bytes_t prevT;
     for (size_t i = 0u; i < N; i++) {
         std::copy(info.begin(), info.end(), std::back_inserter(prevT));
-        prevT.push_back(i + 1);
-
+        prevT.push_back(static_cast<unsigned char &&>(i + 1));
         prevT = _hash->generate(prevT);
 
         std::copy(prevT.begin(), prevT.end(), std::back_inserter(T));
@@ -29,14 +28,14 @@ std::string hkdf::_expand(const std::string &PRK, const std::string &info, size_
     return to_hex(T).substr(0, len * 2);
 }
 
-hkdf::hkdf(std::unique_ptr<hmac> &&hash, std::string info)
+hkdf::hkdf(std::unique_ptr<hmac> &&hash, zero::str_t info)
         : _hash(std::move(hash)), _salt(_hash->hmacLength(), 0), _info(std::move(info)) {
 }
 
-void hkdf::setSalt(const std::string &newSalt) {
+void hkdf::setSalt(const zero::str_t &newSalt) {
     _salt = newSalt;
 }
 
-std::string hkdf::generate(const std::string &InputKeyingMaterial, size_t outputLength) const {
+zero::str_t hkdf::generate(const zero::str_t &InputKeyingMaterial, size_t outputLength) const {
     return _expand(_extract(InputKeyingMaterial, _salt), _info, outputLength);
 }

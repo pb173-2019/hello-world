@@ -355,7 +355,7 @@ void Server::sendReponse(const std::string &username, const Response &response, 
     _transmission->send(username, result);
 }
 
-void Server::sendReponse(const std::string &username, const Response &response, const std::string &sessionKey) {
+void Server::sendReponse(const std::string &username, const Response &response, const zero::str_t &sessionKey) {
     std::stringstream result;
     if (sessionKey.length() != AESGCM::key_size * 2) {
         //invalid key

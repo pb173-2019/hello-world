@@ -17,7 +17,7 @@ TEST_CASE("Test vectors") {
     std::stringstream plaintext;
     std::stringstream additionalData;
 
-    std::string key;
+    zero::str_t key;
     std::string iv;
 
     std::string tag;
@@ -115,7 +115,7 @@ TEST_CASE("Test with vectors") {
     std::vector<unsigned char> plaintext;
     std::vector<unsigned char> additionalData;
 
-    std::string key;
+    zero::str_t key;
     std::string iv;
 
     std::string tag;

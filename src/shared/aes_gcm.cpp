@@ -70,8 +70,6 @@ void AESGCM::encryptWithAd(const std::vector<unsigned char> &in, const std::vect
     out.insert(out.begin(), tag.begin(), tag.end());
 }
 
-
-
 void AESGCM::decrypt(std::istream &in, std::ostream &out) {
     if (dirty) {
         _reset();
@@ -125,7 +123,6 @@ void AESGCM::decryptWithAd(const std::vector<unsigned char> &in, const std::vect
         throw Error("mbedTLS authetification error");
 }
 
-
 void AESGCM::_additional(std::istream &ad) {
     if (!ad) throw Error("input stream invalid");
 
@@ -141,7 +138,7 @@ void AESGCM::_additional(std::istream &ad) {
 }
 
 void AESGCM::_additional(const std::vector<unsigned char>& ad) {
-        if (mbedtls_cipher_update_ad(&_context, ad.data(), ad.size()) != 0) {
-            throw Error("Failed to update ad.");
-        }
+    if (mbedtls_cipher_update_ad(&_context, ad.data(), ad.size()) != 0) {
+        throw Error("Failed to update ad.");
+    }
 }

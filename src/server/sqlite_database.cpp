@@ -86,7 +86,7 @@ namespace helloworld {
             size = (static_cast<size_t>(
                     sqlite3_column_bytes(statement, 2) / static_cast<int>(sizeof(unsigned char))));
             const unsigned char* ptr2 = sqlite3_column_text(statement, 2);
-            data.publicKey = std::vector<unsigned char>(ptr2, ptr2 + size);
+            data.publicKey = zero::bytes_t(ptr2, ptr2 + size);
         }
         sqlite3_finalize(statement);
         return data;
@@ -111,7 +111,7 @@ namespace helloworld {
             size = (static_cast<size_t>(
                     sqlite3_column_bytes(statement, 2) / static_cast<int>(sizeof(unsigned char))));
             const unsigned char* ptr2 = sqlite3_column_text(statement, 2);
-            data.publicKey = std::vector<unsigned char>(ptr2, ptr2 + size);
+            data.publicKey = zero::bytes_t(ptr2, ptr2 + size);
         }
         sqlite3_finalize(statement);
         return data;

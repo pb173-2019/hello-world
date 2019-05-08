@@ -16,11 +16,17 @@
 
 namespace helloworld {
 
+/**
+ * Class that performs reading from socket
+ * active waiting
+ */
 class Worker : public QObject {
-    std::istream &is;
 Q_OBJECT
+    std::istream &is;
+
 public:
     Worker(std::istream &is) : QObject(nullptr), is(is) {};
+
 public slots:
 
     void doWork() {
@@ -37,6 +43,10 @@ signals:
     void read(QString);
 };
 
+/**
+ * Thread pooling management:
+ * thread container for Worker class
+ */
 class cinPoll : public QObject {
 Q_OBJECT
     std::istream &is;
@@ -47,8 +57,10 @@ public:
 
 public slots:
 
+    /**
+     * Start the thread, QThread is deleted by QT framework
+     */
     void start() {
-
         Worker *worker = new Worker(is);
         thread = new QThread();
         worker->moveToThread(thread);
@@ -61,7 +73,6 @@ public slots:
 signals:
 
     void read(QString);
-
 };
 
 class CMDApp : public QObject {
@@ -198,7 +209,7 @@ private:
      * genereates new key pair
      * @param password password to encrypt private key
      */
-    void _generateKeypair(const std::string &password);
+    void _generateKeypair(const zero::str_t &password);
 
 
     /*
@@ -236,6 +247,7 @@ private:
      * @return users input
      */
     std::string getInput(const std::string &prompt);
+    zero::str_t getSafeInput(const std::string &prompt);
 
     /**
      * get option from user

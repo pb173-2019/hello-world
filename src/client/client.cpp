@@ -13,7 +13,7 @@ namespace helloworld {
 bool Client::_test = false;
 
 Client::Client(std::string username, const std::string &clientPrivKeyFilename,
-               const std::string &password, QObject *parent)
+               const zero::str_t &password, QObject *parent)
     : QObject(parent),
       _username(std::move(username)),
       _password(password),
@@ -67,7 +67,7 @@ void Client::callback(std::stringstream &&data) {
 
 void Client::login() {
     _connection = std::make_unique<ClientToServerManager>(
-        to_hex(Random().get(SYMMETRIC_KEY_SIZE)), serverPub);
+        to_hex(Random().getKey(SYMMETRIC_KEY_SIZE)), serverPub);
     _connection->_testing = _test;
     AuthenticateRequest request(_username, {});
     sendRequest({{Request::Type::LOGIN, _userId}, request.serialize()});
@@ -81,13 +81,13 @@ void Client::logout() {
 void Client::createAccount(const std::string &pubKeyFilename) {
     _userId = 0;
     _connection = std::make_unique<ClientToServerManager>(
-        to_hex(Random().get(SYMMETRIC_KEY_SIZE)), serverPub);
+        to_hex(Random().getKey(SYMMETRIC_KEY_SIZE)), serverPub);
     if (_test)
         _connection->_testing = _test;
     std::ifstream input(pubKeyFilename);
-    std::string publicKey((std::istreambuf_iterator<char>(input)),
+    zero::str_t publicKey((std::istreambuf_iterator<char>(input)),
                           std::istreambuf_iterator<char>());
-    std::vector<unsigned char> key(publicKey.begin(), publicKey.end());
+    zero::bytes_t key(publicKey.begin(), publicKey.end());
     AuthenticateRequest registerRequest(_username, key);
 
     sendRequest({{Request::Type::CREATE, 0}, registerRequest.serialize()});

@@ -49,12 +49,12 @@ protected:
     AESGCM _gcm{};
     Random _random;
 
-    std::string _sessionKey;
+    zero::str_t _sessionKey;
     bool _established = false;
 
     static constexpr int HEADER_ENCRYPTED_SIZE = 32;
 public:
-    explicit ConnectionManager(std::string sessionKey) : _sessionKey(std::move(sessionKey)) {};
+    explicit ConnectionManager(zero::str_t sessionKey) : _sessionKey(std::move(sessionKey)) {};
 
     virtual ~ConnectionManager() = default;
 
@@ -157,7 +157,6 @@ template<typename incoming, typename outgoing>
 class BasicConnectionManager : public ConnectionManager<incoming, outgoing> {
 protected:
 
-
     MessageNumberGenerator _counter;
 
 public:
@@ -167,7 +166,7 @@ public:
      *
      * @param sessionKey session key to use
      */
-    explicit BasicConnectionManager(const std::string &sessionKey)
+    explicit BasicConnectionManager(const zero::str_t &sessionKey)
             : ConnectionManager<incoming, outgoing>(sessionKey) {};
 
 };
@@ -190,7 +189,7 @@ public:
      * @param pubkeyFilename rsa public key of the receiver (server) filename path
      * @param pwd password to decrypt private key
      */
-    explicit ClientToServerManager(const std::string &sessionKey, const std::string &pubkeyFilename);
+    explicit ClientToServerManager(const zero::str_t &sessionKey, const std::string &pubkeyFilename);
 
     /**
      * @brief Initialize with public key from buffer
@@ -198,7 +197,7 @@ public:
      * @param publicKeyData buffer with public key in pem format (e.g. pem file loaded into buffer)
      * @param pwd password to decrypt private key
      */
-    explicit ClientToServerManager(const std::string &sessionKey, const std::vector<unsigned char> &publicKeyData);
+    explicit ClientToServerManager(const zero::str_t &sessionKey, const zero::bytes_t &publicKeyData);
 
     Response parseIncoming(std::stringstream &&data) override;
 
@@ -214,7 +213,7 @@ private:
  */
 class ServerToClientManager : public BasicConnectionManager<Request, Response> {
 public:
-    explicit ServerToClientManager(const std::string &sessionKey);
+    explicit ServerToClientManager(const zero::str_t &sessionKey);
 
     Request parseIncoming(std::stringstream &&data) override;
 
@@ -237,7 +236,7 @@ public:
      * @param key aes key to read private key
      * @param iv aes iv to read private key
      */
-    GenericServerManager(const std::string &privkeyFilename, const std::string &key, const std::string &iv);
+    GenericServerManager(const std::string &privkeyFilename, const zero::str_t &key, const std::string &iv);
 
     /**
      * Parse incomming request with server private key
@@ -268,7 +267,7 @@ public:
      * Set gcm key for parseOutgoing(const Response &data) method
      * @param key
      */
-    void setKey(const std::string& key);
+    void setKey(const zero::str_t& key);
 };
 
 }

@@ -24,8 +24,9 @@ class DoubleRatchet {
 private:
     DoubleRatchetAdapter ext;
 
-    key TrySkippedMessageKeys(const MessageHeader &header,
-                              const key &ciphertext, const key &hmac);
+    std::vector<unsigned char> TrySkippedMessageKeys(const MessageHeader &header,
+                              const std::vector<unsigned char> &ciphertext,
+                              const std::vector<unsigned char> &hmac);
     void SkipMessageKeys(size_t until);
     void DHRatchet(const MessageHeader &header);
     std::vector<unsigned char> TryRatchetDecrypt(const Message &message);
@@ -37,9 +38,7 @@ public:
      * @param SK shared key from X3DH exchange
      * @param other_dh_public_key Curve25519 public key from the other client
      */
-    DoubleRatchet(
-        std::vector<unsigned char> sk, std::vector<unsigned char> ad,
-        std::vector<unsigned char> other_dh_public_key);    // RatchetInitAlice
+    DoubleRatchet(zero::bytes_t sk, zero::bytes_t ad, zero::bytes_t other_dh_public_key);    // RatchetInitAlice
 
     /**
      * @brief Create DoubleRatchetObject (RatchetInitBob)
@@ -48,9 +47,10 @@ public:
      * @param dh_public_key own Curve25519 public key
      * @param dh_private_key own Curve25519 public key
      */
-    DoubleRatchet(std::vector<unsigned char> sk, std::vector<unsigned char> ad,
-                  std::vector<unsigned char> dh_public_key,
-                  std::vector<unsigned char> dh_private_key);
+    DoubleRatchet(zero::bytes_t sk,
+                  zero::bytes_t ad,
+                  zero::bytes_t dh_public_key,
+                  zero::bytes_t dh_private_key);
 
     DoubleRatchet(DRState state);
 

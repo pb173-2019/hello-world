@@ -14,15 +14,15 @@ using namespace helloworld;
 
 TEST_CASE("test vectors RFC5869") {
     std::vector<unsigned char> info;
-    std::vector<unsigned char> salt;
-    std::vector<unsigned char> IKM;
+    zero::bytes_t salt;
+    zero::bytes_t IKM;
     std::unique_ptr<hmac> hmacFunction;
-    std::string result;
+    zero::str_t result;
     size_t len = 0;
 
     SECTION("SECTION 1") {
         hmacFunction = std::make_unique<hmac_base<MBEDTLS_MD_SHA256, 32> >();
-        IKM = std::vector<unsigned char>(22, 0xb);
+        IKM = zero::bytes_t(22, 0xb);
         for (size_t i = 0; i < 10; i++)
             info.push_back(0xf0 + i);
         for (size_t i = 0; i < 13; i++)
@@ -49,7 +49,7 @@ TEST_CASE("test vectors RFC5869") {
     }
     SECTION("SECTION 3") {
         hmacFunction = std::make_unique<hmac_base<MBEDTLS_MD_SHA256, 32> >();
-        IKM = std::vector<unsigned char>(22, 0x0b);
+        IKM = zero::bytes_t(22, 0x0b);
         len = 42;
         result = "8da4e775a563c18f715f802a063c5a31"
                  "b8a11f5c5ee1879ec3454e5f3c738d2d"
@@ -57,7 +57,7 @@ TEST_CASE("test vectors RFC5869") {
     }
     SECTION("SECTION 4") {
         hmacFunction = std::make_unique<hmac_base<MBEDTLS_MD_SHA1, 20> >();
-        IKM = std::vector<unsigned char>(11, 0x0b);
+        IKM = zero::bytes_t(11, 0x0b);
         for (size_t i = 0; i < 10; i++)
             info.push_back(0xf0 + i);
         for (size_t i = 0; i < 13; i++)
@@ -84,14 +84,14 @@ TEST_CASE("test vectors RFC5869") {
     }
     SECTION("SECTION 6") {
         hmacFunction = std::make_unique<hmac_base<MBEDTLS_MD_SHA1, 20> >();
-        IKM = std::vector<unsigned char>(22, 0x0b);
+        IKM = zero::bytes_t(22, 0x0b);
         len = 42;
         result = "0ac1af7002b3d761d1e55298da9d0506"
                  "b9ae52057220a306e07b6b87e8df21d0"
                  "ea00033de03984d34918";
     }
 
-    std::string infoString;
+    zero::str_t infoString;
     std::copy(info.begin(), info.end(), std::back_inserter(infoString));
 
     hkdf test(std::move(hmacFunction), infoString);
@@ -101,9 +101,8 @@ TEST_CASE("test vectors RFC5869") {
 
 TEST_CASE("Default salt value test (RFC5869)") {
     hkdf test(std::make_unique<hmac_base<MBEDTLS_MD_SHA1, 20> >(), "");
-    std::vector<unsigned char> IKM(22, 0x0c);
+    zero::bytes_t IKM(22, 0x0c);
     CHECK(test.generate(to_hex(IKM), 42) == ("2c91117204d745f3500d636a62f64f0a"
                                              "b3bae548aa53d423b0d1f27ebba6f5e5"
                                              "673a081d70cce7acfc48"));
-
 }

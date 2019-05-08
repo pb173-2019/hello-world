@@ -30,24 +30,24 @@ namespace helloworld {
 
 class X3DH {
     const std::string& username;
-    const std::string& pwd;
+    const zero::str_t& pwd;
     uint64_t timestamp = 0;
 
 public:
     struct X3DHSecretPubKey {
-        std::vector<unsigned char> sk;
-        std::vector<unsigned char> ad;
-        std::vector<unsigned char> pubKey;
+        zero::bytes_t sk;
+        zero::bytes_t ad;
+        zero::bytes_t pubKey;
     };
 
     struct X3DHSecretKeyPair {
-        std::vector<unsigned char> sk;
-        std::vector<unsigned char> ad;
-        std::vector<unsigned char> pubKey;
-        std::vector<unsigned char> privKey;
+        zero::bytes_t sk;
+        zero::bytes_t ad;
+        zero::bytes_t pubKey;
+        zero::bytes_t privKey;
     };
 
-    X3DH(const std::string& username, const std::string& pwd)
+    X3DH(const std::string& username, const zero::str_t& pwd)
         : username(username), pwd(pwd) {}
 
     void setTimestamp(uint64_t timestamp) { this->timestamp = timestamp; }
@@ -58,12 +58,14 @@ public:
      * @param incoming incoming request, generated with sendInitialMessage() method
      * @return encrypted data for ratchet, and the shared secret output
      */
-    std::pair<std::vector<unsigned char>, X3DH::X3DHSecretKeyPair> getSecret(const std::vector<unsigned char> &payload);
+    std::pair<std::vector<unsigned char>, X3DH::X3DHSecretKeyPair> getSecret(
+            const std::vector<unsigned char> &payload);
 
     /**
      * Perform the first part of the X3DH protocol
      * @param bundle key bundle fetched from the server
-     * @return std::pair<X3DHRequest<C25519>, X3DHSecretPubKey> returns key set needed for the second X3DH part
+     * @return std::pair<X3DHRequest<C25519>, X3DHSecretPubKey> returns
+     * key set needed for the second X3DH part
      */
     std::pair<X3DHRequest<C25519>, X3DHSecretPubKey> setSecret(
         const KeyBundle<C25519>& bundle) const;
@@ -77,8 +79,8 @@ private:
      * @param signature signature of the prekeyPub
      * @return true if verified
      */
-    bool verifyPrekey(const KeyBundle<C25519>::key_t& identityPub,
-                      const KeyBundle<C25519>::key_t& prekeyPub,
+    bool verifyPrekey(const zero::bytes_t &identityPub,
+                      const zero::bytes_t &prekeyPub,
                       const KeyBundle<C25519>::signiture_t& signature) const;
 
     /**
@@ -86,16 +88,13 @@ private:
      * @param to vector to append to
      * @param from vector to append
      */
-    void append(std::vector<unsigned char>& to,
-                const std::vector<unsigned char>& from) const;
+    void append(zero::bytes_t &to, const zero::bytes_t &from) const;
 
     /**
      * Load owner id key from file created on registration
      * @return vector with raw bytes of public key
      */
-    std::vector<unsigned char> loadC25519Key(
-        const std::string& filename) const;
-
+    zero::bytes_t loadC25519Key(const std::string& filename) const;
 };
 
 }    // namespace helloworld
