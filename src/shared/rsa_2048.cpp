@@ -66,6 +66,9 @@ bool RSAKeyGen::savePrivateKey(const std::string &filename,
 
 bool RSAKeyGen::savePrivateKeyPassword(const std::string &filename,
                                        const zero::str_t &pwd) {
+    if (pwd.size() < MIN_PASS_LEN)
+        throw Error(std::string("Password must be at least ") +
+                    std::to_string(MIN_PASS_LEN) + " characters long");
     return savePrivateKey(filename, getHexPwd(pwd), getHexIv(pwd));
 }
 
