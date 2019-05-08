@@ -51,7 +51,8 @@ class OneToNMock {
    public:
     OneToNMock() = default;
 
-    OneToNMock(size_t clientCount) : _dis(0, clientCount - 1) {
+    OneToNMock(size_t clientCount)
+        : _dis(0, clientCount - 1), _server("Hello, world! 2.0 password") {
         setupServer();
         _clients = generateClients(clientCount);
     }

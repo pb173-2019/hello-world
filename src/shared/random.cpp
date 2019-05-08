@@ -72,20 +72,22 @@ zero::bytes_t Random::getKey(size_t size) {
 }
 
 size_t Random::getBounded(size_t lower, size_t upper) {
-    std::unique_lock<std::mutex> lock(_mutex);
-
-    if (_use_since_reseed >= RESEED_AFTER) _reseed();
-
-    unsigned char data[3];
-
-    if (mbedtls_ctr_drbg_random(&_ctr_drbg, data, 3) != 0) {
-        throw Error("Could not generate random sequence.");
-    }
-
     size_t result = 0;
-    for (int i = 0; i < 3; i++) {
-        result += static_cast<size_t>(std::pow(255, i)) * data[i];
-    }
+    {
+        std::unique_lock<std::mutex> lock(_mutex);
+
+        if (_use_since_reseed >= RESEED_AFTER) _reseed();
+
+        unsigned char data[3];
+
+        if (mbedtls_ctr_drbg_random(&_ctr_drbg, data, 3) != 0) {
+            throw Error("Could not generate random sequence.");
+        }
+
+        for (int i = 0; i < 3; i++) {
+            result += static_cast<size_t>(std::pow(255, i)) * data[i];
+        }
+    }    // prevents deadlock when recursively called
 
     result = result % upper;
     if (result >= lower) {
