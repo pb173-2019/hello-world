@@ -13,6 +13,7 @@
 #define HELLOWORLD_CLIENT_CLIENT_H_
 
 #include <QObject>
+#include <QTimer>
 #include <memory>
 #include <string>
 #include <vector>
@@ -32,6 +33,8 @@ class Client : public QObject, public Callable<void, std::stringstream &&> {
     static bool _test;
     static constexpr int SYMMETRIC_KEY_SIZE = 16;
     Q_OBJECT
+    QTimer *_timeout;
+
    public:
     Client(std::string username, const std::string &clientPrivKeyFilename,
            const zero::str_t &password, QObject *parent = nullptr);
@@ -75,6 +78,10 @@ class Client : public QObject, public Callable<void, std::stringstream &&> {
      */
     void logout();
 
+    void reauthenticate() {
+        logout();
+        login();
+    }
     /**
      * @brief Send request to the server to register new user
      *

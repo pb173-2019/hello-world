@@ -90,7 +90,12 @@ class Server
         Request request;
         Response response;
         try {
-            if (!hasSessionKey || username.empty()) {
+            QReadLocker lock(&_requestLock);
+            QReadLocker lock2(&_connectionLock);
+            if (!hasSessionKey ||
+                (_requestsToConnect.find(username) ==
+                     _requestsToConnect.end() &&
+                 _connections.find(username) == _connections.end())) {
                 QReadLocker lock(&_connectionLock);
                 request = _genericManager.parseIncoming(std::move(data));
             } else {
@@ -107,6 +112,8 @@ class Server
                     request = existing->second->parseIncoming(std::move(data));
                 }
             }
+            lock.unlock();
+            lock2.unlock();
 
             handleUserRequest(request, username);
         } catch (Error &ex) {
@@ -333,13 +340,17 @@ class Server
    public slots:
     void cleanAfterConenction(QString qname) {
         auto name = qname.toStdString();
+        _requestLock.lockForWrite();
         auto chalangeIt = _requestsToConnect.find(name);
         if (chalangeIt != _requestsToConnect.end())
             _requestsToConnect.erase(chalangeIt);
+        _requestLock.unlock();
 
+        _connectionLock.lockForWrite();
         auto connectionIt = _connections.find(name);
         if (connectionIt != _connections.end())
             _connections.erase(connectionIt);
+        _connectionLock.unlock();
         log("cleaning after: " + qname.toStdString());
     }
 };

@@ -232,22 +232,15 @@ Response Server::deleteAccount(const Request &request,
 }
 
 Response Server::logOut(const Request &request, const std::string &username) {
-    Response r{Response::Type::OK, request.header.userId};
-    sendReponse(username, r, getManagerPtr(username, true));
+    // Response r{Response::Type::OK, request.header.userId};
+    // sendReponse(username, r, getManagerPtr(username, true));
     logout(username);
 
-    return r;
+    return {};
 }
 
 void Server::logout(const std::string &name) {
-    QWriteLocker lock(&_connectionLock);
-    size_t deleted = _connections.erase(name);
-    if (deleted != 1) {
-        throw Error("Attempt to close connection: connections closed: " +
-                    std::to_string(deleted));
-    }
-    lock.unlock();
-    _transmission->removeConnection(name);
+    cleanAfterConenction(QString::fromStdString(name));
     log("Logging out: " + name);
 }
 

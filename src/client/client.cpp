@@ -15,10 +15,15 @@ bool Client::_test = false;
 Client::Client(std::string username, const std::string &clientPrivKeyFilename,
                const zero::str_t &password, QObject *parent)
     : QObject(parent),
+      _timeout(new QTimer(this)),
       _username(std::move(username)),
       _password(password),
       _x3dh(std::make_unique<X3DH>(_username, _password)) {
     _rsa.loadPrivateKey(clientPrivKeyFilename, password);
+
+    _timeout->setInterval(5 * 60 *
+                          1000);    // resets session key every 5 minutes
+    connect(_timeout, &QTimer::timeout, [&]() { reauthenticate(); });
 }
 
 void Client::callback(std::stringstream &&data) {
@@ -34,7 +39,9 @@ void Client::callback(std::stringstream &&data) {
         }
         throw ex;
     }
-    if (_userId == 0) _userId = response.header.userId;
+    if (_userId == 0 && (_userId = response.header.userId) != 0) {
+        _timeout->start();
+    }
     switch (response.header.type) {
         case Response::Type::OK:
             return;
@@ -73,7 +80,12 @@ void Client::login() {
     sendRequest({{Request::Type::LOGIN, _userId}, request.serialize()});
 }
 
-void Client::logout() { sendRequest({{Request::Type::LOGOUT, _userId}, {}}); }
+void Client::logout() {
+    _timeout->stop();
+    sendRequest({{Request::Type::LOGOUT, _userId}, {}});
+    _userId = 0;
+    std::move(_connection);
+}
 
 void Client::createAccount(const std::string &pubKeyFilename) {
     _userId = 0;
