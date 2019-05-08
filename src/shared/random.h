@@ -43,6 +43,7 @@ class Random {
 
        public:
         ContextWrapper(std::mutex &mutex, mbedtls_ctr_drbg_context *_ctr_drbg);
+
         /**
          * Returns pointer to underlying context
          * @return pointer to drbg context

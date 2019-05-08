@@ -113,7 +113,7 @@ TEST_CASE("Create keys") {
 }
 
 TEST_CASE("Scenario 1: create, logout, login, delete server") {
-    Server server;
+    Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
     ClientMock client{"alice"};
@@ -203,7 +203,7 @@ void registerUserRoutine(Server &server, ClientMock &client) {
 }
 
 TEST_CASE("Scenario 2: get online users.") {
-    Server server;
+    Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
     ClientMock client1{"alice"};

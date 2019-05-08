@@ -57,7 +57,7 @@ class Server
     std::function<void(const std::string &)> log{[](const std::string &) {}};
 
    public:
-    Server();
+    Server(zero::str_t pass);
 
     ServerTransmissionManager *getTransmisionManger() {
         if (_transmission == nullptr) return nullptr;

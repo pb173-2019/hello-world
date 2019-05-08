@@ -57,10 +57,9 @@ std::stringstream ClientToServerManager::parseOutgoing(Request data) {
 }
 
 GenericServerManager::GenericServerManager(const std::string &privkeyFilename,
-                                           const zero::str_t &key,
-                                           const std::string &iv)
+                                           const zero::str_t &password)
     : BasicConnectionManager("") {
-    _rsa_in.loadPrivateKey(privkeyFilename, key, iv);
+    _rsa_in.loadPrivateKey(privkeyFilename, std::move(password));
 }
 
 Request GenericServerManager::parseIncoming(std::stringstream &&data) {

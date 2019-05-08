@@ -245,7 +245,7 @@ class GenericServerManager : BasicConnectionManager<Request, Response> {
      * @param iv aes iv to read private key
      */
     GenericServerManager(const std::string &privkeyFilename,
-                         const zero::str_t &key, const std::string &iv);
+                         const zero::str_t &password);
 
     /**
      * Parse incomming request with server private key

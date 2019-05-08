@@ -52,7 +52,7 @@ TEST_CASE("Create key") {
 
 TEST_CASE("Add new user") {
     MessageNumberGenerator aliceCounter;
-    Server server;
+    Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
     std::string name = "alice";
@@ -90,7 +90,7 @@ TEST_CASE("Add new user") {
 
 TEST_CASE("User authentication") {
     Server::setTest(true);
-    Server server;
+    Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
     MessageNumberGenerator aliceCounter;
@@ -149,7 +149,7 @@ TEST_CASE("User authentication") {
 }
 
 TEST_CASE("Delete & logout") {
-    Server server;
+    Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
     std::string name = "alice";
     MessageNumberGenerator aliceCounter;
@@ -187,7 +187,7 @@ TEST_CASE("Delete & logout") {
 }
 
 TEST_CASE("Get list") {
-    Server server;
+    Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
     std::string name = "alice";
     MessageNumberGenerator counter;
@@ -219,7 +219,7 @@ TEST_CASE("Get list") {
 
 TEST_CASE("Key Bundles") {
     MessageNumberGenerator aliceCounter;
-    Server server;
+    Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
     std::string name = "alice";
