@@ -34,23 +34,6 @@ class Random {
     static size_t _use_since_reseed;
 
    public:
-    /**
-     * Thread safe wrapper for drbg context, (cannot be member)
-     */
-    class ContextWrapper {
-        std::unique_lock<std::mutex> _lock;
-        mbedtls_ctr_drbg_context *_ctr_drbg;
-
-       public:
-        ContextWrapper(std::mutex &mutex, mbedtls_ctr_drbg_context *_ctr_drbg);
-
-        /**
-         * Returns pointer to underlying context
-         * @return pointer to drbg context
-         */
-        mbedtls_ctr_drbg_context *get();
-    };
-
     explicit Random();
 
     Random(const Random &other) = delete;
@@ -83,15 +66,23 @@ class Random {
     size_t getBounded(size_t lower, size_t upper);
 
     /**
-     * Returns ctr_drbg associated context in thread safe wrapper
+     * Returns ctr_drbg associated context in thread (lock should be called
+     * before getEngine to ensure thread safeness)
      *
      * @return mbedtls_ctr_drbg_context* random engine context pointer
      */
-    ContextWrapper getEngine();
+    mbedtls_ctr_drbg_context *getEngine();
+
+    /**
+     * Locks mutex used to protect shared resources
+     * @return unique lock of mutex protecting random context
+     */
+    std::unique_lock<std::mutex> lock();
 
     ~Random();
 
    private:
+    static void _init();
     static void _reseed();
     static void _getSeedEntropy(unsigned char *buff);
 };

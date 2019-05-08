@@ -13,8 +13,6 @@ namespace helloworld {
 
 RSAKeyGen::RSAKeyGen() {
     RSA2048 rsa{};
-    Random random{};
-    Random::ContextWrapper random_ctx = random.getEngine();
 
     if (mbedtls_pk_setup(&rsa._context,
                          mbedtls_pk_info_from_type(MBEDTLS_PK_RSA)) != 0) {
@@ -25,11 +23,13 @@ RSAKeyGen::RSAKeyGen() {
     // set OAEP padding
     mbedtls_rsa_set_padding(inner_ctx, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA512);
 
+    auto lock = random.lock();
     if (mbedtls_rsa_gen_key(inner_ctx, mbedtls_ctr_drbg_random,
-                            random_ctx.get(), RSA2048::KEY_SIZE,
+                            random.getEngine(), RSA2048::KEY_SIZE,
                             RSA2048::EXPONENT) != 0) {
         throw Error("RSA key generating failed.");
     }
+    lock.unlock();
 
     if (mbedtls_pk_write_pubkey_pem(&rsa._context, _buffer_public,
                                     MBEDTLS_MPI_MAX_SIZE) != 0) {
@@ -151,14 +151,14 @@ std::vector<unsigned char> RSA2048::encrypt(
     if (!_valid(KeyType::PUBLIC_KEY))
         throw Error("RSA not initialized properly.");
 
-    Random random{};
     std::vector<unsigned char> buf(MBEDTLS_MPI_MAX_SIZE);
 
     // label ignored
-    if (mbedtls_rsa_rsaes_oaep_encrypt(
-            _basic_context, mbedtls_ctr_drbg_random, random.getEngine().get(),
-            MBEDTLS_RSA_PUBLIC, nullptr, 0, data.size(), data.data(),
-            buf.data()) != 0) {
+    auto lock = random.lock();
+    if (mbedtls_rsa_rsaes_oaep_encrypt(_basic_context, mbedtls_ctr_drbg_random,
+                                       random.getEngine(), MBEDTLS_RSA_PUBLIC,
+                                       nullptr, 0, data.size(), data.data(),
+                                       buf.data()) != 0) {
         throw Error("Failed to encrypt data.");
     }
     buf.resize(_basic_context->len);
@@ -169,14 +169,14 @@ std::vector<unsigned char> RSA2048::encryptKey(const zero::bytes_t &key) {
     if (!_valid(KeyType::PUBLIC_KEY))
         throw Error("RSA not initialized properly.");
 
-    Random random{};
     std::vector<unsigned char> buf(MBEDTLS_MPI_MAX_SIZE);
 
     // label ignored
-    if (mbedtls_rsa_rsaes_oaep_encrypt(
-            _basic_context, mbedtls_ctr_drbg_random, random.getEngine().get(),
-            MBEDTLS_RSA_PUBLIC, nullptr, 0, key.size(), key.data(),
-            buf.data()) != 0) {
+    auto lock = random.lock();
+    if (mbedtls_rsa_rsaes_oaep_encrypt(_basic_context, mbedtls_ctr_drbg_random,
+                                       random.getEngine(), MBEDTLS_RSA_PUBLIC,
+                                       nullptr, 0, key.size(), key.data(),
+                                       buf.data()) != 0) {
         throw Error("Failed to encrypt data.");
     }
     buf.resize(_basic_context->len);
@@ -188,14 +188,14 @@ std::vector<unsigned char> RSA2048::decrypt(
     if (!_valid(KeyType::PRIVATE_KEY))
         throw Error("RSA not initialized properly.");
 
-    Random random{};
     std::vector<unsigned char> buf(MBEDTLS_MPI_MAX_SIZE);
     size_t olen = 0;
 
-    if (mbedtls_rsa_rsaes_oaep_decrypt(
-            _basic_context, mbedtls_ctr_drbg_random, random.getEngine().get(),
-            MBEDTLS_RSA_PRIVATE, nullptr, 0, &olen, data.data(), buf.data(),
-            MBEDTLS_MPI_MAX_SIZE) != 0) {
+    auto lock = random.lock();
+    if (mbedtls_rsa_rsaes_oaep_decrypt(_basic_context, mbedtls_ctr_drbg_random,
+                                       random.getEngine(), MBEDTLS_RSA_PRIVATE,
+                                       nullptr, 0, &olen, data.data(),
+                                       buf.data(), MBEDTLS_MPI_MAX_SIZE) != 0) {
         throw Error("Failed to decrypt data.");
     }
     buf.resize(olen);
@@ -206,14 +206,14 @@ zero::bytes_t RSA2048::decryptKey(const std::vector<unsigned char> &data) {
     if (!_valid(KeyType::PRIVATE_KEY))
         throw Error("RSA not initialized properly.");
 
-    Random random{};
     zero::bytes_t buf(MBEDTLS_MPI_MAX_SIZE);
     size_t olen = 0;
 
-    if (mbedtls_rsa_rsaes_oaep_decrypt(
-            _basic_context, mbedtls_ctr_drbg_random, random.getEngine().get(),
-            MBEDTLS_RSA_PRIVATE, nullptr, 0, &olen, data.data(), buf.data(),
-            MBEDTLS_MPI_MAX_SIZE) != 0) {
+    auto lock = random.lock();
+    if (mbedtls_rsa_rsaes_oaep_decrypt(_basic_context, mbedtls_ctr_drbg_random,
+                                       random.getEngine(), MBEDTLS_RSA_PRIVATE,
+                                       nullptr, 0, &olen, data.data(),
+                                       buf.data(), MBEDTLS_MPI_MAX_SIZE) != 0) {
         throw Error("Failed to decrypt data.");
     }
     buf.resize(olen);
@@ -227,11 +227,10 @@ std::vector<unsigned char> RSA2048::sign(
 
     std::vector<unsigned char> signature(_basic_context->len);
     size_t olen;
-    Random random{};
-
+    auto lock = random.lock();
     if (mbedtls_pk_sign(&_context, MBEDTLS_MD_SHA512, hash.data(), hash.size(),
                         signature.data(), &olen, mbedtls_ctr_drbg_random,
-                        random.getEngine().get()) != 0) {
+                        random.getEngine()) != 0) {
         throw Error("Failed to create signature.");
     }
     return signature;

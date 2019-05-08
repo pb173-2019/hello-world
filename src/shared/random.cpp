@@ -26,28 +26,9 @@ mbedtls_ctr_drbg_context Random::_ctr_drbg{};
 size_t Random::_instance_counter = 0;
 size_t Random::_use_since_reseed = SIZE_MAX;
 
-Random::ContextWrapper::ContextWrapper(std::mutex &mutex,
-                                       mbedtls_ctr_drbg_context *_ctr_drbg)
-    : _lock(mutex), _ctr_drbg(_ctr_drbg) {}
-
-mbedtls_ctr_drbg_context *Random::ContextWrapper::get() { return _ctr_drbg; }
-
 Random::Random() {
     std::unique_lock<std::mutex> lock(_mutex);
-    if (!_instance_counter) {
-        mbedtls_entropy_init(&_entropy);
-        mbedtls_ctr_drbg_init(&_ctr_drbg);
-        unsigned char salt[16];
-        _getSeedEntropy(salt);
-
-        if (mbedtls_ctr_drbg_seed(&_ctr_drbg, mbedtls_entropy_func, &_entropy,
-                                  salt, 16) != 0) {
-            throw Error("Could not init seed.");
-        }
-        mbedtls_ctr_drbg_set_prediction_resistance(&_ctr_drbg,
-                                                   MBEDTLS_CTR_DRBG_PR_ON);
-        _use_since_reseed = 0;
-    }
+    _init();
     ++_instance_counter;
 }
 
@@ -97,8 +78,10 @@ size_t Random::getBounded(size_t lower, size_t upper) {
     }
 }
 
-Random::ContextWrapper Random::getEngine() {
-    return ContextWrapper(_mutex, &_ctr_drbg);
+mbedtls_ctr_drbg_context *Random::getEngine() { return &_ctr_drbg; }
+
+std::unique_lock<std::mutex> Random::lock() {
+    return std::unique_lock<std::mutex>(_mutex);
 }
 
 Random::~Random() {
@@ -150,6 +133,23 @@ void Random::_getSeedEntropy(unsigned char *buff) {
     if (!randomSource) throw Error("Couldn't acquire entropy");
     randomSource.read(reinterpret_cast<char *>(buff), 16);    // NOLINT
 #endif
+}
+
+void Random::_init() {
+    if (!_instance_counter) {
+        mbedtls_entropy_init(&_entropy);
+        mbedtls_ctr_drbg_init(&_ctr_drbg);
+        unsigned char salt[16];
+        _getSeedEntropy(salt);
+
+        if (mbedtls_ctr_drbg_seed(&_ctr_drbg, mbedtls_entropy_func, &_entropy,
+                                  salt, 16) != 0) {
+            throw Error("Could not init seed.");
+        }
+        mbedtls_ctr_drbg_set_prediction_resistance(&_ctr_drbg,
+                                                   MBEDTLS_CTR_DRBG_PR_ON);
+        _use_since_reseed = 0;
+    }
 }
 
 void Random::_reseed() {

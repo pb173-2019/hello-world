@@ -31,6 +31,8 @@ class RSAKeyGen : AsymmetricKeyGen {
     unsigned char _buffer_public[MBEDTLS_MPI_MAX_SIZE];
     size_t _pub_olen;
 
+    Random random;
+
    public:
     RSAKeyGen();
 
@@ -73,6 +75,7 @@ class RSA2048 : public AsymmetricCipher {
     mbedtls_rsa_context *_basic_context;
 
     KeyType _keyLoaded = KeyType::NO_KEY;
+    Random random;
 
    public:
     const static int KEY_SIZE = 2048;
