@@ -145,15 +145,13 @@ struct CompleteAuthRequest : public Serializable<CompleteAuthRequest> {
 
 struct GenericRequest : public Serializable<AuthenticateRequest> {
     uint32_t id = 0;
-    std::string name;
 
     GenericRequest() = default;
 
-    GenericRequest(uint32_t id, std::string name) : id(id), name(std::move(name)) {}
+    explicit GenericRequest(uint32_t id) : id(id) {}
 
     serialize::structure& serialize(serialize::structure& result) const override {
         serialize::serialize(id, result);
-        serialize::serialize(name, result);
         return result;
     }
     serialize::structure serialize() const override {
@@ -164,7 +162,6 @@ struct GenericRequest : public Serializable<AuthenticateRequest> {
     static GenericRequest deserialize(const serialize::structure &data, uint64_t& from) {
         GenericRequest result;
         result.id = serialize::deserialize<uint32_t>(data, from);
-        result.name = serialize::deserialize<std::string>(data, from);
         return result;
     }
 
@@ -172,24 +169,16 @@ struct GenericRequest : public Serializable<AuthenticateRequest> {
         uint64_t from = 0;
         return deserialize(data, from);
     }
-
 };
 
 struct GetUsers : public Serializable<GetUsers> {
-    uint32_t id = 0;
-    std::string name;
     std::string query;
 
     GetUsers() = default;
 
-    GetUsers(uint32_t id, std::string name, std::string query) :
-            id(id),
-            name(std::move(name)),
-            query(std::move(query)) {}
+    explicit GetUsers(std::string query) : query(std::move(query)) {}
 
     serialize::structure& serialize(serialize::structure& result) const override {
-        serialize::serialize(id, result);
-        serialize::serialize(name, result);
         serialize::serialize(query, result);
         return result;
     }
@@ -200,9 +189,6 @@ struct GetUsers : public Serializable<GetUsers> {
 
     static GetUsers deserialize(const serialize::structure &data, uint64_t& from) {
         GetUsers result;
-
-        result.id = serialize::deserialize<uint32_t>(data, from);
-        result.name = serialize::deserialize<std::string>(data, from);
         result.query = serialize::deserialize<std::string>(data, from);
         return result;
     }

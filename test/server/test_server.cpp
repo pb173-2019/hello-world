@@ -11,7 +11,7 @@
 using namespace helloworld;
 
 
-Response registerAlice(Server &server, const std::string &name, MessageNumberGenerator& counter) {
+Response registerAlice(Server &server, const std::string &name, MessageNumberGenerator &counter) {
     zero::str_t sessionKey = "2b7e151628aed2a6abf7158809cf4f3c";
     std::ifstream input("alice_pub.pem");
     zero::str_t publicKey((std::istreambuf_iterator<char>(input)),
@@ -24,11 +24,11 @@ Response registerAlice(Server &server, const std::string &name, MessageNumberGen
     registerRequest.sessionKey = "323994cfb9da285a5d9642e1759b224a";
     Request request{{Request::Type::CREATE, 0}, registerRequest.serialize()};
     counter.setNumber(request);
-    return server.handleUserRequest(request);
+    return server.handleUserRequest(request, name);
 }
 
-Response completeAlice(Server &server, const std::vector<unsigned char>& secret,
-                       const std::string &name, Request::Type type,  MessageNumberGenerator& counter) {
+Response completeAlice(Server &server, const std::vector<unsigned char> &secret,
+                       const std::string &name, Request::Type type, MessageNumberGenerator &counter) {
     RSA2048 rsa;
     rsa.loadPrivateKey("alice_priv.pem", "2b7e151628aed2a6abf7158809cf4f3c", "323994cfb9da285a5d9642e1759b224a");
 
@@ -36,7 +36,7 @@ Response completeAlice(Server &server, const std::vector<unsigned char>& secret,
     Request request{{type, 0}, crRequest.serialize()};
 
     counter.setNumber(request);
-    return server.handleUserRequest(request);
+    return server.handleUserRequest(request, name);
 }
 
 TEST_CASE("Create key") {
@@ -68,14 +68,14 @@ TEST_CASE("Add new user") {
             Request request{{Request::Type::CHALLENGE, 0},
                             crRequest.serialize()};
             aliceCounter.setNumber(request);
-            CHECK_THROWS(server.handleUserRequest(request));
+            CHECK_THROWS(server.handleUserRequest(request, name));
         }
 
         SECTION("Challenge correctly solved") {
             CHECK(completeAlice(server, response.payload, name, Request::Type::CHALLENGE, aliceCounter).header.type ==
                   Response::Type::USER_REGISTERED);
         }
-        
+
         SECTION("Keys initialization") {
             Request request{{Request::Type::KEY_BUNDLE_UPDATE, 0}, {}};
         }
@@ -102,7 +102,7 @@ TEST_CASE("User authentication") {
         Request request{{Request::Type::LOGIN, 0}, authRequest.serialize()};
         aliceCounter.setNumber(request);
 
-        auto response = server.handleUserRequest(request);
+        auto response = server.handleUserRequest(request, name);
         CHECK(response.header.type == Response::Type::CHALLENGE_RESPONSE_NEEDED);
 
         SECTION("Challenge not solved 1") {
@@ -111,7 +111,7 @@ TEST_CASE("User authentication") {
                             caRequest.serialize()};
 
             aliceCounter.setNumber(request);
-            CHECK_THROWS(server.handleUserRequest(request));
+            CHECK_THROWS(server.handleUserRequest(request, name));
         }
 
         SECTION("Challenge not solved 2") {
@@ -121,7 +121,7 @@ TEST_CASE("User authentication") {
                             caRequest.serialize()};
 
             aliceCounter.setNumber(request);
-            CHECK_THROWS(server.handleUserRequest(request));
+            CHECK_THROWS(server.handleUserRequest(request, name));
         }
 
         SECTION("Challenge solved") {
@@ -135,7 +135,7 @@ TEST_CASE("User authentication") {
         authRequest.sessionKey = "323994cfb9da285a5d9642e1759b224a";
         Request request{{Request::Type::LOGIN, 0}, authRequest.serialize()};
 
-        CHECK_THROWS(server.handleUserRequest(request));
+        CHECK_THROWS(server.handleUserRequest(request, name));
     }
     server.dropDatabase();
 }
@@ -149,11 +149,11 @@ TEST_CASE("Delete & logout") {
     auto response = registerAlice(server, name, aliceCounter);
     completeAlice(server, response.payload, name, Request::Type::CHALLENGE, aliceCounter);
 
-    GenericRequest nameId{0, name};
+    GenericRequest nameId{0};
     Request logoutRequest{{Request::Type::LOGOUT, 0}, nameId.serialize()};
     aliceCounter.setNumber(logoutRequest);
 
-    auto logoutReponse = server.handleUserRequest(logoutRequest);
+    auto logoutReponse = server.handleUserRequest(logoutRequest, name);
     CHECK(logoutReponse.header.type == Response::Type::OK);
 
     //login
@@ -162,16 +162,16 @@ TEST_CASE("Delete & logout") {
     Request login{{Request::Type::LOGIN, 0}, authRequest.serialize()};
     aliceCounter.setNumber(login);
 
-    response = server.handleUserRequest(login);
+    response = server.handleUserRequest(login, name);
     completeAlice(server, response.payload, name, Request::Type::CHALLENGE, aliceCounter);
 
     Request deleteUser{{Request::Type::REMOVE, 0}, nameId.serialize()};
     aliceCounter.setNumber(deleteUser);
 
-    auto removeReponse = server.handleUserRequest(logoutRequest);
+    auto removeReponse = server.handleUserRequest(logoutRequest, name);
     CHECK(removeReponse.header.type == Response::Type::OK);
     //try to log in
-    response = server.handleUserRequest(login);
+    response = server.handleUserRequest(login, name);
     CHECK(response.header.type != Response::Type::OK);
     server.dropDatabase();
 }
@@ -206,39 +206,53 @@ TEST_CASE("Get list") {
 }
 
 TEST_CASE("Key Bundles") {
+    MessageNumberGenerator aliceCounter;
     Server server;
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
-    uint32_t id = 3;
-    
+
+    std::string name = "alice";
+
+    auto response = registerAlice(server, name, aliceCounter);
+    CHECK(response.header.type == Response::Type::CHALLENGE_RESPONSE_NEEDED);
+
+    CHECK(completeAlice(server, response.payload, name,
+            Request::Type::CHALLENGE, aliceCounter).header.type == Response::Type::USER_REGISTERED);
+
+    UserData alice = server.getDatabase().select(name);
+    uint32_t id = alice.id;
+
     KeyBundle<C25519> bundle;
     bundle.generateTimeStamp();
     bundle.preKeySingiture = {5};
     bundle.preKey = {6};
     bundle.identityKey = {7};
-    bundle.oneTimeKeys = {{1}, {2}};
+    bundle.oneTimeKeys = {{1},
+                          {2}};
 
-    server.updateKeyBundle({{Request::Type::KEY_BUNDLE_UPDATE, id}, bundle.serialize()});
-    
-    Response r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, id}, GenericRequest{0, "jenda"}.serialize()});
+    server.updateKeyBundle({{Request::Type::KEY_BUNDLE_UPDATE, id}, bundle.serialize()}, name);
+
+    Response r = server.sendKeyBundle(
+            {{Request::Type::GET_RECEIVERS_BUNDLE, id}, GenericRequest{0}.serialize()}, name);
     KeyBundle<C25519> received = KeyBundle<C25519>::deserialize(r.payload);
     CHECK(received.preKeySingiture == std::vector<unsigned char>{5});
     CHECK(received.preKey == zero::bytes_t{6});
     CHECK(received.identityKey == zero::bytes_t{7});
-    CHECK(received.oneTimeKeys == std::vector<zero::bytes_t>{{1}, {2}});
+    CHECK(received.oneTimeKeys == std::vector<zero::bytes_t>{{1},
+                                                             {2}});
 
-    r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, id}, GenericRequest{0, "jenda"}.serialize()});
+    r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, id}, GenericRequest{0}.serialize()}, name);
     received = KeyBundle<C25519>::deserialize(r.payload);
     CHECK(received.preKeySingiture == std::vector<unsigned char>{5});
     CHECK(received.preKey == zero::bytes_t{6});
     CHECK(received.identityKey == zero::bytes_t{7});
     CHECK(received.oneTimeKeys == std::vector<zero::bytes_t>{{1}});
 
-    r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, id}, GenericRequest{0, "jenda"}.serialize()});
+    r = server.sendKeyBundle({{Request::Type::GET_RECEIVERS_BUNDLE, id}, GenericRequest{0}.serialize()}, name);
     received = KeyBundle<C25519>::deserialize(r.payload);
     CHECK(received.preKeySingiture == std::vector<unsigned char>{5});
     CHECK(received.preKey == zero::bytes_t{6});
     CHECK(received.identityKey == zero::bytes_t{7});
     CHECK(received.oneTimeKeys == std::vector<zero::bytes_t>{});
-    
+
     server.dropDatabase();
 }

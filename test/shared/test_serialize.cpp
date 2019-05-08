@@ -18,7 +18,7 @@ struct X : Serializable<X> {
         serialize::structure result;
         return serialize(result);
     }
-    static X deserialize(const std::vector<unsigned char>& data, uint64_t& from) {
+    static X deserialize(const std::vector<unsigned char>&, uint64_t& from) {
         ++from;
         return {};
     }
@@ -26,7 +26,7 @@ struct X : Serializable<X> {
         uint64_t from = 0;
         return deserialize(data, from);
     }
-    friend bool operator==(const X& a, const X& b) {
+    friend bool operator==(const X&, const X&) {
         return true;
     }
 };

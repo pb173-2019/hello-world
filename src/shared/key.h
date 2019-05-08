@@ -18,10 +18,12 @@
 
 #include <cstdlib>
 #include <new>
+#include <iostream>
 
 namespace helloworld {
     namespace zero {
-        //template<class T>
+
+//template<class T>
 //struct KeyAlloc : public std::allocator<T> {
 //    using value_type = T;
 //
@@ -50,7 +52,7 @@ namespace helloworld {
 
         template<class T>
         struct KeyAlloc {
-            typedef T value_type;
+            using value_type = T;
 
             KeyAlloc() = default;
 
@@ -137,8 +139,6 @@ namespace helloworld {
 //            return !(a==b);
 //        }
 
-
-
         using bytes_t = std::vector<unsigned char, KeyAlloc<unsigned char>>;
         using str_t = std::basic_string<char, std::char_traits<char>, KeyAlloc<char>>;
 
@@ -178,6 +178,5 @@ namespace helloworld {
 
     } // namespace zero
 } // namespace helloworld
-
 
 #endif //HELLOWORLD_SHARED_KEY_H_

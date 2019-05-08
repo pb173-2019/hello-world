@@ -40,21 +40,17 @@ Request completeAuth(const std::vector<unsigned char>& secret,
     return {{type, 0}, crRequest.serialize()};
 }
 
-Request logoutUser(const std::string& username) {
-    //id ignored for now, we run on names to simplify
-    GenericRequest logout{0, username};
-    return {{Request::Type::LOGOUT, 0}, logout.serialize()};
+Request logoutUser(uint32_t id) {
+    return {{Request::Type::LOGOUT, id}, {}};
 }
 
-Request deleteUser(const std::string& username) {
-    //id ignored for now, we run on names to simplify
-    GenericRequest logout{0, username};
-    return {{Request::Type::REMOVE, 0}, logout.serialize()};
+Request deleteUser(uint32_t id) {
+    GenericRequest deleteUser{id};
+    return {{Request::Type::REMOVE, id}, deleteUser.serialize()};
 }
 
-class ClientMock : public Callable<void, std::stringstream &&> {
+struct ClientMock : public Callable<void, std::stringstream &&> {
 
-public:
     explicit ClientMock(std::string name) : _username(std::move(name)) {
         _transmission = std::make_unique<ClientFiles>(this, _username);
     }
@@ -88,8 +84,7 @@ public:
             }
             case Response::Type::CHALLENGE_RESPONSE_NEEDED: {
                 Request complete = completeAuth(response.payload, _username,
-                        "alice_priv.pem", "the most secure pwd ever",
-                        (registered) ?  Request::Type::CHALLENGE : Request::Type::CHALLENGE);
+                        "alice_priv.pem", "the most secure pwd ever", Request::Type::CHALLENGE);
                 std::stringstream buffer = _connection->parseOutgoing(complete);
 
                 _transmission->send(buffer);
@@ -146,7 +141,7 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
     client._transmission->receive();
 
     //reset connection
-    std::stringstream loggingout = client._connection->parseOutgoing(logoutUser("alice"));
+    std::stringstream loggingout = client._connection->parseOutgoing(logoutUser(0));
     client._transmission->send(loggingout);
     //server receives request
     server.getRequest();
@@ -169,17 +164,16 @@ TEST_CASE("Scenario 1: create, logout, login, delete server") {
     client._transmission->receive();
     //server verifies challenge
     server.getRequest();
-//client obtains the final OK response
+    //client obtains the final OK response
     client._transmission->receive();
 
-    std::stringstream deleteuser = client._connection->parseOutgoing(deleteUser("alice"));
+    std::stringstream deleteuser = client._connection->parseOutgoing(deleteUser(client.uid));
     client._transmission->send(deleteuser);
     //server receives request
     server.getRequest();
     //client obtains the final OK response
     client._transmission->receive();
     server.dropDatabase();
-
 }
 
 void registerUserRoutine(Server& server, ClientMock& client) {
@@ -219,7 +213,7 @@ TEST_CASE("Scenario 2: get online users.") {
     registerUserRoutine(server, client3);
 
     std::stringstream getOnline = client2._connection->parseOutgoing(
-            {{Request::Type::GET_ONLINE, 0}, GenericRequest{0, "bob"}.serialize()});
+            {{Request::Type::GET_ONLINE, 0}, GenericRequest{0}.serialize()});
     client2._transmission->send(getOnline);
 
     //server receives request

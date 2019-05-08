@@ -74,8 +74,7 @@ void Client::login() {
 }
 
 void Client::logout() {
-    GenericRequest request(_userId, _username);
-    sendRequest({{Request::Type::LOGOUT, _userId}, request.serialize()});
+    sendRequest({{Request::Type::LOGOUT, _userId}, {}});
 }
 
 void Client::createAccount(const std::string &pubKeyFilename) {
@@ -94,12 +93,12 @@ void Client::createAccount(const std::string &pubKeyFilename) {
 }
 
 void Client::deleteAccount() {
-    GenericRequest request(_userId, _username);
+    GenericRequest request(_userId);
     sendRequest({{Request::Type::REMOVE, _userId}, request.serialize()});
 }
 
 void Client::sendFindUsers(const std::string &query) {
-    GetUsers request{_userId, _username, query};
+    GetUsers request{query};
     sendRequest({{Request::Type::FIND_USERS, _userId}, request.serialize()});
 }
 
@@ -159,8 +158,7 @@ void Client::sendKeysBundle() {
 }
 
 void Client::requestKeyBundle(uint32_t receiverId) {
-    sendRequest({{Request::Type::GET_RECEIVERS_BUNDLE, receiverId},
-                 GenericRequest{_userId, _username}.serialize()});
+    sendRequest({{Request::Type::GET_RECEIVERS_BUNDLE, receiverId}, {}});
 }
 
 void Client::checkForMessages() {
@@ -289,8 +287,7 @@ void Client::receiveData(const Response &response) {
     if (sendData.x3dh) {
         decryptInitialMessage(sendData, response.header.type);
     } else {
-        auto receivedData =
-            _ratchets.at(sendData.fromId)
+        auto receivedData = _ratchets.at(sendData.fromId)
                 .RatchetDecrypt(Message::deserialize(sendData.data));
         sendData.data = receivedData;
         _incomming = sendData;
@@ -311,7 +308,7 @@ void Client::sendRequest(const Request &request) {
 }
 
 void Client::sendGenericRequest(Request::Type type) {
-    GenericRequest request{_userId, _username};
+    GenericRequest request{_userId};
     sendRequest({{type, _userId}, request.serialize()});
 }
 

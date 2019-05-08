@@ -101,7 +101,7 @@ public:
                 }
             }
 
-            handleUserRequest(request);
+            handleUserRequest(request, username);
         } catch (Error &ex) {
             log(std::string() + "Error: " + ex.what());
             QReadLocker lock(&_connectionLock);
@@ -130,7 +130,7 @@ public:
      * @param request request from not connected user
      * @return Response response data (testing purposes)
      */
-    Response handleUserRequest(const Request &request);
+    Response handleUserRequest(const Request &request, const std::string& username);
 
 
     //
@@ -210,7 +210,7 @@ public:
      * @param request request from the client
      * @return response containing list of online users
      */
-    Response getOnline(const Request &request);
+    Response getOnline(const Request &request, const std::string& username);
 
     /**
      * @brief Delete account from server
@@ -218,7 +218,7 @@ public:
      * @param request request from the client
      * @return Response OK response if user was deleted
      */
-    Response deleteAccount(const Request &request);
+    Response deleteAccount(const Request &request, const std::string& username);
 
     /**
      * @brief Logout user
@@ -226,14 +226,14 @@ public:
      * @param request request from the client
      * @return Response OK response if user was logged out
      */
-    Response logOut(const Request &request);
+    Response logOut(const Request &request, const std::string& username);
 
     /**
      * @brief Search database of users
      * @param request request containing name of the issuer
      * @return list of users from database by query given in request
      */
-    Response findUsers(const Request &request);
+    Response findUsers(const Request &request, const std::string& username);
 
     /**
      * @brief Called to forward message
@@ -249,7 +249,7 @@ public:
      * @param request request containing key bundle
      * @return OK if nothing needed, specific server response on event
      */
-    Response updateKeyBundle(const Request &request);
+    Response updateKeyBundle(const Request &request, const std::string& username);
 
     /**
      * Sends the key bundle to anyone who requests it
@@ -259,7 +259,7 @@ public:
      *        who requested it
      * @return bundled keys response
      */
-    Response sendKeyBundle(const Request &request);
+    Response sendKeyBundle(const Request &request, const std::string& username);
 
     /**
      * Request any new messages
@@ -267,7 +267,7 @@ public:
      * @param request request with user name & id
      * @return uses checkEvent()
      */
-    Response checkIncoming(const Request &request);
+    Response checkIncoming(const Request &request, const std::string& username);
 
     /**
      * @brief Logout user implementation

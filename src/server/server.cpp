@@ -17,7 +17,7 @@ Server::Server() : _genericManager("server_priv.pem",
                                    "2b7e151628aed2a6abf7158809cf4f3c"),
                    _database(std::make_unique<ServerSQLite>("test_db1")) {}
 
-Response Server::handleUserRequest(const Request &request) {
+Response Server::handleUserRequest(const Request &request, const std::string& username) {
     switch (request.header.type) {
         case Request::Type::CREATE:
             return registerUser(request);
@@ -26,21 +26,21 @@ Response Server::handleUserRequest(const Request &request) {
         case Request::Type::LOGIN:
             return authenticateUser(request);
         case Request::Type::GET_ONLINE:
-            return getOnline(request);
+            return getOnline(request, username);
         case Request::Type::FIND_USERS:
-            return findUsers(request);
+            return findUsers(request, username);
         case Request::Type::SEND:
             return forward(request);
         case Request::Type::REMOVE:
-            return deleteAccount(request);
+            return deleteAccount(request, username);
         case Request::Type::LOGOUT:
-            return logOut(request);
+            return logOut(request, username);
         case Request::Type::KEY_BUNDLE_UPDATE:
-            return updateKeyBundle(request);
+            return updateKeyBundle(request, username);
         case Request::Type::GET_RECEIVERS_BUNDLE:
-            return sendKeyBundle(request);
+            return sendKeyBundle(request, username);
         case Request::Type::CHECK_INCOMING:
-            return checkIncoming(request);
+            return checkIncoming(request, username);
         default:
             throw Error("Invalid operation.");
     }
@@ -160,9 +160,8 @@ Response Server::authenticateUser(const Request &request) {
     return r;
 }
 
-Response Server::getOnline(const Request &request) {
-    GenericRequest curRequest = GenericRequest::deserialize(request.payload);
-    log("Get online: " + curRequest.name);
+Response Server::getOnline(const Request &request, const std::string& username) {
+    log("Get online: " + username);
 
     const std::set<std::string> &users = _transmission->getOpenConnections();
     std::vector<uint32_t> ids;
@@ -173,45 +172,42 @@ Response Server::getOnline(const Request &request) {
 
     Response r = {Response::Type::USERLIST, request.header.userId,
                   UserListReponse{{users.begin(), users.end()}, ids}.serialize()};
-    sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
-
+    sendReponse(username, r, getManagerPtr(username, true));
     return r;
 }
 
-Response Server::checkIncoming(const Request &request) {
-    GenericRequest curRequest = GenericRequest::deserialize(request.payload);
-    log("Check incoming: " + curRequest.name);
+Response Server::checkIncoming(const Request &request, const std::string& username) {
+    log("Check incoming: " + username);
 
     Response r = checkEvent(request.header.userId);
-    sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
+    sendReponse(username, r, getManagerPtr(username, true));
     return r;
 }
 
-Response Server::deleteAccount(const Request &request) {
+Response Server::deleteAccount(const Request &request, const std::string& username) {
     GenericRequest curRequest = GenericRequest::deserialize(request.payload);
-    UserData data;
-    data.name = curRequest.name;
-    data.id = curRequest.id;
+    if (_database->select(curRequest.id).name != username)
+        throw Error("Invalid action.");
+
     Response r;
-    if (!_database->remove({curRequest.id, curRequest.name, "", {}})) {
+    if (!_database->remove({curRequest.id, username, "", {}})) {
         r = {Response::Type::FAILED_TO_DELETE_USER, request.header.userId};
     } else {
         _database->removeBundle(curRequest.id);
         _database->deleteAllData(curRequest.id);
         r = {Response::Type::OK, 0};
     }
-    sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
-    logout(curRequest.name);
-    log("Deleting account: " + curRequest.name);
+    sendReponse(username, r, getManagerPtr(username, true));
+    logout(username);
+    log("Deleting account: " + username);
 
     return r;
 }
 
-Response Server::logOut(const Request &request) {
-    GenericRequest curRequest = GenericRequest::deserialize(request.payload);
+Response Server::logOut(const Request &request, const std::string& username) {
     Response r {Response::Type::OK, request.header.userId};
-    sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
-    logout(curRequest.name);
+    sendReponse(username, r, getManagerPtr(username, true));
+    logout(username);
 
     return r;
 }
@@ -239,10 +235,9 @@ std::vector<std::string> Server::getUsers(const std::string &query) {
     return names;
 }
 
-Response Server::findUsers(const Request &request) {
-
+Response Server::findUsers(const Request &request, const std::string& username) {
     GetUsers curRequest = GetUsers::deserialize(request.payload);
-    log("Find User: " + curRequest.name + " ( query : \"" + curRequest.query + "\" )");
+    log("Find User: " + username + " ( query : \"" + curRequest.query + "\" )");
 
     UserListReponse response;
     const auto &users = _database->selectLike({0, curRequest.query, "", {}});
@@ -251,7 +246,7 @@ Response Server::findUsers(const Request &request) {
         response.ids.push_back(user->id);
     }
     Response r = {{Response::Type::USERLIST, request.header.userId}, response.serialize()};
-    sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
+    sendReponse(username, r, getManagerPtr(username, true));
     return r;
 }
 
@@ -262,9 +257,9 @@ Response Server::forward(const Request &request) {
     std::string receiver = _database->select(request.header.userId).name;
     if (receiver.empty())
         throw Error("Invalid receiver.");
+
     const std::set<std::string> &users = _transmission->getOpenConnections();
     if (users.find(receiver) != users.end())  {
-        //todo message id?
         r = {Response::Type::RECEIVE, request.header.userId, request.header.fromId, request.payload};
         sendReponse(receiver, r, getManagerPtr(receiver, true));
     } else {
@@ -273,11 +268,9 @@ Response Server::forward(const Request &request) {
     return r;
 }
 
-Response Server::sendKeyBundle(const Request &request) {
+Response Server::sendKeyBundle(const Request &request, const std::string& username) {
     //for file transmission manager to use it to sent it back
-    GenericRequest curRequest = GenericRequest::deserialize(request.payload);
-
-    log("sendKeyBundle: " + curRequest.name);
+    log("sendKeyBundle: " + username);
     std::vector<unsigned char> bundle = _database->selectBundle(request.header.userId);
     if (bundle.empty())
         throw Error("Could not find bundle for user " + std::to_string(request.header.userId));
@@ -292,7 +285,7 @@ Response Server::sendKeyBundle(const Request &request) {
         _database->updateBundle(request.header.userId, keys.serialize());
 
     Response r{Response::Type::RECEIVER_BUNDLE_SENT, request.header.userId, bundle};
-    sendReponse(curRequest.name, r, getManagerPtr(curRequest.name, true));
+    sendReponse(username, r, getManagerPtr(username, true));
     return r;
 }
 
@@ -367,14 +360,15 @@ void Server::sendReponse(const std::string &username, const Response &response, 
     _transmission->send(username, result);
 }
 
-Response Server::updateKeyBundle(const Request &request) {
+Response Server::updateKeyBundle(const Request &request, const std::string& username) {
     Response r = {Response::Type::OK, request.header.userId};
-    _database->insertBundle(request.header.userId, request.payload);
-
-    //todo for file manager we need his username, but in future use ids only
     UserData user = _database->select(request.header.userId);
-    log("Update keys: " + user.name);
-    sendReponse(user.name, r, getManagerPtr(user.name, true));
+    if (user.name != username)
+        throw Error("Key bundle update policy violation.");
+
+    _database->insertBundle(request.header.userId, request.payload);
+    log("Update keys: " + username);
+    sendReponse(username, r, getManagerPtr(username, true));
     return r;
 }
 

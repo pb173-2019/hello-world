@@ -29,12 +29,12 @@ struct UserData : public Serializable<UserData> {
     UserData() = default;
 
     UserData(uint32_t id, std::string name, zero::str_t sessionKey, zero::bytes_t publicKey) :
-             id(id),
-             name(std::move(name)),
-             sessionKey(std::move(sessionKey)),
-             publicKey(std::move(publicKey)) {}
+            id(id),
+            name(std::move(name)),
+            sessionKey(std::move(sessionKey)),
+            publicKey(std::move(publicKey)) {}
 
-    serialize::structure& serialize(serialize::structure& result) const override {
+    serialize::structure &serialize(serialize::structure &result) const override {
         serialize::serialize(id, result);
         serialize::serialize(name, result);
         serialize::serialize(sessionKey, result);
@@ -42,12 +42,13 @@ struct UserData : public Serializable<UserData> {
 
         return result;
     }
+
     serialize::structure serialize() const override {
         serialize::structure result;
         return serialize(result);
     }
 
-    static UserData deserialize(const serialize::structure  &data, uint64_t& from) {
+    static UserData deserialize(const serialize::structure &data, uint64_t &from) {
         UserData userData;
         userData.id =
                 serialize::deserialize<decltype(userData.id)>(data, from);
@@ -59,11 +60,16 @@ struct UserData : public Serializable<UserData> {
                 serialize::deserialize<decltype(userData.publicKey)>(data, from);
         return userData;
     }
-    static UserData deserialize(const serialize::structure& data) {
+
+    static UserData deserialize(const serialize::structure &data) {
         uint64_t from = 0;
         return deserialize(data, from);
     }
 };
+
+bool operator==(const UserData &a, const UserData &b);
+
+bool operator!=(const UserData &a, const UserData &b);
 
 }
 

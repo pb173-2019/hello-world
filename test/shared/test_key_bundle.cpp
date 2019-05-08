@@ -36,22 +36,35 @@ TEST_CASE("serialization test")
     CHECK(keyBundle.preKeySingiture == newBundle.preKeySingiture);
     CHECK(keyBundle.oneTimeKeys == newBundle.oneTimeKeys);
 }
-//
-//TEST_CASE("key deletion test") {
+
+
+// this testing violates the access memory policy...
+
+//TEST_CASE("key zeroize test - vector erased") {
 //    unsigned char* ptr = nullptr;
-//
-//    KeyBundle<C25519> keyBundle;
-//    keyBundle.identityKey = zero::bytes_t{1,2,3,4};
-//
-//    ptr = keyBundle.identityKey.data();
-//    CHECK(ptr[0] == 1);
-//    CHECK(ptr[3] == 4);
-//
-//    zero::bytes_t moved = std::move(keyBundle.identityKey);
-//    CHECK(keyBundle.identityKey.size() == 0);
-//
+//    {
+//        KeyBundle<C25519> keyBundle;
+//        keyBundle.identityKey = zero::bytes_t{1,2,3,4,5,6,7,8,9,10};
+//        ptr = keyBundle.identityKey.data();
+//        CHECK(ptr[0] == 1);
+//        CHECK(ptr[3] == 4);
+//    }
 //    CHECK(ptr[0] == 0);
 //    CHECK(ptr[3] == 0);
+//}
+
+//TEST_CASE("key zeroize test - vector moved") {
+//    KeyBundle<C25519> keyBundle;
+//    keyBundle.identityKey = zero::bytes_t{1,2,3,4};
+//    unsigned char* ptr = keyBundle.identityKey.data();
 //
+//    CHECK(ptr[0] == 1);
+//    CHECK(ptr[3] == 4);
+//    zero::bytes_t moved = std::move(keyBundle.identityKey);
+//    CHECK(keyBundle.identityKey.size() == 0);
 //    CHECK(moved.data()[0] == 1);
+//    CHECK(moved.data()[3] == 4);
+//    CHECK(moved.data() != ptr);
+//    CHECK(ptr[0] == 0);
+//    CHECK(ptr[3] == 0);
 //}

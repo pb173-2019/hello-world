@@ -9,8 +9,7 @@ namespace helloworld {
             bytes_t vector;
             std::string temp{input.data(), input.size()};
 
-            size_t len = input.length();
-            for (size_t i = 0; i < len; i += 2) {
+            for (size_t i = 0; i < input.length(); i += 2) {
                 std::stringstream x{temp.substr(i, 2)};
                 unsigned int c;
                 x >> std::hex >> c;
@@ -18,8 +17,7 @@ namespace helloworld {
                 x.seekg(0);
                 x << '\0' << '\0';
             }
-            //TODO enable! it tries to pass as const char
-            //clear<const char>(temp.data(), temp.size());
+            std::fill(temp.begin(), temp.end(), 0);
             return vector;
         }
 
@@ -38,8 +36,7 @@ namespace helloworld {
                 stream << '\0' << '\0';
             }
             str_t result{data.data(), data.size()};
-            //TODO enable!
-            //clear<char>(data.begin(), data.size());
+            std::fill(data.begin(), data.end(), 0);
             return result;
         }
 
