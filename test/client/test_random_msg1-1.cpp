@@ -21,8 +21,7 @@ static constexpr size_t LOGOUT = 3;
 static constexpr size_t REGISTER = 4;
 static constexpr size_t DELETE_ACC = 5;
 
-void resetTest()
-{
+void resetTest() {
     Server server("Hello, world! 2.0 password");
     server.dropDatabase();
     SQLid = 0;
@@ -41,15 +40,16 @@ bool callRandomMethod(std::unordered_map<Client*, uint32_t>& ids, Client& alice,
         bool on = (performing.getId() != 0);
         if (on && (rand == LOGIN || rand == REGISTER)) {
             rand = SEND_DATA;
-        }
-        else if (ids[&performing] == 0) rand = REGISTER;
-        else if (!on) rand = LOGIN;
+        } else if (ids[&performing] == 0)
+            rand = REGISTER;
+        else if (!on)
+            rand = LOGIN;
     }
 
     switch (rand) {
         case SEND_DATA: {
             if (performing.getId() == 0) return false;
-            if (other_id == 0) return false; // deleted account
+            if (other_id == 0) return false;    // deleted account
             std::vector<unsigned char> data =
                 random.get(random.getBounded(0, 500));
             std::cout << "Client id " + std::to_string(ids[&performing]) +
@@ -228,8 +228,7 @@ TEST_CASE("Random testing 1:1 messaging") {
     bob.createAccount("bob_messaging_pub.pem");
     ++SQLid;
     std::unordered_map<Client*, uint32_t> ids = {{&bob, bob.getId()},
-                                            {&alice, alice.getId()}};
-
+                                                 {&alice, alice.getId()}};
 
     SECTION("Just online users") {
         std::cout << "--------------------------------------\n"
@@ -239,7 +238,7 @@ TEST_CASE("Random testing 1:1 messaging") {
         for (int i = 0; i < 50; i++) {
             std::cout << "Round: " << std::to_string(i) << "\n";
             while (!callRandomMethod(ids, alice, bob, SEND_DATA, random, false))
-              ;
+                ;
             std::cout << "------\n\n";
         }
     }
@@ -256,7 +255,8 @@ TEST_CASE("Random testing 1:1 messaging") {
             std::cout << "Round: " << std::to_string(i) << "\n";
             size_t randomAction = random.getBounded(SEND_DATA, LOGOUT + 1);
 
-            while (!callRandomMethod(ids, alice, bob, randomAction, random, true))
+            while (
+                !callRandomMethod(ids, alice, bob, randomAction, random, true))
                 randomAction = random.getBounded(SEND_DATA, LOGOUT + 1);
             std::cout << "------\n\n";
         }
@@ -266,7 +266,7 @@ TEST_CASE("Random testing 1:1 messaging") {
         std::cout << "--------------------------------------\n"
                      "-----------DELAYED MESSAGES-----------\n"
                      "--------------------------------------\n";
-
+        // TODO: problem when 1->2; 2->1; released
         bool problem = false;
 
         for (int i = 0; i < 50; i++) {
@@ -286,7 +286,6 @@ TEST_CASE("Random testing 1:1 messaging") {
                 const std::string* sender = Network::getBlockedMsgSender();
                 int ii = 1;
                 while (sender != nullptr) {
-                    std::cout << "----------cycle---------\n";
                     Client& receiver = (*sender == "alice.tcp") ? bob : alice;
                     Network::release();
                     if (receiver.getMessage().from.empty()) {
