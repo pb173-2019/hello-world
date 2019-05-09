@@ -215,3 +215,14 @@ TEST_CASE("nested containers") {
         t.run(t2);
     }
 }
+
+TEST_CASE("invalid deserializations") {
+    CHECK_THROWS(Y::deserialize({}));
+    CHECK_THROWS(Y::deserialize({1, 2, 3, 4, 5}));
+
+    auto serialized = Y().serialize();
+    CHECK_NOTHROW(Y::deserialize(serialized));
+
+    serialized.pop_back();
+    CHECK_THROWS(Y::deserialize(serialized));
+}

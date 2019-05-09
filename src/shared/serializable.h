@@ -166,6 +166,9 @@ namespace helloworld {
                 unsigned char bytes[sizeof(T)];
                 T value;
             } helper;
+            if (input.size() < from + sizeof(T)) {
+                throw std::runtime_error("serialized data too short");
+            }
             for (auto i = from; from < i + sizeof(T); ++from) {
                 helper.bytes[from - i] = input[from];
             }
@@ -198,6 +201,9 @@ namespace helloworld {
         deserialize(const serialize::structure &input, uint64_t &from)
         -> typename std::enable_if<detail::is_container<T>::value, T>::type {
             T result;
+            if (input.size() < sizeof(uint64_t)) {
+                throw std::runtime_error("serialized data too short");
+            }
             uint64_t size = deserialize<uint64_t>(input, from);
             for (uint64_t i = 0; i < size; ++i) {
                 value_type tmp = deserialize<value_type>(input, from);
