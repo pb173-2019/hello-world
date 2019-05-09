@@ -104,7 +104,7 @@ bool callRandomMethod(std::unordered_map<Client*, int>& ids, Client& alice,
         }
 
         case REGISTER: {
-            if (performing.getId() != -1) return false;
+            if (ids[&performing] != -1) return false;
             std::string pubeky = other_id == 1 ? "bob_messaging_pub.pem"
                                                : "alice_messaging_pub.pem";
             std::cout << "Client id " + std::to_string(ids[&performing]) +
