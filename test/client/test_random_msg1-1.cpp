@@ -12,6 +12,8 @@ using namespace helloworld;
 static bool alice_on = true;
 static bool bob_on = true;
 
+static size_t SQLid = 0;
+
 static constexpr size_t SEND_DATA = 0;
 static constexpr size_t RECEIVE = 1;
 static constexpr size_t LOGIN = 2;
@@ -19,25 +21,35 @@ static constexpr size_t LOGOUT = 3;
 static constexpr size_t REGISTER = 4;
 static constexpr size_t DELETE_ACC = 5;
 
-bool callRandomMethod(std::unordered_map<Client*, int>& ids, Client& alice,
+void resetTest()
+{
+    Server server("Hello, world! 2.0 password");
+    server.dropDatabase();
+    SQLid = 0;
+}
+
+bool callRandomMethod(std::unordered_map<Client*, uint32_t>& ids, Client& alice,
                       Client& bob, size_t rand, Random& random,
                       bool checkValid) {
     auto x = random.getBounded(0, 13) % 2;
     Client& performing = x == 0 ? alice : bob;
     Client& other = x == 1 ? alice : bob;
-    uint32_t other_id = (ids[&performing] == 1) ? 2 : 1;
+
+    uint32_t other_id = (&performing == &alice) ? ids[&bob] : ids[&alice];
 
     if (checkValid) {
         bool on = (performing.getId() != 0);
         if (on && (rand == LOGIN || rand == REGISTER)) {
             rand = SEND_DATA;
         }
-        if (!on && (rand != LOGIN && rand != REGISTER)) rand = LOGIN;
+        else if (ids[&performing] == 0) rand = REGISTER;
+        else if (!on) rand = LOGIN;
     }
 
     switch (rand) {
         case SEND_DATA: {
             if (performing.getId() == 0) return false;
+            if (other_id == 0) return false; // deleted account
             std::vector<unsigned char> data =
                 random.get(random.getBounded(0, 500));
             std::cout << "Client id " + std::to_string(ids[&performing]) +
@@ -104,20 +116,21 @@ bool callRandomMethod(std::unordered_map<Client*, int>& ids, Client& alice,
         }
 
         case REGISTER: {
-            if (ids[&performing] != -1) return false;
+            if (ids[&performing] != 0) return false;
             std::string pubeky = other_id == 1 ? "bob_messaging_pub.pem"
                                                : "alice_messaging_pub.pem";
             std::cout << "Client id " + std::to_string(ids[&performing]) +
                              " attempts to register...";
             performing.createAccount(pubeky);
-            ids[&performing] = performing.getId();
+            ++SQLid;
+            ids[&performing] = static_cast<uint32_t>(SQLid);
             std::cout << " done.\n";
             break;
         }
 
         case DELETE_ACC: {
             if (performing.getId() == 0) return false;
-            ids[&performing] = -1;
+            ids[&performing] = 0;
             std::cout << "Client id " + std::to_string(ids[&performing]) +
                              " attempts to remove account...";
             performing.deleteAccount();
@@ -166,7 +179,7 @@ TEST_CASE("Problematic scenarios explicitly performed, found by test below") {
     SECTION(
         "User sends data while other offline, when comes online the sender "
         "thinks the connection is established while other does not.") {
-        int id = alice.getId();
+        uint32_t id = alice.getId();
         alice.logout();
         bob.sendData(id, {1, 2, 3});
         alice.login();
@@ -176,7 +189,7 @@ TEST_CASE("Problematic scenarios explicitly performed, found by test below") {
     }
 
     SECTION("Multiple offline messages") {
-        int id = bob.getId();
+        uint32_t id = bob.getId();
         bob.logout();
         alice.sendData(id, {1, 2, 3});
         alice.sendData(id, {1, 2, 3});
@@ -190,6 +203,7 @@ TEST_CASE("Problematic scenarios explicitly performed, found by test below") {
 }
 
 TEST_CASE("Random testing 1:1 messaging") {
+    resetTest();
     Network::setEnabled(true);
 
     Server server("Hello, world! 2.0 password");
@@ -207,12 +221,15 @@ TEST_CASE("Random testing 1:1 messaging") {
         std::make_unique<ClientFiles>(&alice, alice.name()));
     Client bob("bob", "bob_messaging.pem", "12345678");
 
-    std::unordered_map<Client*, int> ids = {{&bob, bob.getId()},
-                                            {&alice, alice.getId()}};
     bob.setTransmissionManager(std::make_unique<ClientFiles>(&bob, bob.name()));
 
     alice.createAccount("alice_messaging_pub.pem");
+    ++SQLid;
     bob.createAccount("bob_messaging_pub.pem");
+    ++SQLid;
+    std::unordered_map<Client*, uint32_t> ids = {{&bob, bob.getId()},
+                                            {&alice, alice.getId()}};
+
 
     SECTION("Just online users") {
         std::cout << "--------------------------------------\n"
@@ -221,8 +238,8 @@ TEST_CASE("Random testing 1:1 messaging") {
 
         for (int i = 0; i < 50; i++) {
             std::cout << "Round: " << std::to_string(i) << "\n";
-            if (!callRandomMethod(ids, alice, bob, SEND_DATA, random, false))
-                --i;
+            while (!callRandomMethod(ids, alice, bob, SEND_DATA, random, false))
+              ;
             std::cout << "------\n\n";
         }
     }
@@ -239,8 +256,8 @@ TEST_CASE("Random testing 1:1 messaging") {
             std::cout << "Round: " << std::to_string(i) << "\n";
             size_t randomAction = random.getBounded(SEND_DATA, LOGOUT + 1);
 
-            if (!callRandomMethod(ids, alice, bob, randomAction, random, true))
-                --i;
+            while (!callRandomMethod(ids, alice, bob, randomAction, random, true))
+                randomAction = random.getBounded(SEND_DATA, LOGOUT + 1);
             std::cout << "------\n\n";
         }
     }
@@ -269,9 +286,9 @@ TEST_CASE("Random testing 1:1 messaging") {
                 const std::string* sender = Network::getBlockedMsgSender();
                 int ii = 1;
                 while (sender != nullptr) {
+                    std::cout << "----------cycle---------\n";
                     Client& receiver = (*sender == "alice.tcp") ? bob : alice;
                     Network::release();
-
                     if (receiver.getMessage().from.empty()) {
                         std::cout << std::to_string(ii)
                                   << ": nothing received!!!\n";
