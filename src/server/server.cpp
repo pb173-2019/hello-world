@@ -41,6 +41,8 @@ Response Server::handleUserRequest(const Request &request,
             return sendKeyBundle(request, username);
         case Request::Type::CHECK_INCOMING:
             return checkIncoming(request, username);
+        case Request::Type::REESTABLISH_SESSION:
+            return resetSession(username);
         default:
             throw Error("Invalid operation.");
     }
@@ -241,7 +243,14 @@ Response Server::logOut(const Request &request, const std::string &username) {
 
 void Server::logout(const std::string &name) {
     cleanAfterConenction(QString::fromStdString(name));
+    _transmission->removeConnection(name);
     log("Logging out: " + name);
+}
+
+Response Server::resetSession(const std::string &name) {
+    cleanAfterConenction(QString::fromStdString(name));
+    log("New session: " + name);
+    return {};
 }
 
 void Server::dropDatabase() { _database->drop(); }

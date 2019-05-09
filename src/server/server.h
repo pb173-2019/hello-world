@@ -296,6 +296,7 @@ class Server
      */
     void logout(const std::string &name);
 
+    Response resetSession(const std::string &name);
     /**
      * @brief Called when OK reponse should be sent
      *        notifies user whether an event occurs that should user know

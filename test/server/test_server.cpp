@@ -10,6 +10,12 @@
 
 using namespace helloworld;
 
+// to clean database before test, (may not be cleaned after if fails)
+void cleanDatabase() {
+    Server server("Hello, world! 2.0 password");
+    server.dropDatabase();
+}
+
 Response registerAlice(Server &server, const std::string &name,
                        MessageNumberGenerator &counter) {
     zero::str_t sessionKey = "2b7e151628aed2a6abf7158809cf4f3c";
@@ -51,6 +57,8 @@ TEST_CASE("Create key") {
 }
 
 TEST_CASE("Add new user") {
+    cleanDatabase();
+
     MessageNumberGenerator aliceCounter;
     Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
@@ -89,6 +97,8 @@ TEST_CASE("Add new user") {
 }
 
 TEST_CASE("User authentication") {
+    cleanDatabase();
+
     Server::setTest(true);
     Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
@@ -149,6 +159,8 @@ TEST_CASE("User authentication") {
 }
 
 TEST_CASE("Delete & logout") {
+    cleanDatabase();
+
     Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
     std::string name = "alice";
@@ -187,6 +199,8 @@ TEST_CASE("Delete & logout") {
 }
 
 TEST_CASE("Get list") {
+    cleanDatabase();
+
     Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
     std::string name = "alice";
@@ -218,6 +232,8 @@ TEST_CASE("Get list") {
 }
 
 TEST_CASE("Key Bundles") {
+    cleanDatabase();
+
     MessageNumberGenerator aliceCounter;
     Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));

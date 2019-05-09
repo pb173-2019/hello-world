@@ -30,6 +30,8 @@
 namespace helloworld {
 
 class Client : public QObject, public Callable<void, std::stringstream &&> {
+    static constexpr int RESET_SESSION_AFTER_MS = 20 * 60 * 1000;
+
     static bool _test;
     static constexpr int SYMMETRIC_KEY_SIZE = 16;
     Q_OBJECT
@@ -78,10 +80,7 @@ class Client : public QObject, public Callable<void, std::stringstream &&> {
      */
     void logout();
 
-    void reauthenticate() {
-        logout();
-        login();
-    }
+    void reauthenticate();
     /**
      * @brief Send request to the server to register new user
      *
@@ -201,6 +200,8 @@ class Client : public QObject, public Callable<void, std::stringstream &&> {
      * @return new keyBundle for X3DH
      */
     KeyBundle<C25519> updateKeys();
+
+    void resetSession();
 
     /**
      * Performs server challenge

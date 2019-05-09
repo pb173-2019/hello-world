@@ -40,6 +40,8 @@ std::vector<unsigned char> Random::get(size_t size) {
         0) {
         throw Error("Could not generate random sequence.");
     }
+
+    ++_use_since_reseed;
     return result;
 }
 
@@ -49,10 +51,15 @@ zero::bytes_t Random::getKey(size_t size) {
     if (mbedtls_ctr_drbg_random(&_ctr_drbg, key.data(), key.size()) != 0) {
         throw Error("Could not generate random sequence.");
     }
+
+    ++_use_since_reseed;
     return key;
 }
 
 size_t Random::getBounded(size_t lower, size_t upper) {
+    if (upper < lower) {
+        return getBounded(lower, upper);
+    }
     size_t result = 0;
     {
         std::unique_lock<std::mutex> lock(_mutex);
@@ -68,14 +75,11 @@ size_t Random::getBounded(size_t lower, size_t upper) {
         for (int i = 0; i < 3; i++) {
             result += static_cast<size_t>(std::pow(255, i)) * data[i];
         }
+        ++_use_since_reseed;
     }    // prevents deadlock when recursively called
 
     result = result % upper;
-    if (result >= lower) {
-        return result;
-    } else {
-        return getBounded(lower, upper);
-    }
+    return result;
 }
 
 mbedtls_ctr_drbg_context *Random::getEngine() { return &_ctr_drbg; }

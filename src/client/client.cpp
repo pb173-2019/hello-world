@@ -20,10 +20,16 @@ Client::Client(std::string username, const std::string &clientPrivKeyFilename,
       _password(password),
       _x3dh(std::make_unique<X3DH>(_username, _password)) {
     _rsa.loadPrivateKey(clientPrivKeyFilename, password);
+    if (!_test) {
+        _timeout->setInterval(
+            RESET_SESSION_AFTER_MS);    // resets session key every 5 minutes
+        connect(_timeout, &QTimer::timeout, [&]() { reauthenticate(); });
+    }
+}
 
-    _timeout->setInterval(5 * 60 *
-                          1000);    // resets session key every 5 minutes
-    connect(_timeout, &QTimer::timeout, [&]() { reauthenticate(); });
+void Client::reauthenticate() {
+    resetSession();
+    login();
 }
 
 void Client::callback(std::stringstream &&data) {
@@ -40,7 +46,7 @@ void Client::callback(std::stringstream &&data) {
         throw ex;
     }
     if (_userId == 0 && (_userId = response.header.userId) != 0) {
-        _timeout->start();
+        if (!_test) _timeout->start();
     }
     switch (response.header.type) {
         case Response::Type::OK:
@@ -81,8 +87,15 @@ void Client::login() {
 }
 
 void Client::logout() {
-    _timeout->stop();
+    if (!_test) _timeout->stop();
     sendRequest({{Request::Type::LOGOUT, _userId}, {}});
+    _userId = 0;
+    _connection.reset(nullptr);
+}
+
+void Client::resetSession() {
+    if (!_test) _timeout->stop();
+    sendRequest({{Request::Type::REESTABLISH_SESSION, _userId}, {}});
     _userId = 0;
     std::move(_connection);
 }
