@@ -201,6 +201,9 @@ class Client : public QObject, public Callable<void, std::stringstream &&> {
      */
     KeyBundle<C25519> updateKeys();
 
+    /**
+     * resets session key
+     */
     void resetSession();
 
     /**
