@@ -278,7 +278,7 @@ TEST_CASE("Random testing 1:1 messaging") {
 
         bool problem = false;
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 50; i++) {
             if (random.getBounded(0, 10) < 6) {
                 if (problem) goto test;
 
