@@ -78,7 +78,7 @@ size_t Random::getBounded(size_t lower, size_t upper) {
         ++_use_since_reseed;
     }    // prevents deadlock when recursively called
 
-    result = result % upper;
+    result = lower + result % ( upper - lower );
     return result;
 }
 
