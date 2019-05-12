@@ -13,6 +13,7 @@
 #define HELLOWORLD_CLIENT_CLIENT_H_
 
 #include <QObject>
+#include <QTimer>
 #include <memory>
 #include <string>
 #include <vector>
@@ -29,9 +30,13 @@
 namespace helloworld {
 
 class Client : public QObject, public Callable<void, std::stringstream &&> {
+    static constexpr int RESET_SESSION_AFTER_MS = 20 * 60 * 1000;
+
     static bool _test;
     static constexpr int SYMMETRIC_KEY_SIZE = 16;
     Q_OBJECT
+    QTimer *_timeout;
+
    public:
     Client(std::string username, const std::string &clientPrivKeyFilename,
            const std::string &clientPubKeyFilename, const zero::str_t &password,
@@ -78,6 +83,7 @@ class Client : public QObject, public Callable<void, std::stringstream &&> {
      */
     void logout();
 
+    void reauthenticate();
     /**
      * @brief Send request to the server to register new user
      *
@@ -197,6 +203,11 @@ class Client : public QObject, public Callable<void, std::stringstream &&> {
      * @return new keyBundle for X3DH
      */
     KeyBundle<C25519> updateKeys();
+
+    /**
+     * resets session key
+     */
+    void resetSession();
 
     /**
      * Performs server challenge

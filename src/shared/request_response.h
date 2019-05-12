@@ -14,18 +14,28 @@
 #define HELLOWORLD_SHARED_REQUEST_H_
 
 #include <cstdint>
-#include <vector>
-#include <type_traits>
-#include "serializable.h"
-#include "random.h"
 #include <set>
+#include <type_traits>
+#include <vector>
+#include "random.h"
+#include "serializable.h"
 
 namespace helloworld {
 
 struct Request {
     enum class Type {
-        LOGIN, LOGOUT, CREATE, CHALLENGE, CHECK_INCOMING,
-        REMOVE, SEND, GET_ONLINE, FIND_USERS, KEY_BUNDLE_UPDATE, GET_RECEIVERS_BUNDLE
+        LOGIN,
+        LOGOUT,
+        CREATE,
+        CHALLENGE,
+        CHECK_INCOMING,
+        REMOVE,
+        SEND,
+        GET_ONLINE,
+        FIND_USERS,
+        KEY_BUNDLE_UPDATE,
+        GET_RECEIVERS_BUNDLE,
+        REESTABLISH_SESSION
     };
 
     struct Header : public Serializable<Request::Header> {
@@ -38,16 +48,19 @@ struct Request {
 
         Header(Type type, uint32_t userId) : type(type), userId(userId) {}
 
-        Header(Type type, uint32_t userId, uint32_t fromId) : type(type), userId(userId), fromId(fromId) {}
+        Header(Type type, uint32_t userId, uint32_t fromId)
+            : type(type), userId(userId), fromId(fromId) {}
 
-        serialize::structure& serialize(serialize::structure& result) const override;
+        serialize::structure& serialize(
+            serialize::structure& result) const override;
         serialize::structure serialize() const override {
             serialize::structure result;
             return serialize(result);
         }
 
-        static Header deserialize(const serialize::structure &data, uint64_t& from);
-        static Header deserialize(const std::vector<unsigned char> &data) {
+        static Header deserialize(const serialize::structure& data,
+                                  uint64_t& from);
+        static Header deserialize(const std::vector<unsigned char>& data) {
             uint64_t from = 0;
             return deserialize(data, from);
         };
@@ -58,7 +71,6 @@ struct Request {
 };
 
 struct Response {
-
     enum class Type {
         OK = 0x0080,
         USERLIST,
@@ -87,16 +99,19 @@ struct Response {
 
         Header(Type type, uint32_t userId) : type(type), userId(userId) {}
 
-        Header(Type type, uint32_t userId, uint32_t fromId) : type(type), userId(userId), fromId(fromId) {}
+        Header(Type type, uint32_t userId, uint32_t fromId)
+            : type(type), userId(userId), fromId(fromId) {}
 
-        serialize::structure& serialize(serialize::structure& result) const override;
+        serialize::structure& serialize(
+            serialize::structure& result) const override;
         serialize::structure serialize() const override {
             serialize::structure result;
             return serialize(result);
         }
 
-        static Header deserialize(const serialize::structure &data, uint64_t& from);
-        static Header deserialize(const std::vector<unsigned char> &data) {
+        static Header deserialize(const serialize::structure& data,
+                                  uint64_t& from);
+        static Header deserialize(const std::vector<unsigned char>& data) {
             uint64_t from = 0;
             return deserialize(data, from);
         };
@@ -106,29 +121,30 @@ struct Response {
     std::vector<unsigned char> payload;
 
     Response() = default;
-    Response(Type type, uint32_t userId, uint32_t fromId) : header(type, userId, fromId) {}
-    Response(Type type, uint32_t userId, uint32_t fromId, std::vector<unsigned char> payload)
-                : header(type, userId, fromId), payload(std::move(payload)) {}
+    Response(Type type, uint32_t userId, uint32_t fromId)
+        : header(type, userId, fromId) {}
+    Response(Type type, uint32_t userId, uint32_t fromId,
+             std::vector<unsigned char> payload)
+        : header(type, userId, fromId), payload(std::move(payload)) {}
     Response(Header header) : header(std::move(header)) {}
     Response(Header header, std::vector<unsigned char> payload)
-                : header(std::move(header)), payload(std::move(payload)) {}
+        : header(std::move(header)), payload(std::move(payload)) {}
 
     Response(Type type, uint32_t userId) : header(type, userId) {}
     Response(Type type, uint32_t userId, std::vector<unsigned char> payload)
-                : header(type, userId), payload(std::move(payload)) {}
-
+        : header(type, userId), payload(std::move(payload)) {}
 };
 
-
 class MessageNumberGenerator {
-
     bool _set{false};
-    std::set<uint32_t > _unresolvedNumbers;
+    std::set<uint32_t> _unresolvedNumbers;
     uint32_t _nIncomming = 0;
     uint32_t _nOutgoing = 0;
 
-public:
-    MessageNumberGenerator() : _nOutgoing(static_cast<uint32_t>(Random{}.getBounded(0, UINT32_MAX))) {}
+   public:
+    MessageNumberGenerator()
+        : _nOutgoing(
+              static_cast<uint32_t>(Random{}.getBounded(0, UINT32_MAX))) {}
 
     bool checkIncomming(const Request& data);
 
@@ -139,7 +155,5 @@ public:
     void setNumber(Response& r);
 };
 
-
-} // namespace helloworld
-#endif //HELLOWORLD_SHARED_REQUEST_H_
-
+}    // namespace helloworld
+#endif    // HELLOWORLD_SHARED_REQUEST_H_

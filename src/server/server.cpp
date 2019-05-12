@@ -41,6 +41,8 @@ Response Server::handleUserRequest(const Request &request,
             return sendKeyBundle(request, username);
         case Request::Type::CHECK_INCOMING:
             return checkIncoming(request, username);
+        case Request::Type::REESTABLISH_SESSION:
+            return resetSession(username);
         default:
             throw Error("Invalid operation.");
     }
@@ -232,23 +234,23 @@ Response Server::deleteAccount(const Request &request,
 }
 
 Response Server::logOut(const Request &request, const std::string &username) {
-    Response r{Response::Type::OK, request.header.userId};
-    sendReponse(username, r, getManagerPtr(username, true));
+    // Response r{Response::Type::OK, request.header.userId};
+    // sendReponse(username, r, getManagerPtr(username, true));
     logout(username);
 
-    return r;
+    return {};
 }
 
 void Server::logout(const std::string &name) {
-    QWriteLocker lock(&_connectionLock);
-    size_t deleted = _connections.erase(name);
-    if (deleted != 1) {
-        throw Error("Attempt to close connection: connections closed: " +
-                    std::to_string(deleted));
-    }
-    lock.unlock();
+    cleanAfterConenction(QString::fromStdString(name));
     _transmission->removeConnection(name);
     log("Logging out: " + name);
+}
+
+Response Server::resetSession(const std::string &name) {
+    cleanAfterConenction(QString::fromStdString(name));
+    log("New session: " + name);
+    return {};
 }
 
 void Server::dropDatabase() { _database->drop(); }

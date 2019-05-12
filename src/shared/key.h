@@ -23,33 +23,6 @@
 namespace helloworld {
 namespace zero {
 
-// template<class T>
-// struct KeyAlloc : public std::allocator<T> {
-//    using value_type = T;
-//
-//    KeyAlloc() = default;
-//
-//    template<class U>
-//    constexpr KeyAlloc(const KeyAlloc<U> &) noexcept {}
-//
-//    template<class U>
-//    KeyAlloc(KeyAlloc<U> &&) noexcept {}
-//
-//    template<class U>
-//    KeyAlloc&operator=(KeyAlloc<U> &&) {
-//        return *this;
-//    }
-//
-//    T *allocate(std::size_t n) {
-//        return std::allocator<T>::allocate(n);
-//    }
-//
-//    void deallocate(T *p, std::size_t n) noexcept {
-//        std::memset(p, 0, n);
-//        return std::allocator<T>::deallocate(p, n);
-//    }
-//};
-
 template <class T>
 struct KeyAlloc {
     using value_type = T;
@@ -66,7 +39,7 @@ struct KeyAlloc {
     }
 
     void deallocate(T *p, std::size_t n) noexcept {
-        std::memset(p, 0, n);
+        std::memset(p, 0, n * sizeof(T));
         std::free(p);
     }
 };
