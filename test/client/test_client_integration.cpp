@@ -28,7 +28,7 @@ TEST_CASE("Scenario 1: create, logout, login, delete.") {
     Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
-    Client client("aliceabc", "aliceabc_priv.pem", "hunter28");
+    Client client("aliceabc", "aliceabc_priv.pem", "aliceabc_pub.pem", "hunter28");
     client.setTransmissionManager(
         std::make_unique<ClientFiles>(&client, client.name()));
 
@@ -59,31 +59,31 @@ TEST_CASE("Scenario 2: getting users from database.") {
     Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
-    Client aliceabc("aliceabc", "aliceabc_priv.pem", "hunter28");
+    Client aliceabc("aliceabc", "aliceabc_priv.pem", "aliceabc_pub.pem", "hunter28");
     aliceabc.setTransmissionManager(
         std::make_unique<ClientFiles>(&aliceabc, aliceabc.name()));
     aliceabc.createAccount("aliceabc_pub.pem");
 
-    Client bob("bob", "aliceabc_priv.pem", "hunter28");
+    Client bob("bob", "aliceabc_priv.pem", "aliceabc_pub.pem", "hunter28");
     bob.setTransmissionManager(std::make_unique<ClientFiles>(&bob, bob.name()));
     bob.createAccount("aliceabc_pub.pem");
 
-    Client emily("emily", "aliceabc_priv.pem", "hunter28");
+    Client emily("emily", "aliceabc_priv.pem", "aliceabc_pub.pem", "hunter28");
     emily.setTransmissionManager(
         std::make_unique<ClientFiles>(&emily, emily.name()));
     emily.createAccount("aliceabc_pub.pem");
 
-    Client lila("lila", "aliceabc_priv.pem", "hunter28");
+    Client lila("lila", "aliceabc_priv.pem", "aliceabc_pub.pem", "hunter28");
     lila.setTransmissionManager(
         std::make_unique<ClientFiles>(&lila, lila.name()));
     lila.createAccount("aliceabc_pub.pem");
 
-    Client borek("borek", "aliceabc_priv.pem", "hunter28");
+    Client borek("borek", "aliceabc_priv.pem", "aliceabc_pub.pem", "hunter28");
     borek.setTransmissionManager(
         std::make_unique<ClientFiles>(&borek, borek.name()));
     borek.createAccount("aliceabc_pub.pem");
 
-    Client lylibo("lylibo", "aliceabc_priv.pem", "hunter28");
+    Client lylibo("lylibo", "aliceabc_priv.pem", "aliceabc_pub.pem", "hunter28");
     lylibo.setTransmissionManager(
         std::make_unique<ClientFiles>(&lylibo, lylibo.name()));
     lylibo.createAccount("aliceabc_pub.pem");
@@ -109,18 +109,18 @@ TEST_CASE("Incorrect authentications") {
     Server server("Hello, world! 2.0 password");
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
-    Client aliceabc("aliceabc", "aliceabc_priv.pem", "hunter28");
+    Client aliceabc("aliceabc", "aliceabc_priv.pem", "aliceabc_pub.pem", "hunter28");
     aliceabc.setTransmissionManager(
         std::make_unique<ClientFiles>(&aliceabc, aliceabc.name()));
 
     aliceabc.createAccount("aliceabc_pub.pem");
-    Client bob("bob", "aliceabc_priv.pem", "hunter28");
+    Client bob("bob", "aliceabc_priv.pem", "aliceabc_pub.pem", "hunter28");
     bob.setTransmissionManager(std::make_unique<ClientFiles>(&bob, bob.name()));
 
     bob.createAccount("aliceabc_pub.pem");
 
     // registrates when user logged with that exact username
-    Client client1("aliceabc", "aliceabc_priv.pem", "hunter28");
+    Client client1("aliceabc", "aliceabc_priv.pem", "aliceabc_pub.pem", "hunter28");
     client1.setTransmissionManager(
         std::make_unique<ClientFiles>(&client1, client1.name()));
 
@@ -132,7 +132,7 @@ TEST_CASE("Incorrect authentications") {
     CHECK_THROWS(client1.createAccount("aliceabc_pub.pem"));
 
     server.simulateNewChannel("bob");
-    Client client2("bob", "aliceabc_priv.pem", "hunter28");
+    Client client2("bob", "aliceabc_priv.pem", "aliceabc_pub.pem", "hunter28");
     client2.setTransmissionManager(
         std::make_unique<ClientFiles>(&client2, client2.name()));
 
@@ -154,11 +154,11 @@ TEST_CASE(
 
     server.setTransmissionManager(std::make_unique<ServerFiles>(&server));
 
-    Client aliceabc("aliceabc", "aliceabc_priv.pem", "hunter28");
+    Client aliceabc("aliceabc", "aliceabc_priv.pem", "aliceabc_pub.pem", "hunter28");
     aliceabc.setTransmissionManager(
         std::make_unique<ClientFiles>(&aliceabc, aliceabc.name()));
     aliceabc.createAccount("aliceabc_pub.pem");
-    Client bob("bob", "aliceabc_priv.pem", "hunter28");
+    Client bob("bob", "aliceabc_priv.pem", "aliceabc_pub.pem", "hunter28");
     bob.setTransmissionManager(std::make_unique<ClientFiles>(&bob, bob.name()));
     bob.createAccount("aliceabc_pub.pem");
 

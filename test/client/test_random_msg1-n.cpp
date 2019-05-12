@@ -23,7 +23,8 @@ class ClientAdapter {
           _password("password"),
           _privateKeyName(_name + "_messaging.pem"),
           _publicKeyName(createPublicKeys()),
-          client(std::make_unique<Client>(_name, _privateKeyName, _password)) {
+          client(std::make_unique<Client>(_name, _privateKeyName,
+                                          _publicKeyName, _password)) {
         client->setTransmissionManager(
             std::make_unique<ClientFiles>(client.get(), client->name()));
     }

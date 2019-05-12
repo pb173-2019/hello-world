@@ -15,6 +15,7 @@ DoubleRatchet::DoubleRatchet(zero::bytes_t SK, zero::bytes_t AD,
     _state.PN = 0;
     _state.MKSKIPPED = {};
     _state.AD = std::move(AD);
+    _state.receivedMessage = false;
     std::tie(_state.RK, _state.CKs) =
         ext.KDF_RK(std::move(SK), ext.DH(_state.DHs, _state.DHr));
 }
@@ -22,7 +23,7 @@ DoubleRatchet::DoubleRatchet(zero::bytes_t SK, zero::bytes_t AD,
 DoubleRatchet::DoubleRatchet(zero::bytes_t SK, zero::bytes_t AD,
                              zero::bytes_t dh_public_key,
                              zero::bytes_t dh_private_key)
-    : _state({}), _receivedMessage(true) {
+    : _state({}) {
     _state.DHs = {std::move(dh_public_key), std::move(dh_private_key)};
     _state.DHr = {};
     _state.RK = std::move(SK);
@@ -33,6 +34,7 @@ DoubleRatchet::DoubleRatchet(zero::bytes_t SK, zero::bytes_t AD,
     _state.PN = 0;
     _state.MKSKIPPED = {};
     _state.AD = std::move(AD);
+    _state.receivedMessage = true;
 }
 
 DoubleRatchet::DoubleRatchet(DRState state) : _state(std::move(state)) {}
@@ -53,7 +55,7 @@ std::vector<unsigned char> DoubleRatchet::RatchetDecrypt(
     DRState oldState = _state;
     try {
         auto result = TryRatchetDecrypt(message);
-        _receivedMessage = true;
+        _state.receivedMessage = true;
         return result;
     } catch (Error &e) {
         _state = oldState;

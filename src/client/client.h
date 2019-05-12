@@ -34,7 +34,10 @@ class Client : public QObject, public Callable<void, std::stringstream &&> {
     Q_OBJECT
    public:
     Client(std::string username, const std::string &clientPrivKeyFilename,
-           const zero::str_t &password, QObject *parent = nullptr);
+           const std::string &clientPubKeyFilename, const zero::str_t &password,
+           QObject *parent = nullptr);
+
+    ~Client();
 
     UserTransmissionManager *getTransmisionManger() {
         return _transmission.get();
@@ -180,7 +183,7 @@ class Client : public QObject, public Callable<void, std::stringstream &&> {
     SendData _incomming;
     std::map<uint32_t, std::string> _userList;
 
-    RSA2048 _rsa;
+    RSA2048 _rsa, _rsa_pub;
     std::unique_ptr<X3DH> _x3dh;
     std::map<uint32_t, DoubleRatchet> _ratchets;
     std::map<uint32_t, X3DHRequest<C25519>> _initialMessages;
@@ -236,6 +239,10 @@ class Client : public QObject, public Callable<void, std::stringstream &&> {
 
     void sendX3DHMessage(uint32_t receiverId, const std::string &time,
                          const Message &message);
+
+    void saveRatchetStates();
+
+    void loadRatchetStates();
    signals:
     void error(QString);
 };

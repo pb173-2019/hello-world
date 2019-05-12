@@ -1,5 +1,6 @@
 #include "catch.hpp"
 
+#include <utility>
 #include "../../src/shared/curve_25519.h"
 #include "../../src/shared/double_ratchet.h"
 
@@ -98,4 +99,21 @@ TEST_CASE("Double Ratchet out-of-order") {
     CHECK(to_string(dr.bob.RatchetDecrypt(a5)) == "hey 3");
 
     CHECK(to_string(dr.alice.RatchetDecrypt(b3)) == "hello");
+}
+
+TEST_CASE("DRState serialization / deserialization") {
+    DRState state;
+    state.Nr = 123;
+    state.MKSKIPPED.insert(
+        {std::make_pair(zero::bytes_t{1, 2, 3}, 16), {1, 2, 3}});
+    state.MKSKIPPED.insert(
+        {std::make_pair(zero::bytes_t{}, 9001), {}});
+    state.DHs = {{1, 44, 3}, {}};
+
+    auto deserialized = DRState::deserialize(state.serialize());
+
+    CHECK(deserialized.Nr == state.Nr);
+    CHECK(deserialized.MKSKIPPED == state.MKSKIPPED);
+    CHECK(deserialized.DHs.priv == state.DHs.priv);
+    CHECK(deserialized.DHs.pub == state.DHs.pub);
 }

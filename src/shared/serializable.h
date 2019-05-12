@@ -152,6 +152,21 @@ namespace helloworld {
         }
 
         /**
+        * serializes object, which is pair
+        * @tparam T type of object to serialize
+        * @param obj object to serialize
+        * @param result structure to store serialized object
+        * @return reference to structure holding serialized object
+        */
+        template<typename T, typename U>
+        auto serialize(const std::pair<T, U> &obj, serialize::structure &result) {
+            serialize(obj.first, result);
+            serialize(obj.second, result);
+            
+            return result;
+        }
+
+        /**
          * deserializes object, which is of scalar type
          * @tparam T type of object to deserialize
          * @param input structure holding serialized object
@@ -167,7 +182,8 @@ namespace helloworld {
                 T value;
             } helper;
             if (input.size() < from + sizeof(T)) {
-                throw std::runtime_error("serialized data too short");
+                auto message = "serialized data too short (" + std::to_string(input.size()) + ")";
+                throw std::runtime_error(message);
             }
             for (auto i = from; from < i + sizeof(T); ++from) {
                 helper.bytes[from - i] = input[from];
@@ -210,6 +226,30 @@ namespace helloworld {
                 result.push_back(std::move(tmp));
             }
             return result;
+        }
+
+        /**
+         * deserializes object, which is pair
+         * @param T type of object to deserialize
+         * @param input structure holding serialized object
+         * @param from offset where object starts in the structure
+         * @return deserialized object
+         */
+        template<typename T>
+        auto
+        deserialize(const serialize::structure &input, uint64_t &from)
+        -> typename std::conditional<false, typename T::first, typename T::second>::type {
+            union {
+                unsigned char bytes[sizeof(T)];
+                T value;
+            } helper;
+            if (input.size() < from + sizeof(T)) {
+                throw std::runtime_error("serialized data too short");
+            }
+            for (auto i = from; from < i + sizeof(T); ++from) {
+                helper.bytes[from - i] = input[from];
+            }
+            return helper.value;
         }
 
     } // serialize

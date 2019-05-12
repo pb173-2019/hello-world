@@ -73,6 +73,38 @@ struct Y : Serializable<Y> {
     }
 };
 
+struct Z : Serializable<Z> {
+    std::vector<X> x;
+    std::vector<Y> y;
+
+    serialize::structure& serialize(
+        serialize::structure& result) const override {
+        serialize::serialize(x, result);
+        serialize::serialize(y, result);
+        return result;
+    }
+    serialize::structure serialize() const override {
+        serialize::structure result;
+        return serialize(result);
+    }
+
+    static Z deserialize(const std::vector<unsigned char>& data,
+                         uint64_t& from) {
+        Z res;
+        res.x = serialize::deserialize<decltype(x)>(data, from);
+        res.y = serialize::deserialize<decltype(y)>(data, from);
+        return res;
+    }
+    static Z deserialize(const serialize::structure& data) {
+        uint64_t from = 0;
+        return deserialize(data, from);
+    }
+
+    friend bool operator==(const Z& a, const Z& b) {
+        return a.x == b.x && a.y == b.y;
+    }
+};
+
 template <typename T>
 using equality = bool (*)(const T&, const T&);
 
@@ -213,6 +245,11 @@ TEST_CASE("nested containers") {
         t.run(t0);
         t.run(t1);
         t.run(t2);
+    }
+    SECTION("struct of vectors") {
+        test<Z> test;
+        Z z;
+        test.run(z);
     }
 }
 
