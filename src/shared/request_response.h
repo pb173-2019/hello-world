@@ -70,6 +70,7 @@ struct Request {
     std::vector<unsigned char> payload;
 };
 
+#undef OK
 struct Response {
     enum class Type {
         OK = 0x0080,

@@ -11,8 +11,8 @@ using namespace helloworld;
 
 int main(int argc , char ** argv ) {
     QCoreApplication a(argc, argv);
-    CMDApp * mainApp = new CMDApp(std::cin, std::cout, &a);
-    cinPoll * poll = new cinPoll(std::cin, &a);
+    CMDApp * mainApp = new CMDApp(&a);
+    cinPoll * poll = new cinPoll(mainApp->window, &a);
 
     QObject::connect(poll, &cinPoll::read, mainApp, &CMDApp::_loop);
     QObject::connect(mainApp, &CMDApp::poll, poll, &cinPoll::start);

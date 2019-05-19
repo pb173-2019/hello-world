@@ -12,6 +12,7 @@
 #include <QTimer>
 #include <atomic>
 #include <condition_variable>
+#include "ChatWindow.h"
 #include "client.h"
 
 namespace helloworld {
@@ -22,18 +23,17 @@ namespace helloworld {
  */
 class Worker : public QObject {
     Q_OBJECT
-    std::istream &is;
 
    public:
-    Worker(std::istream &is) : QObject(nullptr), is(is){};
+    ChatWindow &window;
+    Worker(ChatWindow &window) : QObject(nullptr), window(window) {}
 
    public slots:
 
     void doWork() {
         std::string data;
         while (data.empty()) {
-            std::ws(is);
-            std::getline(is, data);
+            data = window.getMessage();
         }
         emit read(QString::fromStdString(data));
     }
@@ -49,12 +49,12 @@ class Worker : public QObject {
  */
 class cinPoll : public QObject {
     Q_OBJECT
-    std::istream &is;
+    ChatWindow &window;
     QThread *thread;
 
    public:
-    cinPoll(std::istream &is, QObject *parent = nullptr)
-        : QObject(parent), is(is) {}
+    cinPoll(ChatWindow &window, QObject *parent = nullptr)
+        : QObject(parent), window(window) {}
 
    public slots:
 
@@ -62,7 +62,7 @@ class cinPoll : public QObject {
      * Start the thread, QThread is deleted by QT framework
      */
     void start() {
-        Worker *worker = new Worker(is);
+        Worker *worker = new Worker(window);
         thread = new QThread();
         worker->moveToThread(thread);
         connect(thread, &QThread::finished, worker, &QObject::deleteLater);
@@ -89,8 +89,6 @@ class CMDApp : public QObject {
     static const char *Authors[3];
 
     std::atomic_bool _running{false};
-    std::istream &is;
-    std::ostream &os;
     std::unique_ptr<Client> client;
     std::string username;
 
@@ -102,7 +100,7 @@ class CMDApp : public QObject {
         Registering,
         LoggedIn
     } status{Uninit};
-    QTimer *timeout;
+    QTimer *_timeout;
 
     struct Command {
         using CMDfunc_t = void (*)(CMDApp *);
@@ -118,7 +116,7 @@ class CMDApp : public QObject {
             LoggedIn
         } required;
 
-        void print(std::ostream &os) const;
+        void print(ChatWindow &window) const;
     };
 
     const std::vector<Command> commands{
@@ -129,9 +127,9 @@ class CMDApp : public QObject {
 
         // automatic after connection
         //{"login", &CMDApp::login_command, "log in as existing user",
-        //Command::Status::LoggedOut},
+        // Command::Status::LoggedOut},
         //{"register", &CMDApp::register_command, "register new user",
-        //Command::Status::LoggedOut},
+        // Command::Status::LoggedOut},
 
         {"send", &CMDApp::send_command, "send message to user",
          Command::Status::LoggedIn},
@@ -145,13 +143,15 @@ class CMDApp : public QObject {
 
         // automatic after logout
         //{"disconnect", &CMDApp::disconnect_command, "disconnect from current
-        //server", Command::Status::Connected},
+        // server", Command::Status::Connected},
 
         {"quit", &CMDApp::quit_command, "close this application",
          Command::Status::None}};
 
    public:
-    CMDApp(std::istream &is, std::ostream &os, QObject *parent = nullptr);
+    ChatWindow window;
+
+    CMDApp(QObject *parent = nullptr);
 
    Q_SIGNALS:
 
@@ -272,6 +272,8 @@ class CMDApp : public QObject {
      * @return index of option (-1 on error)
      */
     int getOption(std::string prompt, std::vector<char> options);
+
+    void print(const std::string &message) { window.appendLine(message); }
 };
 
 }    // namespace helloworld
