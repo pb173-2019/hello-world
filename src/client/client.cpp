@@ -23,7 +23,7 @@ Client::Client(std::string username, const std::string &clientPrivKeyFilename,
       _x3dh(std::make_unique<X3DH>(_username, _password)) {
     _rsa.loadPrivateKey(clientPrivKeyFilename, password);
     _rsa_pub.loadPublicKey(clientPubKeyFilename);
-    loadRatchetStates();
+    loadState();
     if (!_test) {
         _timeout->setInterval(
             RESET_SESSION_AFTER_MS);    // resets session key every 5 minutes
@@ -173,7 +173,7 @@ KeyBundle<C25519> Client::updateKeys() {
     }
 
     newKeybundle.generateTimeStamp();
-    _x3dh->setTimestamp(newKeybundle.timestamp);
+    _x3dh->timestamp = newKeybundle.timestamp;
     return newKeybundle;
 }
 
@@ -201,9 +201,10 @@ void Client::archiveKey(const std::string &keyFileName) {
     }
 }
 
-void Client::saveRatchetStates() {
+void Client::saveState() {
     zero::bytes_t result;
     ClientState clientState;
+    clientState.timestamp = _x3dh->timestamp;
 
     std::transform(_ratchets.begin(), _ratchets.end(),
                    std::back_inserter(clientState.states),
@@ -234,7 +235,7 @@ void Client::saveRatchetStates() {
     write_n(stateKey, encryptedKey);
 }
 
-void Client::loadRatchetStates() {
+void Client::loadState() {
     std::ifstream stateKey(_username + ".state.key",
                            std::ios::binary | std::ios::in);
     std::ifstream state(_username + ".state", std::ios::binary | std::ios::in);
@@ -270,6 +271,8 @@ void Client::loadRatchetStates() {
                   [this](X3DHInitialMessage &p) {
                       _initialMessages.emplace(p.id, p.message);
                   });
+
+    _x3dh->timestamp = clientState.timestamp;
 }
 
 void Client::sendData(uint32_t receiverId,
@@ -421,7 +424,7 @@ bool Client::hasRatchet(uint32_t id) const {
     return _ratchets.find(id) != _ratchets.end();
 }
 
-Client::~Client() { saveRatchetStates(); }
+Client::~Client() { saveState(); }
 
 void ClientCleaner_Run() {
     std::string leftovers = getFile(".key");

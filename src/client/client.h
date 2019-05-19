@@ -251,9 +251,9 @@ class Client : public QObject, public Callable<void, std::stringstream &&> {
     void sendX3DHMessage(uint32_t receiverId, const std::string &time,
                          const Message &message);
 
-    void saveRatchetStates();
+    void saveState();
 
-    void loadRatchetStates();
+    void loadState();
    signals:
     void error(QString);
 };

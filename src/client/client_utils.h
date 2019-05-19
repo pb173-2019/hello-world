@@ -88,6 +88,7 @@ struct X3DHInitialMessage : Serializable<X3DHInitialMessage> {
 struct ClientState : Serializable<ClientState> {
     std::vector<DRStatePair> states;
     std::vector<X3DHInitialMessage> messages;
+    uint64_t timestamp;
 
     ClientState() = default;
 
@@ -95,6 +96,7 @@ struct ClientState : Serializable<ClientState> {
         serialize::structure& result) const override {
         serialize::serialize(states, result);
         serialize::serialize(messages, result);
+        serialize::serialize(timestamp, result);
         return result;
     }
     serialize::structure serialize() const override {
@@ -109,6 +111,8 @@ struct ClientState : Serializable<ClientState> {
             serialize::deserialize<decltype(result.states)>(data, from);
         result.messages =
             serialize::deserialize<decltype(result.messages)>(data, from);
+        result.timestamp =
+            serialize::deserialize<decltype(result.timestamp)>(data, from);
         return result;
     }
     static ClientState deserialize(const serialize::structure& data) {

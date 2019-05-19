@@ -39,7 +39,7 @@ TEST_CASE("X3DH process test one-time keys present") {
     SendData toSend{"1.3.2013", "user", 1, true, {1, 2, 3, 4}};
 
     X3DH x3dh_alice(alice, alice_pwd);
-    // setTimestamp() not needed in x3dh_alice as alice is not using .in()
+    // timestamp not needed in x3dh_alice as alice is not using .in()
 
     X3DHRequest<C25519> request;
     X3DH::X3DHSecretPubKey secret;
@@ -94,7 +94,7 @@ TEST_CASE("X3DH process test one-time keys present") {
             bob + std::to_string(request.opKeyId) + oneTimeC25519priv, bob_pwd);
 
         X3DH x3dh_bob(bob, bob_pwd);
-        x3dh_bob.setTimestamp(bundle.timestamp);
+        x3dh_bob.timestamp = bundle.timestamp;
 
         std::vector<unsigned char> messageEncrypted;
         X3DH::X3DHSecretKeyPair bob_secret;
@@ -123,7 +123,7 @@ TEST_CASE("X3DH process test one-time keys present") {
             bob_pwd);
 
         X3DH x3dh_bob(bob, bob_pwd);
-        x3dh_bob.setTimestamp(bundle.timestamp + 1);    // different timestamp!
+        x3dh_bob.timestamp = bundle.timestamp + 1;    // different timestamp!
 
         std::vector<unsigned char> messageEncrypted;
         X3DH::X3DHSecretKeyPair bob_secret;
@@ -159,7 +159,7 @@ TEST_CASE("X3DH process test no one time keys") {
     SendData toSend{"1.3.2013", "user", 1, true, {1, 2, 3, 4}};
 
     X3DH x3dh_alice(alice, alice_pwd);
-    // setTimestamp() not needed in x3dh_alice as alice is not using .in()
+    // timestamp not needed in x3dh_alice as alice is not using .in()
 
     X3DHRequest<C25519> request;
     X3DH::X3DHSecretPubKey secret;
@@ -204,7 +204,7 @@ TEST_CASE("X3DH process test no one time keys") {
         bobPreKey.savePrivateKeyPassword(bob + preC25519priv, bob_pwd);
 
         X3DH x3dh_bob(bob, bob_pwd);
-        x3dh_bob.setTimestamp(bundle.timestamp);
+        x3dh_bob.timestamp = bundle.timestamp;
 
         std::vector<unsigned char> messageEncrypted;
         X3DH::X3DHSecretKeyPair bob_secret;
@@ -226,7 +226,7 @@ TEST_CASE("X3DH process test no one time keys") {
         bobPreKey.savePrivateKeyPassword(bob + preC25519priv + ".old", bob_pwd);
 
         X3DH x3dh_bob(bob, bob_pwd);
-        x3dh_bob.setTimestamp(bundle.timestamp + 1);    // different timestamp!
+        x3dh_bob.timestamp = bundle.timestamp + 1;    // different timestamp!
 
         std::vector<unsigned char> messageEncrypted;
         X3DH::X3DHSecretKeyPair bob_secret;

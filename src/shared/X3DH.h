@@ -30,9 +30,10 @@ namespace helloworld {
 class X3DH {
     const std::string& username;
     const zero::str_t& pwd;
-    uint64_t timestamp = 0;
 
    public:
+    uint64_t timestamp = 0;
+
     struct X3DHSecretPubKey {
         zero::bytes_t sk;
         zero::bytes_t ad;
@@ -48,8 +49,6 @@ class X3DH {
 
     X3DH(const std::string& username, const zero::str_t& pwd)
         : username(username), pwd(pwd) {}
-
-    void setTimestamp(uint64_t timestamp) { this->timestamp = timestamp; }
 
     /**
      * Perform the second part of the X3DH protocol
