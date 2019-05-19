@@ -167,10 +167,12 @@ TEST_CASE("Problematic scenarios explicitly performed, found by test below") {
 
     Random random;
 
-    Client alice("alice", "alice_messaging.pem", "12345678");
+    remove("alice.state");
+    Client alice("alice", "alice_messaging.pem", "alice_messaging_pub.pem", "12345678");
     alice.setTransmissionManager(
         std::make_unique<ClientFiles>(&alice, alice.name()));
-    Client bob("bob", "bob_messaging.pem", "12345678");
+    remove("bob.state");
+    Client bob("bob", "bob_messaging.pem", "bob_messaging_pub.pem", "12345678");
     bob.setTransmissionManager(std::make_unique<ClientFiles>(&bob, bob.name()));
 
     alice.createAccount("alice_messaging_pub.pem");
@@ -215,11 +217,13 @@ TEST_CASE("Random testing 1:1 messaging") {
     Server::setTest(true);
     Client::setTest(true);
 
-    Client alice("alice", "alice_messaging.pem", "12345678");
+    remove("alice.state");
+    Client alice("alice", "alice_messaging.pem", "alice_messaging_pub.pem", "12345678");
 
     alice.setTransmissionManager(
         std::make_unique<ClientFiles>(&alice, alice.name()));
-    Client bob("bob", "bob_messaging.pem", "12345678");
+    remove("bob.state");
+    Client bob("bob", "bob_messaging.pem", "bob_messaging_pub.pem", "12345678");
 
     bob.setTransmissionManager(std::make_unique<ClientFiles>(&bob, bob.name()));
 
@@ -348,7 +352,9 @@ TEST_CASE("Random testing 1:1 messaging") {
 TEST_CASE("Clear keys") {
     remove("alice_messaging.pem");
     remove("alice_messaging_pub.pem");
+    remove("alice.state");
     remove("bob_messaging.pem");
     remove("bob_messaging_pub.pem");
+    remove("bob.state");
     ClientCleaner_Run();
 }

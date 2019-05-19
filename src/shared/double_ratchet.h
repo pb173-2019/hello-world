@@ -19,7 +19,6 @@ namespace helloworld {
 class DoubleRatchet {
     static const int MAX_SKIP = 1000;
     DRState _state;
-    bool _receivedMessage = false;
 
    private:
     DoubleRatchetAdapter ext;
@@ -72,7 +71,9 @@ class DoubleRatchet {
      */
     std::vector<unsigned char> RatchetDecrypt(const Message &message);
 
-    bool hasReceivedMessage() const { return _receivedMessage; }
+    bool hasReceivedMessage() const { return _state.receivedMessage; }
+
+    const DRState &getState() const { return _state; }
 };
 
 }    // namespace helloworld

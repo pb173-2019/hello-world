@@ -76,7 +76,8 @@ void C25519::loadPublicKey(const std::string &keyFile) {
 void C25519::loadPrivateKey(const std::string &keyFile, const zero::str_t &key,
                             const std::string &iv) {
     std::ifstream input{keyFile, std::ios::in | std::ios::binary};
-    if (!input) return;
+    if (!input)
+        return;
 
     _buffer_private.resize(KEY_BYTES_LEN);
     if (!key.empty()) {

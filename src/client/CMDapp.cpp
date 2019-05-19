@@ -59,12 +59,13 @@ void CMDApp::init() {
     try {
         os << "Trying to load keys...\n";
         client = std::make_unique<Client>(username, username + "_priv.pem",
-                                          password);
-    } catch (Error & /*e*/) {
+                                          username + "_pub.pem", password);
+    } catch (Error &e) {
+        std::cout << e.message;
         os << "Generating new keys...\n";
         _generateKeypair(password);
         client = std::make_unique<Client>(username, username + "_priv.pem",
-                                          password);
+                                          username + "_pub.pem", password);
     }
     os << "Keys loaded successfuly\n";
     client->setTransmissionManager(

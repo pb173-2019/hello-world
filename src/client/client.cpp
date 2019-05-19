@@ -8,11 +8,13 @@
 
 #include "../shared/curve_25519.h"
 #include "../shared/responses.h"
+#include "client_utils.h"
 
 namespace helloworld {
 bool Client::_test = false;
 
 Client::Client(std::string username, const std::string &clientPrivKeyFilename,
+               const std::string &clientPubKeyFilename,
                const zero::str_t &password, QObject *parent)
     : QObject(parent),
       _timeout(new QTimer(this)),
@@ -20,6 +22,8 @@ Client::Client(std::string username, const std::string &clientPrivKeyFilename,
       _password(password),
       _x3dh(std::make_unique<X3DH>(_username, _password)) {
     _rsa.loadPrivateKey(clientPrivKeyFilename, password);
+    _rsa_pub.loadPublicKey(clientPubKeyFilename);
+    loadState();
     if (!_test) {
         _timeout->setInterval(
             RESET_SESSION_AFTER_MS);    // resets session key every 5 minutes
@@ -169,7 +173,7 @@ KeyBundle<C25519> Client::updateKeys() {
     }
 
     newKeybundle.generateTimeStamp();
-    _x3dh->setTimestamp(newKeybundle.timestamp);
+    _x3dh->timestamp = newKeybundle.timestamp;
     return newKeybundle;
 }
 
@@ -197,6 +201,80 @@ void Client::archiveKey(const std::string &keyFileName) {
     }
 }
 
+void Client::saveState() {
+    zero::bytes_t result;
+    ClientState clientState;
+    clientState.timestamp = _x3dh->timestamp;
+
+    std::transform(_ratchets.begin(), _ratchets.end(),
+                   std::back_inserter(clientState.states),
+                   [](std::pair<const uint32_t, DoubleRatchet> &p) {
+                       return DRStatePair(p.first, p.second.getState());
+                   });
+    std::transform(_initialMessages.begin(), _initialMessages.end(),
+                   std::back_inserter(clientState.messages),
+                   [](std::pair<const uint32_t, X3DHRequest<C25519>> &p) {
+                       return X3DHInitialMessage(p.first, p.second);
+                   });
+    std::ofstream state(_username + ".state",
+                        std::ios::binary | std::ios::out | std::ios::trunc);
+
+    AESGCM aes;
+    zero::bytes_t key = Random().getKey(AESGCM::key_size);
+    aes.setIv(to_hex(std::vector<unsigned char>(AESGCM::iv_size, 0)));
+    aes.setKey(to_hex(key));
+    std::vector<unsigned char> encrypted;
+    aes.encryptWithAd(clientState.serialize(), {}, encrypted);
+
+    write_n(state, encrypted);
+
+    std::vector<unsigned char> encryptedKey =
+        _rsa_pub.encrypt({key.begin(), key.end()});
+    std::ofstream stateKey(_username + ".state.key",
+                           std::ios::binary | std::ios::out | std::ios::trunc);
+    write_n(stateKey, encryptedKey);
+}
+
+void Client::loadState() {
+    std::ifstream stateKey(_username + ".state.key",
+                           std::ios::binary | std::ios::in);
+    std::ifstream state(_username + ".state", std::ios::binary | std::ios::in);
+
+    if (!state || !stateKey) {
+        return;
+    }
+
+    std::vector<unsigned char> keyEncrypted;
+    keyEncrypted.resize(getSize(stateKey));
+    read_n(stateKey, keyEncrypted.data(), keyEncrypted.size());
+    auto decrypted = _rsa.decrypt(keyEncrypted);
+    zero::bytes_t key = zero::bytes_t(decrypted.begin(), decrypted.end());
+
+    std::vector<unsigned char> encrypted;
+    encrypted.resize(getSize(state));
+
+    AESGCM aes;
+    aes.setIv(to_hex(std::vector<unsigned char>(AESGCM::iv_size, 0)));
+    aes.setKey(to_hex(key));
+    read_n(state, encrypted.data(), encrypted.size());
+    std::vector<unsigned char> bytes;
+    aes.decryptWithAd(encrypted, {}, bytes);
+
+    uint64_t from = 0;
+    auto clientState = ClientState::deserialize(bytes, from);
+
+    std::for_each(clientState.states.begin(), clientState.states.end(),
+                  [this](DRStatePair &p) {
+                      _ratchets.emplace(p.id, DoubleRatchet(p.state));
+                  });
+    std::for_each(clientState.messages.begin(), clientState.messages.end(),
+                  [this](X3DHInitialMessage &p) {
+                      _initialMessages.emplace(p.id, p.message);
+                  });
+
+    _x3dh->timestamp = clientState.timestamp;
+}
+
 void Client::sendData(uint32_t receiverId,
                       const std::vector<unsigned char> &data) {
     if (hasRatchet(receiverId)) {
@@ -207,6 +285,7 @@ void Client::sendData(uint32_t receiverId,
         std::string time = std::ctime(&now);
 
         if (ratchet.hasReceivedMessage()) {
+            _initialMessages.erase(receiverId);
             SendData toSend(time, _username, _userId, false,
                             message.serialize());
             sendRequest({{Request::Type::SEND, receiverId, _userId},
@@ -344,6 +423,8 @@ Request Client::completeAuth(const std::vector<unsigned char> &secret) {
 bool Client::hasRatchet(uint32_t id) const {
     return _ratchets.find(id) != _ratchets.end();
 }
+
+Client::~Client() { saveState(); }
 
 void ClientCleaner_Run() {
     std::string leftovers = getFile(".key");

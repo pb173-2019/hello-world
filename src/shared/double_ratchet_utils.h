@@ -73,7 +73,9 @@ struct DRState : Serializable<DRState> {
     // Dictionary of skipped-over message keys, indexed
     // by ratchet public key and message number. Raises an
     // exception if too many elements are stored
-    zero::bytes_t AD;    // additional data from X3DH
+    zero::bytes_t AD;        // additional data from X3DH
+    bool receivedMessage;    // boolean flag for checking whether double ratchet
+                             // was initialized on both sides
 
     serialize::structure &serialize(
         serialize::structure &result) const override {
@@ -93,6 +95,7 @@ struct DRState : Serializable<DRState> {
             serialize::serialize(x.second, result);
         }
         serialize::serialize(AD, result);
+        serialize::serialize(receivedMessage, result);
         return result;
     }
     serialize::structure serialize() const override {
@@ -122,8 +125,10 @@ struct DRState : Serializable<DRState> {
             result.MKSKIPPED.emplace(std::move(skipped_key), std::move(value));
         }
         result.AD = serialize::deserialize<decltype(result.AD)>(data, from);
+        result.receivedMessage = serialize::deserialize<decltype(result.receivedMessage)>(data, from);
         return result;
     }
+
     static DRState deserialize(const serialize::structure &data) {
         uint64_t from = 0;
         return deserialize(data, from);
