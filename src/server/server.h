@@ -18,6 +18,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <cctype>
 
 #include "../shared/connection_manager.h"
 #include "../shared/random.h"
