@@ -18,6 +18,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <cctype>
 
 #include "../shared/connection_manager.h"
 #include "../shared/random.h"
@@ -192,6 +193,9 @@ class Server
     std::unique_ptr<ServerDatabase> _database;
     std::unique_ptr<ServerTransmissionManager> _transmission;
 
+    bool validName(const std::string& s) {
+        return std::count_if(s.begin(), s.end(), [](unsigned char c){ return !std::isprint(c); }) == 0;
+    }
     // for testing -> public
    public:
     /**
