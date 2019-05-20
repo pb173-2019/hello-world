@@ -51,6 +51,9 @@ Response Server::handleUserRequest(const Request &request,
 Response Server::registerUser(const Request &request) {
     AuthenticateRequest registerRequest =
         AuthenticateRequest::deserialize(request.payload);
+    
+    if (!validName(registerRequest.name))
+        throw Error("Invalid name.");
 
     UserData userData(0, registerRequest.name, "", registerRequest.publicKey);
     if (!_database->select(userData).name.empty()) {
@@ -146,6 +149,9 @@ Response Server::completeAuthentication(const Request &request) {
 Response Server::authenticateUser(const Request &request) {
     AuthenticateRequest authenticateRequest =
         AuthenticateRequest::deserialize(request.payload);
+    
+    if (!validName(authenticateRequest.name))
+        throw Error("Invalid name.");
 
     UserData userData(0, authenticateRequest.name, "", {});
     UserData result = _database->select(userData);
