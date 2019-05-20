@@ -64,6 +64,7 @@ struct ChatWindow {
         mvwgetstr(bottom, 1, 2, str);
         wclear(bottom);
         drawFrame();
+        appendLine(str);
         return str;
     }
 

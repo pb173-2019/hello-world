@@ -12,8 +12,7 @@ void CMDApp::Command::print(ChatWindow &window) const {
                       info);
 }
 
-CMDApp::CMDApp(QObject *parent)
-    : QObject(parent), _timeout(new QTimer(this)) {
+CMDApp::CMDApp(QObject *parent) : QObject(parent), _timeout(new QTimer(this)) {
     connect(_timeout, &QTimer::timeout, this, &CMDApp::onTimer);
     _timeout->setInterval(max__timeout);
 }
@@ -184,7 +183,11 @@ void CMDApp::send_command(CMDApp *app) {
     }
     std::string msg = app->getInput("Message");
     std::vector<unsigned char> data(msg.begin(), msg.end());
-    app->client->sendData(static_cast<uint32_t>(id), data);
+    try {
+        app->client->sendData(static_cast<uint32_t>(id), data);
+    } catch (std::exception &error) {
+        app->print(error.what());
+    }
 }
 
 void CMDApp::messages_command(CMDApp *app) { app->client->checkForMessages(); }
@@ -206,26 +209,31 @@ bool CMDApp::_checkStatus(Command::Status required) {
 }
 
 void CMDApp::_loop(QString input) {
-    if (!_running) return;
-    auto cmd = std::find_if(
-        commands.begin(), commands.end(),
-        [&input](const Command &c) { return c.name == input.toStdString(); });
+    try {
+        if (!_running) return;
+        auto cmd = std::find_if(commands.begin(), commands.end(),
+                                [&input](const Command &c) {
+                                    return c.name == input.toStdString();
+                                });
 
-    if (cmd == commands.end()) {
-        print("Invalid command");
-        emit poll();
-        return;
+        if (cmd == commands.end()) {
+            print("Invalid command");
+            emit poll();
+            return;
+        }
+
+        if (_checkStatus(cmd->required))
+            cmd->call(this);
+        else
+            print("Invalid command");
+
+        if (!_running)
+            emit close();
+        else
+            emit poll();
+    } catch (Error &error) {
+        print(error.what());
     }
-
-    if (_checkStatus(cmd->required))
-        cmd->call(this);
-    else
-        print("Invalid command");
-
-    if (!_running)
-        emit close();
-    else
-        emit poll();
 }
 
 void CMDApp::_generateKeypair(const zero::str_t &password) {
