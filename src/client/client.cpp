@@ -76,9 +76,13 @@ void Client::callback(std::stringstream &&data) {
             receiveData(response);
             return;
         case Response::Type::GENERIC_SERVER_ERROR:
-            throw Error("Server returned error.");
+            std::cerr << "Server returned error.";
+            return;
+            // throw Error("Server returned error.");
         default:
-            throw Error("Unknown response type.");
+            std::cerr << "Unknown response type.";
+            return;
+            //throw Error("Unknown response type.");
     }
 }
 

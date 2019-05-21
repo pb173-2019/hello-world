@@ -60,8 +60,8 @@ struct ChatWindow {
     std::string getMessage() {
         wrefresh(top);
         wrefresh(bottom);
-        char str[256];
-        mvwgetstr(bottom, 1, 2, str);
+        char str[4096];
+        mvwgetnstr(bottom, 1, 2, str, 4096);
         wclear(bottom);
         drawFrame();
         appendLine(str);
