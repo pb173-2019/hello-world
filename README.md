@@ -1,4 +1,4 @@
-# Hello, world!
+# Hello, world! [![Build Status](https://www.travis-ci.org/pb173-2019/hello-world.svg?branch=master)](https://www.travis-ci.org/pb173-2019/hello-world)
 
 
 What do I download?
