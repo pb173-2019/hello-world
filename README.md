@@ -28,4 +28,4 @@ After you succesfully downloaded precompiled QT Core library for toolchain of yo
 
 Precompiled binaries
 --------------------
-We will provide precompiled binaries for both Windows and Linux in a few days.
+Precompiled binaries are available at https://github.com/pb173-2019/hello-world/releases.
